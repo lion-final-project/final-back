@@ -38,7 +38,7 @@ public class Inquiry extends BaseTimeEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "inquiry_category")
+    @Column(nullable = false)
     private InquiryCategory category;
 
     @Column(nullable = false, length = 200)
@@ -51,7 +51,7 @@ public class Inquiry extends BaseTimeEntity {
     private String fileUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "inquiry_status DEFAULT 'PENDING'")
+    @Column(nullable = false)
     private InquiryStatus status = InquiryStatus.PENDING;
 
     @Column(columnDefinition = "TEXT")

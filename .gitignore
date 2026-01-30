@@ -40,8 +40,6 @@ out/
 ### Local config ###
 application-local.yml
 Dockerfile.local
-pgdata/
-minio_data/
 *.log
 src/main/java/com/example/finalproject/forLocal/
 
@@ -62,3 +60,7 @@ src/main/generated/*
 
 myMd/
 
+
+
+minio_data/
+pgdata/

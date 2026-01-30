@@ -43,7 +43,7 @@ public class Rider extends BaseTimeEntity {
     private String idCardImage;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "operation_status", nullable = false, columnDefinition = "rider_operation_status DEFAULT 'OFFLINE'")
+    @Column(name = "operation_status", nullable = false)
     private RiderOperationStatus operationStatus = RiderOperationStatus.OFFLINE;
 
     @Column(name = "bank_name", length = 50)
@@ -56,7 +56,7 @@ public class Rider extends BaseTimeEntity {
     private String accountHolder;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "rider_approval_status DEFAULT 'PENDING'")
+    @Column(nullable = false)
     private RiderApprovalStatus status = RiderApprovalStatus.PENDING;
 
     @Builder

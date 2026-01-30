@@ -65,7 +65,7 @@ public class Subscription extends BaseTimeEntity {
     private PaymentMethod paymentMethod;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "subscription_status DEFAULT 'ACTIVE'")
+    @Column(nullable = false)
     private SubscriptionStatus status = SubscriptionStatus.ACTIVE;
 
     @Column(name = "next_payment_date")

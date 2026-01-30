@@ -42,7 +42,7 @@ public class PaymentMethod extends BaseTimeEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "method_type", nullable = false, columnDefinition = "payment_method_type")
+    @Column(name = "method_type", nullable = false)
     private PaymentMethodType methodType;
 
     @Column(name = "billing_key", nullable = false, length = 255)

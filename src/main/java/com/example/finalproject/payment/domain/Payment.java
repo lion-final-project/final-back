@@ -39,11 +39,11 @@ public class Payment extends BaseTimeEntity {
     private Order order;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false, columnDefinition = "payment_method_type")
+    @Column(name = "payment_method", nullable = false)
     private PaymentMethodType paymentMethod;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_status", nullable = false, columnDefinition = "payment_status DEFAULT 'PENDING'")
+    @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
     @Column(nullable = false, precision = 12, scale = 2)

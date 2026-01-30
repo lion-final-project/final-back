@@ -40,11 +40,11 @@ public class Approval extends BaseTimeEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "applicant_type", nullable = false, columnDefinition = "approval_applicant_type")
+    @Column(name = "applicant_type", nullable = false)
     private ApplicantType applicantType;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "approval_status DEFAULT 'PENDING'")
+    @Column(nullable = false)
     private ApprovalStatus status = ApprovalStatus.PENDING;
 
     @Column(columnDefinition = "TEXT")

@@ -44,7 +44,7 @@ public class SubscriptionHistory extends BaseTimeEntity {
     private LocalDate scheduledDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "sub_history_status DEFAULT 'SCHEDULED'")
+    @Column(nullable = false)
     private SubHistoryStatus status = SubHistoryStatus.SCHEDULED;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -38,7 +38,7 @@ public class ApprovalDocument extends BaseTimeEntity {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "applicant_type", nullable = false, columnDefinition = "applicant_type")
+    @Column(name = "applicant_type", nullable = false)
     private ApplicantType applicantType;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -47,7 +47,7 @@ public class ApprovalDocument extends BaseTimeEntity {
     private Approval approval;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "document_type", nullable = false, columnDefinition = "document_type")
+    @Column(name = "document_type", nullable = false)
     private DocumentType documentType;
 
     @Column(name = "document_url", nullable = false, length = 500)
