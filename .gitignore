@@ -35,3 +35,23 @@ out/
 
 ### VS Code ###
 .vscode/
+
+
+### Local config ###
+application-local.yml
+Dockerfile.local
+
+### Secrets ###
+.env
+.env.*
+*.pem
+*.key
+
+### Generated sources ###
+src/main/generated/*
+
+/src/test/
+**/claude.md
+.claude
+
+.DS_Store
