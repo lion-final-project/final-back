@@ -52,7 +52,7 @@ public class SubscriptionProduct extends BaseTimeEntity {
     private Integer deliveryCountOfWeek;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "subscription_product_status DEFAULT 'ACTIVE'")
+    @Column(nullable = false)
     private SubscriptionProductStatus status = SubscriptionProductStatus.ACTIVE;
 
     @Column(name = "subscription_url", length = 500)

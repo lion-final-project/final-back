@@ -44,7 +44,7 @@ public class Notification extends BaseTimeEntity {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reference_type", columnDefinition = "notification_ref_type")
+    @Column(name = "reference_type")
     private NotificationRefType referenceType;
 
     private LocalDateTime sentAt;

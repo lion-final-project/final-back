@@ -45,7 +45,7 @@ public class Banner extends BaseTimeEntity {
     private Integer displayOrder = 0;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "content_status DEFAULT 'ACTIVE'")
+    @Column(nullable = false)
     private ContentStatus status = ContentStatus.ACTIVE;
 
     @Column(name = "started_at", nullable = false)

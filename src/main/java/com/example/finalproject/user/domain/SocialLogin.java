@@ -41,7 +41,7 @@ public class SocialLogin extends BaseTimeEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "social_provider")
+    @Column(nullable = false)
     private SocialProvider provider;
 
     @Column(name = "provider_user_id", nullable = false, length = 255)

@@ -55,3 +55,6 @@ src/main/generated/*
 .claude
 
 .DS_Store
+
+minio_data/
+pgdata/

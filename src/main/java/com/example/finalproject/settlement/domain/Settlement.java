@@ -29,7 +29,7 @@ public class Settlement extends BaseTimeEntity {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "target_type", nullable = false, columnDefinition = "settlement_target_type")
+    @Column(name = "target_type", nullable = false)
     private SettlementTargetType targetType;
 
     @Column(name = "target_id", nullable = false)
@@ -51,7 +51,7 @@ public class Settlement extends BaseTimeEntity {
     private Integer settlementAmount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "settlement_status DEFAULT 'PENDING'")
+    @Column(nullable = false)
     private SettlementStatus status = SettlementStatus.PENDING;
 
     @Column(name = "bank_name", length = 50)
