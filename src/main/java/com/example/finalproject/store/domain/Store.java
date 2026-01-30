@@ -88,14 +88,14 @@ public class Store extends BaseTimeEntity {
     private Integer reviewCount = 0;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "store_status DEFAULT 'PENDING'")
+    @Column(nullable = false)
     private StoreStatus status = StoreStatus.PENDING;
 
     @Column(name = "is_delivery_available", nullable = false)
     private Boolean isDeliveryAvailable = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "is_active", nullable = false, columnDefinition = "store_active_status DEFAULT 'ACTIVE'")
+    @Column(name = "is_active", nullable = false)
     private StoreActiveStatus isActive = StoreActiveStatus.ACTIVE;
 
     @Column(name = "commission_rate", nullable = false, precision = 5, scale = 2)

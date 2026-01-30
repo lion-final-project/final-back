@@ -2,14 +2,22 @@ package com.example.finalproject.user.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
 import com.example.finalproject.user.enums.UserStatus;
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.SQLRestriction;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "users")
-@SQLRestriction("deleted_at IS NULL")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseTimeEntity {
@@ -31,7 +39,7 @@ public class User extends BaseTimeEntity {
     private String phone;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "user_status DEFAULT 'ACTIVE'")
+    @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;
 
     @Column(nullable = false)

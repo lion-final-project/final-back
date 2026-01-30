@@ -31,8 +31,7 @@ public class NotificationBroadcast extends BaseTimeEntity {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reference_type", nullable = false,
-            columnDefinition = "broadcast_ref_type DEFAULT 'ALL'")
+    @Column(name = "reference_type", nullable = false)
     private BroadcastRefType referenceType = BroadcastRefType.ALL;
 
     @Builder

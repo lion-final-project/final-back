@@ -45,7 +45,7 @@ public class Delivery extends BaseTimeEntity {
     private Rider rider;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "delivery_status DEFAULT 'REQUESTED'")
+    @Column(nullable = false)
     private DeliveryStatus status = DeliveryStatus.REQUESTED;
 
     @Column(name = "delivery_fee", nullable = false)

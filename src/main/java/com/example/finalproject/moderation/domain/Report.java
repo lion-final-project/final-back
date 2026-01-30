@@ -46,7 +46,7 @@ public class Report extends BaseTimeEntity {
     private User reporter;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "reporter_type", nullable = false, columnDefinition = "report_target_type")
+    @Column(name = "reporter_type")
     private ReportTargetType reporterType;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -55,14 +55,14 @@ public class Report extends BaseTimeEntity {
     private User target;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "target_type", nullable = false, columnDefinition = "report_target_type")
+    @Column(name = "target_type", nullable = false)
     private ReportTargetType targetType;
 
     @Column(name = "reason_detail", nullable = false, columnDefinition = "TEXT")
     private String reasonDetail;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "report_status DEFAULT 'PENDING'")
+    @Column(nullable = false)
     private ReportStatus status = ReportStatus.PENDING;
 
     @Column(name = "report_result", columnDefinition = "TEXT")

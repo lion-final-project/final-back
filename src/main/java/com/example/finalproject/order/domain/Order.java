@@ -42,11 +42,11 @@ public class Order extends BaseTimeEntity {
     private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "order_type", nullable = false, columnDefinition = "order_type DEFAULT 'REGULAR'")
+    @Column(name = "order_type", nullable = false)
     private OrderType orderType = OrderType.REGULAR;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "order_status DEFAULT 'PENDING'")
+    @Column(nullable = false)
     private OrderStatus status = OrderStatus.PENDING;
 
     @Column(name = "total_product_price", nullable = false)
