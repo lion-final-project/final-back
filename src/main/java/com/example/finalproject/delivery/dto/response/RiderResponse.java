@@ -14,9 +14,12 @@ public class RiderResponse {
 
     private Long id;
     private Long userId;
+    private String name;
+    private String phone;
     private String bankName;
     private String bankAccount;
     private String accountHolder;
+
     private RiderApprovalStatus status;
     private RiderOperationStatus operationStatus;
 
@@ -24,6 +27,8 @@ public class RiderResponse {
         return RiderResponse.builder()
                 .id(rider.getId())
                 .userId(rider.getUser().getId())
+                .name(rider.getUser().getName())
+                .phone(rider.getUser().getPhone())
                 .bankName(rider.getBankName())
                 .bankAccount(rider.getBankAccount())
                 .accountHolder(rider.getAccountHolder())
