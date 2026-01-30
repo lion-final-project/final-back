@@ -39,9 +39,6 @@ public class Rider extends BaseTimeEntity {
     @Column(name = "id_card_verified", nullable = false)
     private Boolean idCardVerified = false;
 
-    @Column(name = "id_card_image", length = 500)
-    private String idCardImage;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "operation_status", nullable = false)
     private RiderOperationStatus operationStatus = RiderOperationStatus.OFFLINE;
