@@ -2,6 +2,7 @@ package com.example.finalproject.delivery.service;
 
 
 import com.example.finalproject.delivery.domain.Rider;
+import com.example.finalproject.delivery.dto.request.PatchRiderStatusRequest;
 import com.example.finalproject.delivery.dto.response.RiderResponse;
 import com.example.finalproject.delivery.enums.RiderOperationStatus;
 import com.example.finalproject.delivery.repository.RiderRepository;
@@ -18,10 +19,10 @@ public class RiderServiceImpl implements RiderService {
 
     @Override
     @Transactional
-    public RiderResponse updateOperationStatus(String username, RiderOperationStatus status) {
-        Rider rider = findRiderByUsername(username);
+    public RiderResponse updateOperationStatus(String username, PatchRiderStatusRequest request) {
 
-        rider.setOperationStatus(status);
+        Rider rider = findRiderByUsername(username);
+        rider.setOperationStatus(request.getOperationStatus());
         riderRepository.save(rider);
 
         return RiderResponse.from(rider);

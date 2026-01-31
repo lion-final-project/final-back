@@ -1,5 +1,6 @@
 package com.example.finalproject.global.config;
 
+import com.example.finalproject.delivery.enums.RiderOperationStatus;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.DocumentType;
 import org.springframework.context.annotation.Configuration;
