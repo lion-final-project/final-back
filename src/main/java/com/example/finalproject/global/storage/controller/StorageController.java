@@ -20,7 +20,7 @@ public class StorageController {
 
     private final StorageService storageService;
 
-    @PostMapping(value = "/{userId}/{applicantType}/{documentType}")
+    @PostMapping("/{userId}/{applicantType}/{documentType}")
     public ResponseEntity<ApiResponse<String>> uploadFile(
             @PathVariable("userId") Long userId,
             @PathVariable("applicantType") ApplicantType applicantType,
