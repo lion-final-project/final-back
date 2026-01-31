@@ -1,7 +1,10 @@
 package com.example.finalproject.delivery.repository;
 
 import com.example.finalproject.delivery.domain.Rider;
+import com.example.finalproject.delivery.enums.RiderOperationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
 import java.util.Optional;
 
 public interface RiderRepository extends JpaRepository<Rider, Long> {
@@ -15,5 +18,9 @@ public interface RiderRepository extends JpaRepository<Rider, Long> {
      */
     Optional<Rider> findByUserId(Long userId);
 
-
+    /**
+     *  사용자 이메일로 라이더 정보 조회
+     */
+    @Query("SELECT r FROM Rider r WHERE r.user.email = :email")
+    Optional<Rider> findByUserEmail(String email);
 }

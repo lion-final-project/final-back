@@ -16,10 +16,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "riders")
@@ -40,6 +37,7 @@ public class Rider extends BaseTimeEntity {
     private Boolean idCardVerified = false;
 
     @Enumerated(EnumType.STRING)
+    @Setter
     @Column(name = "operation_status", nullable = false)
     private RiderOperationStatus operationStatus = RiderOperationStatus.OFFLINE;
 
