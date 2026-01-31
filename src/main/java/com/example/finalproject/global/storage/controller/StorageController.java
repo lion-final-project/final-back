@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/storage")
+@RequestMapping("/api/storage")
 @RequiredArgsConstructor
 public class StorageController {
 
