@@ -50,8 +50,13 @@ public class AuthService {
             throw new BusinessException(ErrorCode.DUPLICATE_PHONE);
         }
 
-        smsService.validateAndConsumeVerificationToken(
-                request.getPhone(), request.getPhoneVerificationToken());
+        // 방법 1: phoneVerificationToken 있으면 토큰 검증, 없으면 인증 완료 후 5분 TTL(SMS:PHONE_VERIFIED) 검증
+        String token = request.getPhoneVerificationToken();
+        if (token != null && !token.isBlank()) {
+            smsService.validateAndConsumeVerificationToken(request.getPhone(), token);
+        } else {
+            smsService.validateAndConsumePhoneVerified(request.getPhone());
+        }
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         LocalDateTime now = LocalDateTime.now();

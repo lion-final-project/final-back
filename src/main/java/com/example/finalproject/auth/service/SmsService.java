@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-//COOLSMS
+//COOLSMS 예제 참고
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -24,9 +24,13 @@ public class SmsService {
     private static final String REDIS_KEY_AUTH = "SMS:AUTH:";
     private static final String REDIS_KEY_RESEND = "SMS:RESEND:";
     private static final String REDIS_KEY_VERIFIED = "SMS:VERIFIED:";
+    /** 방법 1: 인증 완료 후 해당 번호를 TTL 동안 "인증됨" 상태로 보관 (교차검증/회원가입 유예) */
+    private static final String REDIS_KEY_PHONE_VERIFIED = "SMS:PHONE_VERIFIED:";
     private static final int AUTH_TTL_MINUTES = 3;
     private static final int RESEND_SESSION_TTL_MINUTES = 10;
     private static final int VERIFIED_TOKEN_TTL_MINUTES = 10;
+    /** 휴대폰 "인증 완료" 상태 유지 시간(초) — 이 시간 내에 회원가입 가능 */
+    private static final int PHONE_VERIFIED_TTL_SECONDS = 300; // 5분
     private static final int RESEND_LIMIT = 5;
 
     private final DefaultMessageService messageService;
@@ -92,11 +96,16 @@ public class SmsService {
         String token = UUID.randomUUID().toString();
         String verifiedKey = REDIS_KEY_VERIFIED + token;
         redisTemplate.opsForValue().set(verifiedKey, phoneNumber, VERIFIED_TOKEN_TTL_MINUTES, TimeUnit.MINUTES);
-        log.info("[SMS] 인증 토큰 발급 - token: {}, phone: {}", token, phoneNumber);
+
+        // 방법 1: 해당 번호를 TTL(5분) 동안 "인증 완료" 상태로 저장 → 회원가입 시 토큰 없이도 검증 가능
+        String phoneVerifiedKey = REDIS_KEY_PHONE_VERIFIED + phoneNumber;
+        redisTemplate.opsForValue().set(phoneVerifiedKey, "1", PHONE_VERIFIED_TTL_SECONDS, TimeUnit.SECONDS);
+
+        log.info("[SMS] 인증 토큰 발급 - token: {}, phone: {}, phoneVerified TTL: {}s", token, phoneNumber, PHONE_VERIFIED_TTL_SECONDS);
         return token;
     }
 
-    //Redis에서 phone 조회 후 1회 사용 삭제
+    //Redis에서 phone 조회 후 1회 사용 삭제 (phoneVerificationToken 사용 시)
     public void validateAndConsumeVerificationToken(String phone, String token) {
         if (token == null || token.isBlank()) {
             throw new BusinessException(ErrorCode.PHONE_VERIFICATION_REQUIRED);
@@ -110,7 +119,22 @@ public class SmsService {
             throw new BusinessException(ErrorCode.PHONE_VERIFICATION_REQUIRED);
         }
         redisTemplate.delete(verifiedKey);
+        redisTemplate.delete(REDIS_KEY_PHONE_VERIFIED + phone); // 동일 번호의 phone-verified도 소비
         log.info("[SMS] 인증 토큰 사용 완료 - phone: {}", phone);
+    }
+
+    /**
+     * 방법 1: 인증 완료 후 TTL(5분) 동안 유지된 "휴대폰 인증 완료" 상태를 1회 사용 후 삭제.
+     * 토큰 없이 회원가입 시 이 메서드로 검증 가능.
+     */
+    public void validateAndConsumePhoneVerified(String phone) {
+        String key = REDIS_KEY_PHONE_VERIFIED + phone;
+        String value = redisTemplate.opsForValue().get(key);
+        if (value == null) {
+            throw new BusinessException(ErrorCode.PHONE_VERIFICATION_EXPIRED);
+        }
+        redisTemplate.delete(key);
+        log.info("[SMS] 휴대폰 인증 완료 상태 사용(소비) - phone: {}", phone);
     }
 
     //재발송 수 조회

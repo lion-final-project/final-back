@@ -31,7 +31,7 @@ public class SignupRequest {
     @Size(max = 30, message = "이름은 30자 이하여야 합니다.")
     private String name;
 
-    @NotBlank(message = "휴대폰 인증 토큰은 필수입니다.")
+    /** 휴대폰 인증 토큰. 없으면 인증 완료 후 5분 이내 "휴대폰 인증 완료" 상태(SMS:PHONE_VERIFIED)로 검증 */
     private String phoneVerificationToken;
 
     private boolean marketingAgreed;
