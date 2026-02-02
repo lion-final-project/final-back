@@ -1,5 +1,6 @@
 package com.example.finalproject.delivery.domain;
 
+import com.example.finalproject.delivery.dto.response.RiderResponse;
 import com.example.finalproject.delivery.enums.RiderApprovalStatus;
 import com.example.finalproject.delivery.enums.RiderOperationStatus;
 import com.example.finalproject.global.domain.BaseTimeEntity;
@@ -55,7 +56,24 @@ public class Rider extends BaseTimeEntity {
     private RiderApprovalStatus status = RiderApprovalStatus.PENDING;
 
     @Builder
-    public Rider(User user) {
+    public Rider(User user, String bankName, String bankAccount, String accountHolder) {
         this.user = user;
+        this.bankName = bankName;
+        this.bankAccount = bankAccount;
+        this.accountHolder = accountHolder;
+    }
+
+    public RiderResponse createResponse() {
+        return RiderResponse.builder()
+                .id(this.getId())
+                .userId(this.user.getId())
+                .name(this.user.getName())
+                .phone(this.user.getPhone())
+                .bankAccount(this.bankAccount)
+                .bankName(this.bankName)
+                .accountHolder(this.accountHolder)
+                .status(this.status)
+                .operationStatus(this.operationStatus)
+                .build();
     }
 }

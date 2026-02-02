@@ -2,6 +2,7 @@ package com.example.finalproject.moderation.domain;
 
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
+import com.example.finalproject.moderation.dto.request.CreateDocumentRequest;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.DocumentType;
 import jakarta.persistence.Column;
@@ -17,10 +18,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 
 @Entity
@@ -41,6 +39,7 @@ public class ApprovalDocument extends BaseTimeEntity {
     @Column(name = "applicant_type", nullable = false)
     private ApplicantType applicantType;
 
+    @Setter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approval_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_approval_docs_approval"))
@@ -60,5 +59,14 @@ public class ApprovalDocument extends BaseTimeEntity {
         this.approval = approval;
         this.documentType = documentType;
         this.documentUrl = documentUrl;
+    }
+
+    public static ApprovalDocument create(Approval approval, DocumentType type, String url) {
+        return ApprovalDocument.builder()
+                .approval(approval)
+                .applicantType(approval.getApplicantType()) // Approval에서 가져옴
+                .documentType(type)
+                .documentUrl(url)
+                .build();
     }
 }
