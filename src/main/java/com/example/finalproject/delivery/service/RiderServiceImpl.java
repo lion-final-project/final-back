@@ -6,6 +6,7 @@ import com.example.finalproject.delivery.dto.request.PatchRiderStatusRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderRegisterRequest;
 import com.example.finalproject.delivery.dto.response.RiderApprovalResponse;
 import com.example.finalproject.delivery.dto.response.RiderResponse;
+import com.example.finalproject.delivery.enums.RiderOperationStatus;
 import com.example.finalproject.delivery.repository.RiderRepository;
 import com.example.finalproject.delivery.service.interfaces.RiderService;
 import com.example.finalproject.moderation.domain.Approval;
@@ -34,6 +35,10 @@ public class RiderServiceImpl implements RiderService {
     public RiderResponse updateOperationStatus(String username, PatchRiderStatusRequest request) {
 
         Rider rider = findRiderByUsername(username);
+        if (rider.getOperationStatus() == RiderOperationStatus.DELIVERING){
+            throw new RuntimeException("Status locked: DELIVERING");
+        }
+
         rider.setOperationStatus(request.getOperationStatus());
         riderRepository.save(rider);
 
@@ -101,12 +106,13 @@ public class RiderServiceImpl implements RiderService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
+    //신청이력 삭제 가능여부 확인
     private void validateAlreadyPending(User user) throws RuntimeException{
 
          if (approvalRepository.existsByUserAndStatus(user, ApprovalStatus.PENDING) ||
-                 approvalRepository.existsByUserAndStatus(user, ApprovalStatus.APPROVED)
+                 approvalRepository.existsByUserAndStatus(user, ApprovalStatus.HELD)
          ){
-             throw new RuntimeException("Already Pending");
+             throw new RuntimeException("Cannot delete: Not PENDING or HELD");
          }
     }
 }

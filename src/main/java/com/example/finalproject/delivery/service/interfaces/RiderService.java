@@ -12,7 +12,8 @@ import org.springframework.data.domain.Pageable;
 public interface RiderService {
     /**
      * @param username 유저 이메일
-     * @param request 라이더의 상태 변경 요청
+     * @param request 라이더 영업 상태 변경 요청
+     * @return 변경된 라이더 정보
      */
     RiderResponse updateOperationStatus(String username, PatchRiderStatusRequest request);
 
@@ -20,9 +21,16 @@ public interface RiderService {
      * 라이더 등록 신청
      * @param username 유저 이메일
      * @param request 라이더 등록 신청 요청
+     * @return 등록 신청된 라이더정보
      */
     RiderApprovalResponse createApproval(String username, PostRiderRegisterRequest request);
 
+    /**
+     * 라이더 신청 목록 조회
+     * @param username 유저 이메일
+     * @param pageable 페이징 정보
+     * @return 라이더 등록 신청 목록
+     */
     Page<RiderApprovalResponse> getApprovals(String username, Pageable pageable);
 
     void deleteApproval(Long approvalId);

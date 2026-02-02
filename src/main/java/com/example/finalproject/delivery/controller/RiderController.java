@@ -25,8 +25,7 @@ public class RiderController {
 
     /**
      * 라이더의 영업 상태 변경
-     * 
-     * @param request     라이더의 영업 상태 변경 요청
+     * @param request  라이더 영업 상태 변경 요청
      * @param userDetails 현재 인증된 사용자 정보
      * @return 변경된 라이더 정보
      */
@@ -40,7 +39,7 @@ public class RiderController {
 
     /**
      * 라이더 등록 신청
-     * @param request     라이더 등록 신청 요청
+     * @param request 라이더 등록 신청 요청
      * @param userDetails 현재 인증된 사용자 정보
      * @return 신청된 라이더 정보
      */
@@ -54,6 +53,11 @@ public class RiderController {
                 .body(ApiResponse.success("신청이 완료되었습니다.", response));
     }
 
+    /**
+     * 라이더 등록 신청 이력 조회
+     * @param pageable 페이지정보
+     * @param userDetails 현재 인증된 사용자 정보
+     */
     @GetMapping("/approvals")
     public ResponseEntity<ApiResponse<Page<RiderApprovalResponse>>> getApprovals(
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
@@ -63,6 +67,10 @@ public class RiderController {
         return ResponseEntity.ok(ApiResponse.success("라이더 신청 목록 조회가 완료되었습니다.", approvals));
     }
 
+    /**
+    * 라이더 등록신청 이력 삭제
+     * @param approvalsId 신청ID
+    */
     @DeleteMapping("/approvals/{approvals-id}")
     public ResponseEntity<ApiResponse<Void>> deleteApproval(@PathVariable("approvals-id") Long approvalsId) {
         riderService.deleteApproval(approvalsId);
