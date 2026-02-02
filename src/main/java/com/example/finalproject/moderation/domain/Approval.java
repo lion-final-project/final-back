@@ -1,6 +1,5 @@
 package com.example.finalproject.moderation.domain;
 
-
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.dto.response.RiderApprovalResponse;
 import com.example.finalproject.global.domain.BaseTimeEntity;
@@ -20,7 +19,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-
 @Entity
 @Table(name = "approvals")
 @Getter
@@ -32,8 +30,7 @@ public class Approval extends BaseTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_approvals_user"))
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_approvals_user"))
     private User user;
 
     @Enumerated(EnumType.STRING)
@@ -48,8 +45,7 @@ public class Approval extends BaseTimeEntity {
     private String reason;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approved_by",
-            foreignKey = @ForeignKey(name = "fk_approvals_approved_by"))
+    @JoinColumn(name = "approved_by", foreignKey = @ForeignKey(name = "fk_approvals_approved_by"))
     private User approvedBy;
 
     private LocalDateTime approvedAt;
@@ -57,8 +53,7 @@ public class Approval extends BaseTimeEntity {
     @OneToMany(mappedBy = "approval", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ApprovalDocument> documents = new ArrayList<>();
 
-
-    public void addDocument(DocumentType type, String url){
+    public void addDocument(DocumentType type, String url) {
         ApprovalDocument doc = ApprovalDocument.create(this, type, url);
         documents.add(doc);
         doc.setApproval(this);
@@ -79,7 +74,7 @@ public class Approval extends BaseTimeEntity {
                 .bankName(rider.getBankName())
                 .bankAccount(rider.getBankAccount())
                 .accountHolder(rider.getAccountHolder())
-                .status(status.getDescription())
+                .status(status.name())
                 .documents(documents.stream()
                         .map(ApprovalDocument::getDocumentUrl)
                         .toList())

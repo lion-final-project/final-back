@@ -16,6 +16,8 @@ import com.example.finalproject.moderation.repository.ApprovalRepository;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,15 +46,13 @@ public class RiderServiceImpl implements RiderService {
         User user = findUserByUserName(username);
         validateAlreadyPending(user);
 
-        Rider rider = Rider.builder()
-                .user(user)
+        Rider rider = Rider.builder().user(user)
                 .accountHolder(request.getAccountHolder())
                 .bankAccount(request.getBankAccount())
                 .bankName(request.getBankName())
                 .build();
 
-        Approval approval = Approval.builder()
-                .user(user)
+        Approval approval = Approval.builder().user(user)
                 .applicantType(ApplicantType.RIDER)
                 .build();
 
@@ -65,11 +65,37 @@ public class RiderServiceImpl implements RiderService {
         return approval.createResponse(rider);
     }
 
+    @Override
+    public Page<RiderApprovalResponse> getApprovals(String username, Pageable pageable) {
+        User user = findUserByUserName(username);
+        Rider rider = findRiderByUsername(username);
+
+        Page<Approval> approvalPage = approvalRepository
+                .findApprovalsByUserAndApplicantType(user, ApplicantType.RIDER, pageable);
+
+        return approvalPage.map(approval -> approval.createResponse(rider));
+    }
+
+    @Override
+    @Transactional
+    public void deleteApproval(Long approvalId) {
+        Approval approval = approvalRepository.findById(approvalId)
+                .orElseThrow(() -> new RuntimeException("Approval not found"));
+
+        if (!(approval.getStatus() == ApprovalStatus.PENDING)){
+            throw new RuntimeException("Approval status is not PENDING");
+        }
+
+        approvalRepository.delete(approval);
+    }
+
+    // 라이더 조회
     private Rider findRiderByUsername(String username) {
         return riderRepository.findByUserEmail(username)
                 .orElseThrow(() -> new RuntimeException("Rider not found"));
     }
 
+    // 유저 조회
     private User findUserByUserName(String username) {
         return userRepository.findUserByEmail(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
