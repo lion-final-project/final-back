@@ -31,11 +31,9 @@ public class SignupRequest {
     @Size(max = 30, message = "이름은 30자 이하여야 합니다.")
     private String name;
 
-    // API 명세서 v4 기준: 필수
     @NotBlank(message = "휴대폰 인증 토큰은 필수입니다.")
     private String phoneVerificationToken;
 
-    // API 명세서 v4 기준: 선택
     private boolean marketingAgreed;
 
     @AssertTrue(message = "필수 약관에 동의해야 합니다.")
