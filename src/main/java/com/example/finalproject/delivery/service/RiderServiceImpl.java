@@ -49,13 +49,20 @@ public class RiderServiceImpl implements RiderService {
     @Transactional
     public RiderApprovalResponse createApproval(String username, PostRiderRegisterRequest request) {
         User user = findUserByUserName(username);
-        validateAlreadyPending(user);
+        Rider rider;
 
-        Rider rider = Rider.builder().user(user)
-                .accountHolder(request.getAccountHolder())
-                .bankAccount(request.getBankAccount())
-                .bankName(request.getBankName())
-                .build();
+        if (riderRepository.existsByUserId(user.getId())){
+            rider = findRiderByUsername(username);
+        }else{
+            validateAlreadyPending(user);
+
+            rider = Rider.builder().user(user)
+                    .accountHolder(request.getAccountHolder())
+                    .bankAccount(request.getBankAccount())
+                    .bankName(request.getBankName())
+                    .build();
+        }
+
 
         Approval approval = Approval.builder().user(user)
                 .applicantType(ApplicantType.RIDER)

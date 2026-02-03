@@ -3,7 +3,6 @@ package com.example.finalproject.moderation.domain;
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.dto.response.RiderApprovalResponse;
 import com.example.finalproject.global.domain.BaseTimeEntity;
-import com.example.finalproject.moderation.dto.request.CreateApprovalRequest;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.ApprovalStatus;
 import com.example.finalproject.moderation.enums.DocumentType;
