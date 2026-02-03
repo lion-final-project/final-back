@@ -79,6 +79,56 @@ public class SubscriptionProductService {
     }
 
     /**
+     * 구독 상품을 수정한다 (API-SOP-010P).
+     * 해당 구독 상품이 storeId 소유인지 검증한 뒤, 이름·설명·가격·배송 횟수·구성 품목을 갱신한다.
+     * 상태(status) 변경은 별도 API(API-SOP-010S)에서만 처리한다.
+     *
+     * @param storeId              마트 ID
+     * @param subscriptionProductId 구독 상품 ID
+     * @param request              수정 요청 (이름, 가격, 총 배송 횟수, 구성 품목 등)
+     * @return 수정된 구독 상품 응답
+     * @throws BusinessException 구독 상품 없음/소속 불일치(SUBSCRIPTION_PRODUCT_NOT_FOUND), 상품 없음/소속 불일치(PRODUCT_NOT_FOUND)
+     */
+    @Transactional
+    public SubscriptionProductResponse update(Long storeId, Long subscriptionProductId,
+                                              SubscriptionProductRequest request) {
+        SubscriptionProduct product = subscriptionProductRepository.findById(subscriptionProductId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND));
+        if (!product.getStore().getId().equals(storeId)) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND);
+        }
+
+        int deliveryCountOfWeek = request.getTotalDeliveryCount() != null && request.getTotalDeliveryCount() >= 4
+                ? Math.max(1, request.getTotalDeliveryCount() / 4)
+                : 1;
+
+        product.updateDetails(
+                request.getName(),
+                request.getDescription(),
+                request.getPrice(),
+                request.getTotalDeliveryCount(),
+                deliveryCountOfWeek
+        );
+        subscriptionProductRepository.flush();
+
+        subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
+        List<SubscriptionProductItem> items = new ArrayList<>();
+        for (SubscriptionProductRequest.SubscriptionProductItemRequest itemReq : request.getItems()) {
+            Product p = productRepository.findByIdAndStore_Id(itemReq.getProductId(), storeId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+            SubscriptionProductItem item = SubscriptionProductItem.builder()
+                    .subscriptionProduct(product)
+                    .product(p)
+                    .quantity(itemReq.getQuantity())
+                    .build();
+            items.add(subscriptionProductItemRepository.save(item));
+        }
+
+        int subscriberCount = (int) subscriptionRepository.countBySubscriptionProductAndStatus(product, SubscriptionStatus.ACTIVE);
+        return toResponse(product, subscriberCount, items);
+    }
+
+    /**
      * 마트가 등록한 구독 상품 목록을 조회한다. (API-SOP-009)
      * 생성일 역순, 각 상품별 구독자 수(ACTIVE) 및 구성 품목 포함.
      *

@@ -15,4 +15,11 @@ public interface SubscriptionProductItemRepository extends JpaRepository<Subscri
      * @return 구성 품목 목록
      */
     List<SubscriptionProductItem> findBySubscriptionProductOrderById(SubscriptionProduct subscriptionProduct);
+
+    /**
+     * 구독 상품에 속한 구성 품목을 모두 삭제한다.
+     *
+     * @param subscriptionProduct 구독 상품
+     */
+    void deleteBySubscriptionProduct(SubscriptionProduct subscriptionProduct);
 }

@@ -70,4 +70,34 @@ public class SubscriptionProduct extends BaseTimeEntity {
         this.deliveryCountOfWeek = deliveryCountOfWeek != null ? deliveryCountOfWeek : 1;
         this.subscriptionUrl = subscriptionUrl;
     }
+
+    /**
+     * 구독 상품 정보를 수정한다 (API-SOP-010P). 상태(status)는 별도 API(API-SOP-010S)로만 변경한다.
+     *
+     * @param name                 구독 상품명
+     * @param description          설명
+     * @param price                가격
+     * @param totalDeliveryCount   월 총 배송 횟수
+     * @param deliveryCountOfWeek  주당 배송 횟수 (null이면 totalDeliveryCount 기반 계산)
+     */
+    public void updateDetails(String name, String description, Integer price,
+                              Integer totalDeliveryCount, Integer deliveryCountOfWeek) {
+        if (name != null) {
+            this.subscriptionProductName = name;
+        }
+        if (description != null) {
+            this.description = description;
+        }
+        if (price != null) {
+            this.price = price;
+        }
+        if (totalDeliveryCount != null) {
+            this.totalDeliveryCount = totalDeliveryCount;
+        }
+        if (deliveryCountOfWeek != null) {
+            this.deliveryCountOfWeek = deliveryCountOfWeek;
+        } else if (totalDeliveryCount != null && totalDeliveryCount >= 4) {
+            this.deliveryCountOfWeek = Math.max(1, totalDeliveryCount / 4);
+        }
+    }
 }

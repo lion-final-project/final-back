@@ -15,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -70,6 +72,26 @@ public class StoreSubscriptionProductController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response));
+    }
+
+    /**
+     * API-SOP-010P: 구독 상품 수정.
+     * 마트가 소유한 구독 상품의 이름·설명·가격·배송 횟수·구성 품목을 수정한다.
+     * 노출 상태 변경은 PATCH .../status (API-SOP-010S)에서 처리한다.
+     *
+     * @param id                   구독 상품 ID (path)
+     * @param storeIdHeader        개발·테스트용 마트 ID (선택)
+     * @param request              수정 요청 (이름, 가격, 총 배송 횟수, 구성 품목 등)
+     * @return 200 OK, 수정된 구독 상품 응답
+     */
+    @PatchMapping("/{id}")
+    public ResponseEntity<ApiResponse<SubscriptionProductResponse>> update(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader,
+            @Valid @RequestBody SubscriptionProductRequest request) {
+        Long storeId = resolveStoreId(storeIdHeader);
+        SubscriptionProductResponse response = subscriptionProductService.update(storeId, id, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
