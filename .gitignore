@@ -39,6 +39,8 @@ out/
 
 ### Local config ###
 application-local.yml
+src/main/resources/application-local.yml
+src/main/resources/application-*.local.yml
 Dockerfile.local
 
 ### Secrets ###
@@ -58,3 +60,16 @@ src/main/generated/*
 
 minio_data/
 pgdata/
+
+### Local runtime/logs ###
+logs/
+sql/
+
+### Local env/config ###
+docker-compose.yml
+src/main/resources/application.yml
+
+### Local-only code changes ###
+src/main/java/com/example/finalproject/global/config/SecurityConfig.java
+src/main/java/com/example/finalproject/store/domain/Store.java
+src/main/java/com/example/finalproject/store/repository/
