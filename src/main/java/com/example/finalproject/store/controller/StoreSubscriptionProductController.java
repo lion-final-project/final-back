@@ -7,6 +7,7 @@ import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.subscription.dto.request.SubscriptionProductRequest;
 import com.example.finalproject.subscription.dto.request.SubscriptionProductStatusRequest;
+import com.example.finalproject.subscription.dto.response.SubscriptionProductDeletionResultResponse;
 import com.example.finalproject.subscription.dto.response.SubscriptionProductResponse;
 import com.example.finalproject.subscription.service.SubscriptionProductService;
 import jakarta.validation.Valid;
@@ -112,6 +113,27 @@ public class StoreSubscriptionProductController {
         Long storeId = resolveStoreId(storeIdHeader);
         SubscriptionProductResponse response = subscriptionProductService.updateStatus(storeId, id, request);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * UC-S11: 구독 상품 삭제 요청.
+     * - 구독자가 남아 있으면 삭제 예정(PENDING_DELETE)로 전환한다.
+     * - 구독자가 없으면 즉시 삭제한다.
+     *
+     * @param id            구독 상품 ID
+     * @param storeIdHeader 개발·테스트용 마트 ID (선택)
+     * @return 삭제 예정 전환 시 구독 상품 정보, 즉시 삭제 시 success 메세지
+     */
+    @PatchMapping("/{id}/deletion")
+    public ResponseEntity<ApiResponse<SubscriptionProductResponse>> requestDeletion(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader) {
+        Long storeId = resolveStoreId(storeIdHeader);
+        SubscriptionProductDeletionResultResponse result = subscriptionProductService.requestDeletion(storeId, id);
+        if (result.getAction() == SubscriptionProductDeletionResultResponse.Action.DELETED) {
+            return ResponseEntity.ok(ApiResponse.success("구독 상품이 삭제되었습니다.", null));
+        }
+        return ResponseEntity.ok(ApiResponse.success(result.getProduct()));
     }
 
     /**

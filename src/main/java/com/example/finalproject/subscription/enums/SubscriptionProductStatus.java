@@ -1,5 +1,7 @@
 package com.example.finalproject.subscription.enums;
 
 public enum SubscriptionProductStatus {
-    ACTIVE, INACTIVE
+    ACTIVE,
+    INACTIVE,
+    PENDING_DELETE
 }
