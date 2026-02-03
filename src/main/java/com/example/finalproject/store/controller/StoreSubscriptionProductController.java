@@ -116,13 +116,15 @@ public class StoreSubscriptionProductController {
     }
 
     /**
+     * API-SOP-010D1: 마트 구독 상품 삭제 요청(삭제 예정).
      * UC-S11: 구독 상품 삭제 요청.
+     * - 숨김(INACTIVE) 상태에서만 호출 가능.
      * - 구독자가 남아 있으면 삭제 예정(PENDING_DELETE)로 전환한다.
      * - 구독자가 없으면 즉시 삭제한다.
      *
      * @param id            구독 상품 ID
      * @param storeIdHeader 개발·테스트용 마트 ID (선택)
-     * @return 삭제 예정 전환 시 구독 상품 정보, 즉시 삭제 시 success 메세지
+     * @return 삭제 예정 전환 시 구독 상품 정보(data), 즉시 삭제 시 message만 반환(data=null)
      */
     @PatchMapping("/{id}/deletion")
     public ResponseEntity<ApiResponse<SubscriptionProductResponse>> requestDeletion(
