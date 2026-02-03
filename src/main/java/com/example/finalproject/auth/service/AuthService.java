@@ -4,6 +4,7 @@ import com.example.finalproject.auth.domain.RefreshToken;
 import com.example.finalproject.auth.dto.request.LoginRequest;
 import com.example.finalproject.auth.dto.request.SignupRequest;
 import com.example.finalproject.auth.dto.response.LoginResponse;
+import com.example.finalproject.auth.dto.response.MeResponse;
 import com.example.finalproject.auth.dto.response.SendVerificationResponse;
 import com.example.finalproject.auth.dto.response.SignupResponse;
 import com.example.finalproject.auth.dto.response.TokenRefreshResponse;
@@ -16,12 +17,14 @@ import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.domain.UserRole;
 import com.example.finalproject.user.enums.UserStatus;
 import com.example.finalproject.user.repository.RoleRepository;
+import com.example.finalproject.global.security.CustomUserDetails;
 import com.example.finalproject.user.repository.UserRepository;
 import com.example.finalproject.user.repository.UserRoleRepository;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -164,6 +167,32 @@ public class AuthService {
         RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken) 
                 .orElseThrow(() -> new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID));
         refreshTokenRepository.delete(storedToken); 
+    }
+
+    /** 세션(JWT) 현재 사용자 정보. CustomUserDetails(세션) 또는 JWT subject(이메일) 지원 */
+    @Transactional(readOnly = true)
+    public MeResponse getCurrentUser(Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof CustomUserDetails details) {
+            User user = details.getUser();
+            List<String> roles = details.getAuthorities().stream()
+                    .map(a -> a.getAuthority().replace("ROLE_", ""))
+                    .toList();
+            return new MeResponse(user.getId(), user.getEmail(), user.getName(), roles);
+        }
+        if (principal instanceof String email) {
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.EMAIL_NOT_FOUND));
+            List<String> roles = user.getUserRoles().stream()
+                    .map(UserRole::getRole)
+                    .map(Role::getRoleName)
+                    .toList();
+            return new MeResponse(user.getId(), user.getEmail(), user.getName(), roles);
+        }
+        throw new BusinessException(ErrorCode.UNAUTHORIZED);
     }
 
     //휴대폰 인증번호 발송 (CoolSMS + Redis)

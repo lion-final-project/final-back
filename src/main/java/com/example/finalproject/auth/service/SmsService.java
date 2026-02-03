@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-//COOLSMS 예제 참고
+//COOLSMS
 @Slf4j
 @Service
 @RequiredArgsConstructor

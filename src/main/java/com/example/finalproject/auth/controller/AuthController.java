@@ -2,10 +2,13 @@ package com.example.finalproject.auth.controller;
 
 import com.example.finalproject.auth.dto.DuplicateCheckResponse;
 import com.example.finalproject.auth.dto.request.*;
+import com.example.finalproject.auth.dto.response.MeResponse;
 import com.example.finalproject.auth.dto.response.*;
 import com.example.finalproject.auth.service.AuthService;
+import com.example.finalproject.auth.service.KakaoService;
 import com.example.finalproject.global.config.CookieUtil;
 import com.example.finalproject.global.exception.custom.BusinessException;
+import com.example.finalproject.global.security.CustomUserDetails;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.response.ApiResponse;
@@ -24,6 +27,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import com.example.finalproject.auth.dto.kakao.OAuthLoginSessionResult;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -31,8 +41,18 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class AuthController {
 
+    private static final String SESSION_KAKAO_PENDING_PROVIDER_USER_ID = "kakao_pending_provider_user_id";
+
     private final AuthService authService;
+    private final KakaoService kakaoService;
     private final JwtProperties jwtProperties;
+
+    //현재 로그인 사용자 카카오 로그인 후 프론트에서 호출
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<MeResponse>> me(Authentication authentication) {
+        MeResponse me = authService.getCurrentUser(authentication);
+        return ResponseEntity.ok(ApiResponse.success(me));
+    }
 
     @GetMapping("/check-email")
     public ResponseEntity<ApiResponse<DuplicateCheckResponse>> checkEmail(
@@ -101,6 +121,33 @@ public class AuthController {
     ) {
         String token = authService.verifyPhone(request.getPhone(), request.getVerificationCode());
         return ResponseEntity.ok(ApiResponse.success("휴대폰 인증이 완료되었습니다.", new VerifyPhoneResponse(true, token)));
+    }
+
+    /** 카카오 최초 로그인 후 회원가입 폼 제출. 세션에 kakao_pending_provider_user_id 필요 (카카오 콜백 후 signup_required 리다이렉트 시 설정됨) */
+    @PostMapping("/social-signup/complete")
+    public ResponseEntity<ApiResponse<MeResponse>> completeSocialSignup(
+            @Valid @RequestBody SocialSignupCompleteRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        String providerUserId = (String) httpRequest.getSession().getAttribute(SESSION_KAKAO_PENDING_PROVIDER_USER_ID);
+        if (providerUserId == null || providerUserId.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE); // 카카오 로그인 후 회원가입 단계가 아님
+        }
+        OAuthLoginSessionResult result = kakaoService.completeKakaoSignup(providerUserId, request);
+        httpRequest.getSession().removeAttribute(SESSION_KAKAO_PENDING_PROVIDER_USER_ID);
+        httpRequest.getSession().removeAttribute("kakao_pending_nickname");
+
+        CustomUserDetails userDetails = new CustomUserDetails(result.getUser(), result.getRoles());
+        var auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        new HttpSessionSecurityContextRepository().saveContext(SecurityContextHolder.getContext(), httpRequest, httpResponse);
+
+        MeResponse me = new MeResponse(
+                result.getUser().getId(),
+                result.getUser().getEmail(),
+                result.getUser().getName(),
+                result.getRoles());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("회원가입이 완료되었습니다.", me));
     }
 
     //refreshToken -> Cookie에서 읽음 (HttpOnly)
