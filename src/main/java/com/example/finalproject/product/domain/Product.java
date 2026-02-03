@@ -80,4 +80,12 @@ public class Product extends BaseTimeEntity {
         this.price = price;
         this.stock = stock != null ? stock : 0;
     }
+
+    public int getEffectivePrice() {
+        return salePrice != null ? salePrice : price;
+    }
+
+    public boolean isLowStock() {
+        return stock < 5;
+    }
 }
