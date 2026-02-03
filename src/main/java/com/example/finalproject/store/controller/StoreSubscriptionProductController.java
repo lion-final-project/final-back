@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -136,6 +137,23 @@ public class StoreSubscriptionProductController {
             return ResponseEntity.ok(ApiResponse.success("구독 상품이 삭제되었습니다.", null));
         }
         return ResponseEntity.ok(ApiResponse.success(result.getProduct()));
+    }
+
+    /**
+     * API-SOP-010D2: 마트 구독 상품 즉시 삭제.
+     * 구독자가 0명일 때만 삭제 가능. 삭제 예정 상태에서 구독자가 모두 없어진 후 호출한다.
+     *
+     * @param id            구독 상품 ID
+     * @param storeIdHeader 개발·테스트용 마트 ID (선택)
+     * @return 200 OK, 삭제 완료 메시지
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteImmediately(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader) {
+        Long storeId = resolveStoreId(storeIdHeader);
+        subscriptionProductService.deleteImmediately(storeId, id);
+        return ResponseEntity.ok(ApiResponse.success("구독 상품이 삭제되었습니다."));
     }
 
     /**

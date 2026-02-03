@@ -218,6 +218,28 @@ public class SubscriptionProductService {
     }
 
     /**
+     * API-SOP-010D2: 구독 상품 즉시 삭제.
+     * 구독자가 0명일 때만 호출 가능. 삭제 예정(PENDING_DELETE) 상태에서 구독자가 모두 없어진 후 사장님이 삭제할 때 사용한다.
+     *
+     * @param storeId              마트 ID
+     * @param subscriptionProductId 구독 상품 ID
+     * @throws BusinessException 구독 상품 없음/소속 불일치(SUBSCRIPTION_PRODUCT_NOT_FOUND), 구독자 존재(SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS)
+     */
+    @Transactional
+    public void deleteImmediately(Long storeId, Long subscriptionProductId) {
+        SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
+
+        boolean hasOngoingSubscribers = subscriptionRepository.existsBySubscriptionProductAndStatusIn(
+                product, DELETION_BLOCKING_STATUSES);
+        if (hasOngoingSubscribers) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS);
+        }
+
+        subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
+        subscriptionProductRepository.delete(product);
+    }
+
+    /**
      * 고객용: 특정 마트의 구독 상품 목록을 조회한다. (API-STO-005)
      * ACTIVE 상태만 노출할지 여부는 API/컨트롤러에서 필터링할 수 있도록 여기서는 전체 조회 후 호출부에서 필터 가능.
      * 명세상 고객은 마트별 구독 상품 목록 조회이므로, ACTIVE만 반환하는 것이 일반적이다.
