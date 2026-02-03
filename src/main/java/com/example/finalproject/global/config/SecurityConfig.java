@@ -67,13 +67,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.GET, "/api/auth/check-email", "/api/auth/check-phone").permitAll() 
                         //이메일 중복 체크, 휴대폰 중복 체크 권한 부여
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/refresh").permitAll() 
-                        //회원가입, 토큰 갱신 권한 부여
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/refresh", "/api/auth/login").permitAll() 
+                        //회원가입, 토큰 갱신, 로그인 권한 부여
                         .requestMatchers(HttpMethod.POST, "/api/auth/send-verification", "/api/auth/verify-phone").permitAll() 
                         //휴대폰 인증번호 발송, 검증 권한 부여
                         .requestMatchers("/error").permitAll() 
                         //에러 페이지 권한 부여
-                        .anyRequest().authenticated()
+                        .anyRequest().authenticated() 
+                        //로그아웃 포함 기타 API: 인증 필요 (Bearer 또는 Cookie)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

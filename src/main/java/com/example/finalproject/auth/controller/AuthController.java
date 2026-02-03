@@ -1,15 +1,12 @@
 package com.example.finalproject.auth.controller;
 
 import com.example.finalproject.auth.dto.DuplicateCheckResponse;
-import com.example.finalproject.auth.dto.request.SendVerificationRequest;
-import com.example.finalproject.auth.dto.request.SignupRequest;
-import com.example.finalproject.auth.dto.request.VerifyPhoneRequest;
-import com.example.finalproject.auth.dto.response.SendVerificationResponse;
-import com.example.finalproject.auth.dto.response.SignupResponse;
-import com.example.finalproject.auth.dto.response.TokenRefreshResponse;
-import com.example.finalproject.auth.dto.response.VerifyPhoneResponse;
+import com.example.finalproject.auth.dto.request.*;
+import com.example.finalproject.auth.dto.response.*;
 import com.example.finalproject.auth.service.AuthService;
 import com.example.finalproject.global.config.CookieUtil;
+import com.example.finalproject.global.exception.custom.BusinessException;
+import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -72,6 +69,24 @@ public class AuthController {
                 .body(ApiResponse.success("회원가입이 완료되었습니다.", response));
     }
 
+    @PostMapping("/login")
+    public ResponseEntity<ApiResponse<LoginResponse>> login(
+            @Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE,
+                CookieUtil.createAccessTokenCookie(
+                        response.getAccessToken(),
+                        jwtProperties.getAccessTokenValiditySeconds()).toString());
+        headers.add(HttpHeaders.SET_COOKIE,
+                CookieUtil.createRefreshTokenCookie(
+                        response.getRefreshToken(),
+                        jwtProperties.getRefreshTokenValiditySeconds()).toString());
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(ApiResponse.success("로그인이 완료되었습니다.", response));
+    }
+
     @PostMapping("/send-verification")
     public ResponseEntity<ApiResponse<SendVerificationResponse>> sendVerification(
             @Valid @RequestBody SendVerificationRequest request
@@ -105,4 +120,25 @@ public class AuthController {
                         jwtProperties.getRefreshTokenValiditySeconds()).toString());
         return ResponseEntity.ok().headers(headers).body(ApiResponse.success("토큰이 갱신되었습니다.", null));
     }
+
+
+    //RT or Cookie(nm_refreshToken) 중 하나로 무효화, 프론트 credentials: 'include' 시 쿠키만으로 로그아웃 가능
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @RequestBody(required = false) RefreshTokenRequest request,
+            @CookieValue(name = CookieUtil.REFRESH_TOKEN_COOKIE, required = false) String refreshTokenFromCookie) {
+        String token = (request != null && request.getRefreshToken() != null && !request.getRefreshToken().isBlank())
+                ? request.getRefreshToken() : refreshTokenFromCookie;
+        if (token == null || token.isBlank()) {
+            throw new BusinessException(ErrorCode.REFRESH_TOKEN_MISSING);
+        }
+        authService.logout(token);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearAccessTokenCookie().toString());
+        headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearRefreshTokenCookie().toString());
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(ApiResponse.success("로그아웃 되었습니다."));
+    }
+
 }
