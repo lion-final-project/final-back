@@ -60,12 +60,14 @@ public class SubscriptionProduct extends BaseTimeEntity {
 
     @Builder
     public SubscriptionProduct(Store store, String subscriptionProductName,
-                               Integer price, Integer totalDeliveryCount,
-                               Integer deliveryCountOfWeek) {
+                              String description, Integer price, Integer totalDeliveryCount,
+                              Integer deliveryCountOfWeek, String subscriptionUrl) {
         this.store = store;
         this.subscriptionProductName = subscriptionProductName;
+        this.description = description;
         this.price = price;
         this.totalDeliveryCount = totalDeliveryCount;
-        this.deliveryCountOfWeek = deliveryCountOfWeek;
+        this.deliveryCountOfWeek = deliveryCountOfWeek != null ? deliveryCountOfWeek : 1;
+        this.subscriptionUrl = subscriptionUrl;
     }
 }
