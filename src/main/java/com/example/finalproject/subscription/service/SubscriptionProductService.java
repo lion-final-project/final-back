@@ -8,10 +8,11 @@ import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.subscription.domain.SubscriptionProduct;
 import com.example.finalproject.subscription.domain.SubscriptionProductItem;
-import com.example.finalproject.subscription.dto.request.SubscriptionProductRequest;
-import com.example.finalproject.subscription.dto.request.SubscriptionProductStatusRequest;
-import com.example.finalproject.subscription.dto.response.SubscriptionProductDeletionResultResponse;
-import com.example.finalproject.subscription.dto.response.SubscriptionProductResponse;
+import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductRequest;
+import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductStatusRequest;
+import com.example.finalproject.subscription.dto.request.PostSubscriptionProductRequest;
+import com.example.finalproject.subscription.dto.response.PatchSubscriptionProductDeletionResponse;
+import com.example.finalproject.subscription.dto.response.GetSubscriptionProductResponse;
 import com.example.finalproject.subscription.enums.SubscriptionProductStatus;
 import com.example.finalproject.subscription.enums.SubscriptionStatus;
 import com.example.finalproject.subscription.repository.SubscriptionProductItemRepository;
@@ -50,7 +51,7 @@ public class SubscriptionProductService {
      * @throws BusinessException 마트 없음(STORE_NOT_FOUND), 상품 없음/소속 불일치(PRODUCT_NOT_FOUND)
      */
     @Transactional
-    public SubscriptionProductResponse create(Long storeId, SubscriptionProductRequest request) {
+    public GetSubscriptionProductResponse create(Long storeId, PostSubscriptionProductRequest request) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
 
@@ -71,7 +72,7 @@ public class SubscriptionProductService {
         SubscriptionProduct saved = subscriptionProductRepository.save(product);
 
         List<SubscriptionProductItem> items = new ArrayList<>();
-        for (SubscriptionProductRequest.SubscriptionProductItemRequest itemReq : request.getItems()) {
+        for (PostSubscriptionProductRequest.PostSubscriptionProductItemRequest itemReq : request.getItems()) {
             Product p = productRepository.findByIdAndStore_Id(itemReq.getProductId(), storeId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
             SubscriptionProductItem item = SubscriptionProductItem.builder()
@@ -97,8 +98,8 @@ public class SubscriptionProductService {
      * @throws BusinessException 구독 상품 없음/소속 불일치(SUBSCRIPTION_PRODUCT_NOT_FOUND), 상품 없음/소속 불일치(PRODUCT_NOT_FOUND)
      */
     @Transactional
-    public SubscriptionProductResponse update(Long storeId, Long subscriptionProductId,
-                                              SubscriptionProductRequest request) {
+    public GetSubscriptionProductResponse update(Long storeId, Long subscriptionProductId,
+                                                 PatchSubscriptionProductRequest request) {
         SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
 
         int deliveryCountOfWeek = request.getTotalDeliveryCount() != null && request.getTotalDeliveryCount() >= 4
@@ -116,7 +117,7 @@ public class SubscriptionProductService {
 
         subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
         List<SubscriptionProductItem> items = new ArrayList<>();
-        for (SubscriptionProductRequest.SubscriptionProductItemRequest itemReq : request.getItems()) {
+        for (PatchSubscriptionProductRequest.PatchSubscriptionProductItemRequest itemReq : request.getItems()) {
             Product p = productRepository.findByIdAndStore_Id(itemReq.getProductId(), storeId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
             SubscriptionProductItem item = SubscriptionProductItem.builder()
@@ -142,8 +143,8 @@ public class SubscriptionProductService {
      * @throws BusinessException 구독 상품 없음/소속 불일치(SUBSCRIPTION_PRODUCT_NOT_FOUND)
      */
     @Transactional
-    public SubscriptionProductResponse updateStatus(Long storeId, Long subscriptionProductId,
-                                                    SubscriptionProductStatusRequest request) {
+    public GetSubscriptionProductResponse updateStatus(Long storeId, Long subscriptionProductId,
+                                                       PatchSubscriptionProductStatusRequest request) {
         SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
         if (request.getStatus() == SubscriptionProductStatus.PENDING_DELETE) {
             throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_INVALID_STATUS);
@@ -164,12 +165,12 @@ public class SubscriptionProductService {
      * @return 구독 상품 응답 목록
      */
     @Transactional(readOnly = true)
-    public List<SubscriptionProductResponse> findListByStoreId(Long storeId) {
+    public List<GetSubscriptionProductResponse> findListByStoreId(Long storeId) {
         if (storeRepository.findById(storeId).isEmpty()) {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
         List<SubscriptionProduct> products = subscriptionProductRepository.findByStore_IdOrderByCreatedAtDesc(storeId);
-        List<SubscriptionProductResponse> result = new ArrayList<>(products.size());
+        List<GetSubscriptionProductResponse> result = new ArrayList<>(products.size());
         for (SubscriptionProduct sp : products) {
             long subscriberCount = subscriptionRepository.countBySubscriptionProductAndStatus(sp, SubscriptionStatus.ACTIVE);
             List<SubscriptionProductItem> items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(sp);
@@ -189,14 +190,14 @@ public class SubscriptionProductService {
      * @return 삭제 처리 결과 (삭제 예정 혹은 즉시 삭제)
      */
     @Transactional
-    public SubscriptionProductDeletionResultResponse requestDeletion(Long storeId, Long subscriptionProductId) {
+    public PatchSubscriptionProductDeletionResponse requestDeletion(Long storeId, Long subscriptionProductId) {
         SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
 
         if (product.getStatus() == SubscriptionProductStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_DELETION_REQUIRES_INACTIVE);
         }
         if (product.getStatus() == SubscriptionProductStatus.PENDING_DELETE) {
-            return SubscriptionProductDeletionResultResponse.scheduled(
+            return PatchSubscriptionProductDeletionResponse.scheduled(
                     toResponse(product, getOngoingSubscriberCount(product),
                             subscriptionProductItemRepository.findBySubscriptionProductOrderById(product)));
         }
@@ -208,13 +209,13 @@ public class SubscriptionProductService {
             product.updateStatus(SubscriptionProductStatus.PENDING_DELETE);
             subscriptionProductRepository.flush();
             List<SubscriptionProductItem> items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(product);
-            return SubscriptionProductDeletionResultResponse.scheduled(
+            return PatchSubscriptionProductDeletionResponse.scheduled(
                     toResponse(product, getOngoingSubscriberCount(product), items));
         }
 
         subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
         subscriptionProductRepository.delete(product);
-        return SubscriptionProductDeletionResultResponse.deleted();
+        return PatchSubscriptionProductDeletionResponse.deleted();
     }
 
     /**
@@ -248,12 +249,12 @@ public class SubscriptionProductService {
      * @return 구독 상품 응답 목록 (ACTIVE만 반환)
      */
     @Transactional(readOnly = true)
-    public List<SubscriptionProductResponse> findListByStoreIdForCustomer(Long storeId) {
+    public List<GetSubscriptionProductResponse> findListByStoreIdForCustomer(Long storeId) {
         if (storeRepository.findById(storeId).isEmpty()) {
             return List.of();
         }
         List<SubscriptionProduct> products = subscriptionProductRepository.findByStore_IdOrderByCreatedAtDesc(storeId);
-        List<SubscriptionProductResponse> result = new ArrayList<>();
+        List<GetSubscriptionProductResponse> result = new ArrayList<>();
         for (SubscriptionProduct sp : products) {
             if (sp.getStatus() != SubscriptionProductStatus.ACTIVE) {
                 continue;
@@ -265,19 +266,19 @@ public class SubscriptionProductService {
         return result;
     }
 
-    private SubscriptionProductResponse toResponse(SubscriptionProduct sp, int subscriberCount,
-                                                   List<SubscriptionProductItem> items) {
-        List<SubscriptionProductResponse.SubscriptionProductItemResponse> itemResponses = items == null
+    private GetSubscriptionProductResponse toResponse(SubscriptionProduct sp, int subscriberCount,
+                                                      List<SubscriptionProductItem> items) {
+        List<GetSubscriptionProductResponse.GetSubscriptionProductItemResponse> itemResponses = items == null
                 ? List.of()
                 : items.stream()
-                .map(i -> SubscriptionProductResponse.SubscriptionProductItemResponse.builder()
+                .map(i -> GetSubscriptionProductResponse.GetSubscriptionProductItemResponse.builder()
                         .productId(i.getProduct().getId())
                         .productName(i.getProduct().getProductName())
                         .quantity(i.getQuantity())
                         .build())
                 .collect(Collectors.toList());
 
-        return SubscriptionProductResponse.builder()
+        return GetSubscriptionProductResponse.builder()
                 .subscriptionProductId(sp.getId())
                 .name(sp.getSubscriptionProductName())
                 .description(sp.getDescription())

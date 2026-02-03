@@ -5,10 +5,11 @@ import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.repository.StoreRepository;
-import com.example.finalproject.subscription.dto.request.SubscriptionProductRequest;
-import com.example.finalproject.subscription.dto.request.SubscriptionProductStatusRequest;
-import com.example.finalproject.subscription.dto.response.SubscriptionProductDeletionResultResponse;
-import com.example.finalproject.subscription.dto.response.SubscriptionProductResponse;
+import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductRequest;
+import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductStatusRequest;
+import com.example.finalproject.subscription.dto.request.PostSubscriptionProductRequest;
+import com.example.finalproject.subscription.dto.response.PatchSubscriptionProductDeletionResponse;
+import com.example.finalproject.subscription.dto.response.GetSubscriptionProductResponse;
 import com.example.finalproject.subscription.service.SubscriptionProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,10 +50,10 @@ public class StoreSubscriptionProductController {
      * @return 200 OK, 구독 상품 응답 목록
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<SubscriptionProductResponse>>> list(
+    public ResponseEntity<ApiResponse<List<GetSubscriptionProductResponse>>> list(
             @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader) {
         Long storeId = resolveStoreId(storeIdHeader);
-        List<SubscriptionProductResponse> list = subscriptionProductService.findListByStoreId(storeId);
+        List<GetSubscriptionProductResponse> list = subscriptionProductService.findListByStoreId(storeId);
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 
@@ -66,12 +67,12 @@ public class StoreSubscriptionProductController {
      * @return 201 Created, 등록된 구독 상품 응답
      */
     @PostMapping
-    public ResponseEntity<ApiResponse<SubscriptionProductResponse>> create(
+    public ResponseEntity<ApiResponse<GetSubscriptionProductResponse>> create(
             @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader,
-            @Valid @RequestBody SubscriptionProductRequest request) {
+            @Valid @RequestBody PostSubscriptionProductRequest request) {
 
         Long storeId = resolveStoreId(storeIdHeader);
-        SubscriptionProductResponse response = subscriptionProductService.create(storeId, request);
+        GetSubscriptionProductResponse response = subscriptionProductService.create(storeId, request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response));
@@ -88,12 +89,12 @@ public class StoreSubscriptionProductController {
      * @return 200 OK, 수정된 구독 상품 응답
      */
     @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<SubscriptionProductResponse>> update(
+    public ResponseEntity<ApiResponse<GetSubscriptionProductResponse>> update(
             @PathVariable Long id,
             @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader,
-            @Valid @RequestBody SubscriptionProductRequest request) {
+            @Valid @RequestBody PatchSubscriptionProductRequest request) {
         Long storeId = resolveStoreId(storeIdHeader);
-        SubscriptionProductResponse response = subscriptionProductService.update(storeId, id, request);
+        GetSubscriptionProductResponse response = subscriptionProductService.update(storeId, id, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -107,12 +108,12 @@ public class StoreSubscriptionProductController {
      * @return 200 OK, 변경된 구독 상품 응답
      */
     @PatchMapping("/{id}/status")
-    public ResponseEntity<ApiResponse<SubscriptionProductResponse>> updateStatus(
+    public ResponseEntity<ApiResponse<GetSubscriptionProductResponse>> updateStatus(
             @PathVariable Long id,
             @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader,
-            @Valid @RequestBody SubscriptionProductStatusRequest request) {
+            @Valid @RequestBody PatchSubscriptionProductStatusRequest request) {
         Long storeId = resolveStoreId(storeIdHeader);
-        SubscriptionProductResponse response = subscriptionProductService.updateStatus(storeId, id, request);
+        GetSubscriptionProductResponse response = subscriptionProductService.updateStatus(storeId, id, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -128,12 +129,12 @@ public class StoreSubscriptionProductController {
      * @return 삭제 예정 전환 시 구독 상품 정보(data), 즉시 삭제 시 message만 반환(data=null)
      */
     @PatchMapping("/{id}/deletion")
-    public ResponseEntity<ApiResponse<SubscriptionProductResponse>> requestDeletion(
+    public ResponseEntity<ApiResponse<GetSubscriptionProductResponse>> requestDeletion(
             @PathVariable Long id,
             @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader) {
         Long storeId = resolveStoreId(storeIdHeader);
-        SubscriptionProductDeletionResultResponse result = subscriptionProductService.requestDeletion(storeId, id);
-        if (result.getAction() == SubscriptionProductDeletionResultResponse.Action.DELETED) {
+        PatchSubscriptionProductDeletionResponse result = subscriptionProductService.requestDeletion(storeId, id);
+        if (result.getAction() == PatchSubscriptionProductDeletionResponse.Action.DELETED) {
             return ResponseEntity.ok(ApiResponse.success("구독 상품이 삭제되었습니다.", null));
         }
         return ResponseEntity.ok(ApiResponse.success(result.getProduct()));

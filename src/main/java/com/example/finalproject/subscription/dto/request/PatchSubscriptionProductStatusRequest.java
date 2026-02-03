@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SubscriptionProductStatusRequest {
+public class PatchSubscriptionProductStatusRequest {
 
     @NotNull(message = "노출 상태는 필수입니다.")
     private SubscriptionProductStatus status;

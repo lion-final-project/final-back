@@ -9,10 +9,10 @@ import lombok.Getter;
  */
 @Getter
 @Builder
-public class SubscriptionProductDeletionResultResponse {
+public class PatchSubscriptionProductDeletionResponse {
 
     private final Action action;
-    private final SubscriptionProductResponse product;
+    private final GetSubscriptionProductResponse product;
 
     /**
      * 삭제 요청 처리 결과 유형.
@@ -22,15 +22,15 @@ public class SubscriptionProductDeletionResultResponse {
         DELETED
     }
 
-    public static SubscriptionProductDeletionResultResponse scheduled(SubscriptionProductResponse product) {
-        return SubscriptionProductDeletionResultResponse.builder()
+    public static PatchSubscriptionProductDeletionResponse scheduled(GetSubscriptionProductResponse product) {
+        return PatchSubscriptionProductDeletionResponse.builder()
                 .action(Action.SCHEDULED)
                 .product(product)
                 .build();
     }
 
-    public static SubscriptionProductDeletionResultResponse deleted() {
-        return SubscriptionProductDeletionResultResponse.builder()
+    public static PatchSubscriptionProductDeletionResponse deleted() {
+        return PatchSubscriptionProductDeletionResponse.builder()
                 .action(Action.DELETED)
                 .product(null)
                 .build();

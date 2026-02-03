@@ -21,7 +21,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class SubscriptionProductResponse {
+public class GetSubscriptionProductResponse {
 
     private Long subscriptionProductId;
     private String name;
@@ -35,7 +35,7 @@ public class SubscriptionProductResponse {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;
 
-    private List<SubscriptionProductItemResponse> items;
+    private List<GetSubscriptionProductItemResponse> items;
 
     /**
      * 구독 상품 구성 품목 응답 DTO.
@@ -45,7 +45,7 @@ public class SubscriptionProductResponse {
     @AllArgsConstructor
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public static class SubscriptionProductItemResponse {
+    public static class GetSubscriptionProductItemResponse {
 
         private Long productId;
         private String productName;

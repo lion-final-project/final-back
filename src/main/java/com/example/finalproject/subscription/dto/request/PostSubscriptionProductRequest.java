@@ -21,7 +21,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SubscriptionProductRequest {
+public class PostSubscriptionProductRequest {
 
     @NotBlank(message = "구독 상품명은 필수입니다.")
     @Size(max = 200)
@@ -39,7 +39,7 @@ public class SubscriptionProductRequest {
 
     @NotEmpty(message = "구성 품목은 1개 이상이어야 합니다.")
     @Valid
-    private List<SubscriptionProductItemRequest> items;
+    private List<PostSubscriptionProductItemRequest> items;
 
     /**
      * 구독 상품 구성 품목 요청 DTO.
@@ -48,7 +48,7 @@ public class SubscriptionProductRequest {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    public static class SubscriptionProductItemRequest {
+    public static class PostSubscriptionProductItemRequest {
 
         @NotNull(message = "상품 ID는 필수입니다.")
         private Long productId;
