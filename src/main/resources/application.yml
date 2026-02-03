@@ -1,3 +1,5 @@
 spring:
   application:
     name: Final-Project
+  profiles:
+    active: local
