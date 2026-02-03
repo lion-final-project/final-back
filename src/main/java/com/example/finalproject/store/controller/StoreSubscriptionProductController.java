@@ -14,11 +14,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * 마트(사장님) 구독 상품 API.
@@ -31,6 +34,22 @@ public class StoreSubscriptionProductController {
 
     private final StoreRepository storeRepository;
     private final SubscriptionProductService subscriptionProductService;
+
+    /**
+     * API-SOP-009: 마트 구독 상품 목록 조회.
+     * 인증된 마트(사장님)가 등록한 구독 상품 목록을 생성일 역순으로 반환한다.
+     * 각 항목에 구독자 수(ACTIVE), 구성 품목이 포함된다.
+     *
+     * @param storeIdHeader 개발·테스트용 마트 ID (선택). 없으면 인증된 사용자의 마트 사용
+     * @return 200 OK, 구독 상품 응답 목록
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<SubscriptionProductResponse>>> list(
+            @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader) {
+        Long storeId = resolveStoreId(storeIdHeader);
+        List<SubscriptionProductResponse> list = subscriptionProductService.findListByStoreId(storeId);
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
 
     /**
      * API-SOP-010: 구독 상품 등록.
