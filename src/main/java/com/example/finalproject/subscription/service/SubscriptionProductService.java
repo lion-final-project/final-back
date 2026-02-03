@@ -9,6 +9,7 @@ import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.subscription.domain.SubscriptionProduct;
 import com.example.finalproject.subscription.domain.SubscriptionProductItem;
 import com.example.finalproject.subscription.dto.request.SubscriptionProductRequest;
+import com.example.finalproject.subscription.dto.request.SubscriptionProductStatusRequest;
 import com.example.finalproject.subscription.dto.response.SubscriptionProductResponse;
 import com.example.finalproject.subscription.enums.SubscriptionProductStatus;
 import com.example.finalproject.subscription.enums.SubscriptionStatus;
@@ -125,6 +126,32 @@ public class SubscriptionProductService {
         }
 
         int subscriberCount = (int) subscriptionRepository.countBySubscriptionProductAndStatus(product, SubscriptionStatus.ACTIVE);
+        return toResponse(product, subscriberCount, items);
+    }
+
+    /**
+     * 구독 상품 노출 상태를 변경한다 (API-SOP-010S).
+     * 해당 구독 상품이 storeId 소유인지 검증한 뒤, status(ACTIVE/INACTIVE)만 갱신한다.
+     *
+     * @param storeId              마트 ID
+     * @param subscriptionProductId 구독 상품 ID
+     * @param request              노출 상태 변경 요청 (status: ACTIVE | INACTIVE)
+     * @return 변경된 구독 상품 응답
+     * @throws BusinessException 구독 상품 없음/소속 불일치(SUBSCRIPTION_PRODUCT_NOT_FOUND)
+     */
+    @Transactional
+    public SubscriptionProductResponse updateStatus(Long storeId, Long subscriptionProductId,
+                                                    SubscriptionProductStatusRequest request) {
+        SubscriptionProduct product = subscriptionProductRepository.findById(subscriptionProductId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND));
+        if (!product.getStore().getId().equals(storeId)) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND);
+        }
+        product.updateStatus(request.getStatus());
+        subscriptionProductRepository.flush();
+
+        int subscriberCount = (int) subscriptionRepository.countBySubscriptionProductAndStatus(product, SubscriptionStatus.ACTIVE);
+        List<SubscriptionProductItem> items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(product);
         return toResponse(product, subscriberCount, items);
     }
 

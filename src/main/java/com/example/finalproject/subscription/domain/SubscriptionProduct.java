@@ -100,4 +100,14 @@ public class SubscriptionProduct extends BaseTimeEntity {
             this.deliveryCountOfWeek = Math.max(1, totalDeliveryCount / 4);
         }
     }
+
+    /**
+     * 구독 상품 노출 상태를 변경한다 (API-SOP-010S).
+     * ACTIVE: 노출(운영중), INACTIVE: 숨김.
+     *
+     * @param status 변경할 상태 (ACTIVE, INACTIVE)
+     */
+    public void updateStatus(SubscriptionProductStatus status) {
+        this.status = status;
+    }
 }

@@ -6,6 +6,7 @@ import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.subscription.dto.request.SubscriptionProductRequest;
+import com.example.finalproject.subscription.dto.request.SubscriptionProductStatusRequest;
 import com.example.finalproject.subscription.dto.response.SubscriptionProductResponse;
 import com.example.finalproject.subscription.service.SubscriptionProductService;
 import jakarta.validation.Valid;
@@ -91,6 +92,25 @@ public class StoreSubscriptionProductController {
             @Valid @RequestBody SubscriptionProductRequest request) {
         Long storeId = resolveStoreId(storeIdHeader);
         SubscriptionProductResponse response = subscriptionProductService.update(storeId, id, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * API-SOP-010S: 구독 상품 노출 상태 변경.
+     * 마트가 소유한 구독 상품의 노출(ACTIVE)/숨김(INACTIVE) 상태만 변경한다.
+     *
+     * @param id                   구독 상품 ID (path)
+     * @param storeIdHeader        개발·테스트용 마트 ID (선택)
+     * @param request              노출 상태 변경 요청 (status: ACTIVE | INACTIVE)
+     * @return 200 OK, 변경된 구독 상품 응답
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<SubscriptionProductResponse>> updateStatus(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Store-Id", required = false) Long storeIdHeader,
+            @Valid @RequestBody SubscriptionProductStatusRequest request) {
+        Long storeId = resolveStoreId(storeIdHeader);
+        SubscriptionProductResponse response = subscriptionProductService.updateStatus(storeId, id, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
