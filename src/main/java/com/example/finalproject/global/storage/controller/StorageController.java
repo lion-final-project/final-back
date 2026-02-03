@@ -1,13 +1,12 @@
 package com.example.finalproject.global.storage.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
-import com.example.finalproject.global.storage.service.StorageService;
+import com.example.finalproject.global.storage.service.interfaces.DocumentStorageService;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.DocumentType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,7 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class StorageController {
 
-    private final StorageService storageService;
+    private final DocumentStorageService documentStorageService;
 
     @PostMapping("/{userId}/{applicantType}/{documentType}")
     public ResponseEntity<ApiResponse<String>> uploadFile(
@@ -30,7 +29,7 @@ public class StorageController {
         log.info("File upload : {}, applicantType: {}, documentType: {}",
                 userId, applicantType, documentType);
 
-        String fileUrl = storageService.uploadDocument(file, userId, applicantType, documentType);
+        String fileUrl = documentStorageService.uploadDocument(file, userId, applicantType, documentType);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)

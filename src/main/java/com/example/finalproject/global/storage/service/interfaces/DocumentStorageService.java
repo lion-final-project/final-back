@@ -1,20 +1,10 @@
-package com.example.finalproject.global.storage.service;
-
-import org.springframework.web.multipart.MultipartFile;
+package com.example.finalproject.global.storage.service.interfaces;
 
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.DocumentType;
 import org.springframework.web.multipart.MultipartFile;
 
-public interface StorageService {
-    /**
-     * 파일을 지정된 경로에 업로드
-     * @param file 업로드할 파일
-     * @param directoryPath 저장할 디렉토리 경로
-     * @return 업로드된 파일의 전체 URL
-     */
-    String upload(MultipartFile file, String directoryPath);
-
+public interface DocumentStorageService extends StorageService {
     /**
      * 증빙 서류 업로드
      * @param file 업로드할 파일
@@ -24,12 +14,6 @@ public interface StorageService {
      * @return 업로드된 파일의 전체 URL
      */
     String uploadDocument(MultipartFile file, Long userId, ApplicantType applicantType, DocumentType documentType);
-
-    /**
-     * 파일 삭제
-     * @param fileUrl 삭제할 파일의 URL ex)http://localhost:9000/market-bucket/12/store/file.png
-     */
-    void delete(String fileUrl);
 
 //    document/
 //     └── {userId}/           # 사용자 식별 (보안 및 관리 중심)
