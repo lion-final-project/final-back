@@ -94,6 +94,19 @@ public class StoreService {
         if (approvalRepository.existsByUserAndApplicantTypeAndStatus(user, ApplicantType.STORE, ApprovalStatus.PENDING)) {
             throw new BusinessException(ErrorCode.PENDING_APPROVAL_EXISTS);
         }
+
+        validateBusinessHours(request.getBusinessHours());
+    }
+
+    private void validateBusinessHours(List<PostStoreBusinessHourRequest> businessHours) {
+        for (PostStoreBusinessHourRequest hour : businessHours) {
+            if (!hour.getIsClosed()) {
+                if (hour.getOpenTime() == null || hour.getOpenTime().isBlank() ||
+                    hour.getCloseTime() == null || hour.getCloseTime().isBlank()) {
+                    throw new BusinessException(ErrorCode.INVALID_BUSINESS_HOUR);
+                }
+            }
+        }
     }
 
     private Store createStore(User user, PostStoreRegistrationRequest request) {
