@@ -31,6 +31,12 @@ public class RiderServiceImpl implements RiderService {
     private final ApprovalRepository approvalRepository;
 
     @Override
+    public RiderResponse getRiderInfo(String username) {
+        Rider rider = findRiderByUsername(username);
+        return rider.createResponse();
+    }
+
+    @Override
     @Transactional
     public RiderResponse updateOperationStatus(String username, PatchRiderStatusRequest request) {
 

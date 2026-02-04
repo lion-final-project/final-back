@@ -22,6 +22,16 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class RiderController {
     private final RiderService riderService;
+    /**
+     * 라이더 정보 조회
+     * @param userDetails 현재 인증된 사용자 정보
+     */
+    @GetMapping
+    public ResponseEntity<ApiResponse<RiderResponse>> getRiderInfo(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        RiderResponse response = riderService.getRiderInfo(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("라이더 정보 조회가 완료되었습니다.", response));
+    }
 
     /**
      * 라이더의 영업 상태 변경
