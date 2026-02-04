@@ -8,7 +8,6 @@ import com.example.finalproject.auth.service.AuthService;
 import com.example.finalproject.auth.service.KakaoService;
 import com.example.finalproject.global.config.CookieUtil;
 import com.example.finalproject.global.exception.custom.BusinessException;
-import com.example.finalproject.global.security.CustomUserDetails;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.response.ApiResponse;
@@ -16,6 +15,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,13 +28,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import com.example.finalproject.auth.dto.kakao.OAuthLoginSessionResult;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -74,6 +72,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<SignupResponse>> register(
             @Valid @RequestBody SignupRequest request) {
+
         SignupResponse response = authService.register(request);
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE,
@@ -92,6 +91,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
             @Valid @RequestBody LoginRequest request) {
+
         LoginResponse response = authService.login(request);
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE,
@@ -123,7 +123,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("휴대폰 인증이 완료되었습니다.", new VerifyPhoneResponse(true, token)));
     }
 
-    /** 카카오 최초 로그인 후 회원가입 폼 제출. 세션에 kakao_pending_provider_user_id 필요 (카카오 콜백 후 signup_required 리다이렉트 시 설정됨) */
+    // 카카오 최초 로그인 후 회원가입 폼 제출
     @PostMapping("/social-signup/complete")
     public ResponseEntity<ApiResponse<MeResponse>> completeSocialSignup(
             @Valid @RequestBody SocialSignupCompleteRequest request,
@@ -131,23 +131,34 @@ public class AuthController {
             HttpServletResponse httpResponse) {
         String providerUserId = (String) httpRequest.getSession().getAttribute(SESSION_KAKAO_PENDING_PROVIDER_USER_ID);
         if (providerUserId == null || providerUserId.isBlank()) {
+            log.warn("[소셜 가입 완료] 세션에 kakao_pending_provider_user_id 없음");
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE); // 카카오 로그인 후 회원가입 단계가 아님
         }
+        log.info("[소셜 가입 완료] API 호출 providerUserId={}", providerUserId);
         OAuthLoginSessionResult result = kakaoService.completeKakaoSignup(providerUserId, request);
         httpRequest.getSession().removeAttribute(SESSION_KAKAO_PENDING_PROVIDER_USER_ID);
         httpRequest.getSession().removeAttribute("kakao_pending_nickname");
 
-        CustomUserDetails userDetails = new CustomUserDetails(result.getUser(), result.getRoles());
-        var auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        new HttpSessionSecurityContextRepository().saveContext(SecurityContextHolder.getContext(), httpRequest, httpResponse);
+        LoginResponse loginResponse = authService.issueTokensForUser(result.getUser(), result.getRoles());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE,
+                CookieUtil.createAccessTokenCookie(
+                        loginResponse.getAccessToken(),
+                        jwtProperties.getAccessTokenValiditySeconds()).toString());
+        headers.add(HttpHeaders.SET_COOKIE,
+                CookieUtil.createRefreshTokenCookie(
+                        loginResponse.getRefreshToken(),
+                        jwtProperties.getRefreshTokenValiditySeconds()).toString());
 
         MeResponse me = new MeResponse(
                 result.getUser().getId(),
                 result.getUser().getEmail(),
                 result.getUser().getName(),
                 result.getRoles());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("회원가입이 완료되었습니다.", me));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .headers(headers)
+                .body(ApiResponse.success("회원가입이 완료되었습니다.", me));
     }
 
     //refreshToken -> Cookie에서 읽음 (HttpOnly)
@@ -169,17 +180,16 @@ public class AuthController {
     }
 
 
-    //RT or Cookie(nm_refreshToken) 중 하나로 무효화, 프론트 credentials: 'include' 시 쿠키만으로 로그아웃 가능
+    // RT or Cookie(nm_refreshToken) 중 하나로 무효화. 토큰이 없어도 200 + 쿠키 삭제 (프론트 로그아웃 UI 항상 성공)
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
             @RequestBody(required = false) RefreshTokenRequest request,
             @CookieValue(name = CookieUtil.REFRESH_TOKEN_COOKIE, required = false) String refreshTokenFromCookie) {
         String token = (request != null && request.getRefreshToken() != null && !request.getRefreshToken().isBlank())
                 ? request.getRefreshToken() : refreshTokenFromCookie;
-        if (token == null || token.isBlank()) {
-            throw new BusinessException(ErrorCode.REFRESH_TOKEN_MISSING);
+        if (token != null && !token.isBlank()) {
+            authService.logout(token);
         }
-        authService.logout(token);
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearAccessTokenCookie().toString());
         headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearRefreshTokenCookie().toString());
