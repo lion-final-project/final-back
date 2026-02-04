@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -32,6 +33,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+@Profile(value = "!local")
 @Configuration
 @EnableWebSecurity
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
@@ -101,6 +103,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/refresh", "/api/auth/login", "/api/auth/social-signup/complete").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/send-verification", "/api/auth/verify-phone").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/admin/notices/**").hasRole("ADMIN")
+                        .requestMatchers("/api/notices").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
