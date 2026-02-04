@@ -26,8 +26,14 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+   implementation 'org.springframework.boot:spring-boot-starter-oauth2-client' //추가
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'//추가
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.5'//추가
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'//추가
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'//추가
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'org.postgresql:postgresql'
@@ -38,6 +44,9 @@ dependencies {
 
     implementation 'org.hibernate.orm:hibernate-spatial:'
     implementation 'org.locationtech.jts:jts-core'
+
+    // CoolSMS 의존성 추가 (문자인증)
+    implementation 'net.nurigo:sdk:4.3.2'
 }
 
 tasks.named('test') {
