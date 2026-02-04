@@ -23,18 +23,25 @@ public class NotificationService {
     private final SseService sseService;
 
     @Transactional
-    public SseEmitter subscribe(Long userId) {
-        SseEmitter emitter = sseService.subscribe(userId);
+    public SseEmitter subscribe(String email) {
+        User user = getUser(email);
 
-        int unreadCount = notificationRepository.countByUserIdAndIsReadFalse(userId);
+        SseEmitter emitter = sseService.subscribe(user.getId());
+
+        int unreadCount = notificationRepository.countByUserIdAndIsReadFalse(user.getId());
 
         sseService.sendToUser(
-                userId,
+                user.getId(),
                 "UNREAD_COUNT",
                 unreadCount
         );
 
         return emitter;
+    }
+
+    private User getUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
     @Transactional
@@ -65,17 +72,38 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<NotificationResponse> getUnreadNotifications(Long userId) {
+    public List<NotificationResponse> getUnreadNotifications(String email) {
+        User user = getUser(email);
+
         return notificationRepository
-                .findAllByUserIdAndIsReadFalseOrderByCreatedAtDesc(userId)
+                .findAllByUserIdAndIsReadFalseOrderByCreatedAtDesc(user.getId())
                 .stream()
                 .map(NotificationResponse::from)
                 .toList();
     }
 
     @Transactional
-    public void readAll(Long userId) {
-        notificationRepository.markAllReadByUserId(userId);
+    public void readAll(String email) {
+        User user = getUser(email);
+
+        notificationRepository.markAllReadByUserEmail(email);
+
+        int unreadCount = notificationRepository.countByUserIdAndIsReadFalse(user.getId());
+        sseService.sendToUser(user.getId(), "UNREAD_COUNT", unreadCount);
+    }
+
+    @Transactional
+    public void readNotification(String email, Long notificationId) {
+        User user = getUser(email);
+
+        if (!notificationRepository.existsByIdAndUserId(notificationId, user.getId())) {
+            throw new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND);
+        }
+
+        notificationRepository.markAsReadByNotificationIdAndUserId(notificationId, user.getId());
+
+        int unreadCount = notificationRepository.countByUserIdAndIsReadFalse(user.getId());
+        sseService.sendToUser(user.getId(), "UNREAD_COUNT", unreadCount);
     }
 }
 

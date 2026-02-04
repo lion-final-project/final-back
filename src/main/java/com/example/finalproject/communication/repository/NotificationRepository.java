@@ -8,14 +8,22 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    List<Notification> findAllByUserIdAndIsReadFalseOrderByCreatedAtDesc(Long userId);
+    List<Notification> findAllByUserIdAndIsReadFalseOrderByCreatedAtDesc(Long id);
 
     int countByUserIdAndIsReadFalse(Long userId);
 
     @Modifying
     @Query("update Notification n "
             + "set n.isRead = true, n.sentAt = current_timestamp "
-            + "where n.user.id = :userId and n.isRead = false")
-    void markAllReadByUserId(Long userId);
+            + "where n.user.email = :email and n.isRead = false")
+    void markAllReadByUserEmail(String email);
+
+    @Modifying
+    @Query("update Notification n "
+            + "set n.isRead = true, n.sentAt = current_timestamp "
+            + "where n.id = :notificationId and n.user.id = :userId")
+    void markAsReadByNotificationIdAndUserId(Long notificationId, Long userId);
+
+    boolean existsByIdAndUserId(Long notificationId, Long userId);
 
 }

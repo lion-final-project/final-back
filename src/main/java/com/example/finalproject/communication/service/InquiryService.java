@@ -33,11 +33,14 @@ public class InquiryService {
     private final StorageService s3StorageService;
     private final NotificationService notificationService;
 
-    public GetInquiryResponse create(Long userId, PostInquiryCreateRequest req, MultipartFile file) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    public GetInquiryResponse create(String email, PostInquiryCreateRequest req, MultipartFile file) {
+        User user = getUser(email);
 
-        String fileUrl = s3StorageService.upload(file, "inquiries" + userId);
+        String fileUrl = null;
+
+        if (file != null && !file.isEmpty()) {
+            fileUrl = s3StorageService.upload(file, "inquiries/" + user.getId());
+        }
 
         Inquiry inquiry = Inquiry.builder()
                 .user(user)
@@ -52,20 +55,27 @@ public class InquiryService {
     }
 
     @Transactional(readOnly = true)
-    public Page<GetInquiriesResponse> getMyList(Long userId, Pageable pageable) {
-        return inquiryRepository.findAllByUserId(userId, pageable)
+    public Page<GetInquiriesResponse> getMyList(String email, Pageable pageable) {
+        User user = getUser(email);
+
+        return inquiryRepository.findAllByUserId(user.getId(), pageable)
                 .map(GetInquiriesResponse::from);
     }
 
-    public void deleteMyInquiry(Long userId, Long inquiryId) {
-        Inquiry inquiry = inquiryRepository.findByIdAndUserId(inquiryId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("문의가 없거나 접근할 수 없습니다."));
+    public void deleteMyInquiry(String email, Long inquiryId) {
+        User user = getUser(email);
+
+        Inquiry inquiry = inquiryRepository.findByIdAndUserId(inquiryId, user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.INQUIRY_NOT_FOUND));
 
         if (inquiry.isAnswered()) {
-            throw new IllegalStateException("답변 완료된 문의는 삭제할 수 없습니다.");
+            throw new BusinessException(ErrorCode.INQUIRY_ALREADY_ANSWERED);
         }
 
-        s3StorageService.delete(inquiry.getFileUrl());
+        // 파일이 있는 경우에만 S3에서 삭제
+        if (inquiry.getFileUrl() != null && !inquiry.getFileUrl().isEmpty()) {
+            s3StorageService.delete(inquiry.getFileUrl());
+        }
 
         inquiryRepository.delete(inquiry);
     }
@@ -97,7 +107,7 @@ public class InquiryService {
     @Transactional
     public void answerInquiry(
             Long inquiryId,
-            Long adminId,
+            String email,
             PostInquiryAnswerRequest request) {
         Inquiry inquiry = inquiryRepository.findById(inquiryId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INQUIRY_NOT_FOUND));
@@ -106,8 +116,7 @@ public class InquiryService {
             throw new BusinessException(ErrorCode.INQUIRY_ALREADY_ANSWERED);
         }
 
-        User admin = userRepository.findById(adminId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        User admin = getUser(email);
 
         if (!admin.isAdmin()) {
             throw new BusinessException(ErrorCode.ADMIN_AUTHORITY_REQUIRED);
@@ -121,5 +130,11 @@ public class InquiryService {
                 "문의에 대한 답변이 등록되었습니다: " + inquiry.getTitle(),
                 NotificationRefType.CUSTOMER
         );
+    }
+
+    private User getUser(String email) {
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 }

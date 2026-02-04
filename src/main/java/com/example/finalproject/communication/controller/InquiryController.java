@@ -19,6 +19,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,30 +40,26 @@ public class InquiryController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<GetInquiryResponse>> create(
-            //@AuthenticationPrincipal Authentication authentication,
+            Authentication authentication,
             @Valid @RequestPart("request") PostInquiryCreateRequest request,
             @RequestPart(value = "file", required = false) MultipartFile file
     ) {
-        // Long userId = (Long) authentication.getPrincipal();
-        Long userId = 1L;
-        GetInquiryResponse getInquiryResponse = inquiryService.create(userId, request, file);
+
+        GetInquiryResponse getInquiryResponse = inquiryService.create(authentication.getName(), request, file);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("문의 접수가 완료되었습니다.", getInquiryResponse));
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<GetInquiriesResponse>>> myList(
-            //@AuthenticationPrincipal Authentication authentication,
+            Authentication authentication,
             @PageableDefault(
                     size = 5,
                     sort = "createdAt",
                     direction = Sort.Direction.DESC
             ) Pageable pageable) {
 
-        // Long userId = (Long) authentication.getPrincipal();
-        Long userId = 1L;
-
-        Page<GetInquiriesResponse> myInquiryList = inquiryService.getMyList(userId, pageable);
+        Page<GetInquiriesResponse> myInquiryList = inquiryService.getMyList(authentication.getName(), pageable);
 
         return ResponseEntity.ok(ApiResponse.success(myInquiryList));
     }
@@ -70,12 +67,10 @@ public class InquiryController {
 
     @DeleteMapping("/{inquiryId}")
     public ResponseEntity<ApiResponse<Void>> delete(
-            //@AuthenticationPrincipal Authentication authentication,
+            Authentication authentication,
             @PathVariable Long inquiryId) {
 
-        // Long userId = (Long) authentication.getPrincipal();
-        Long userId = 1L;
-        inquiryService.deleteMyInquiry(userId, inquiryId);
+        inquiryService.deleteMyInquiry(authentication.getName(), inquiryId);
         return ResponseEntity.ok(ApiResponse.success("문의가 삭제되었습니다."));
     }
 
@@ -94,8 +89,7 @@ public class InquiryController {
     }
 
     @GetMapping("/admin/{inquiryId}")
-    public ResponseEntity<ApiResponse<GetAdminInquiryDetailResponse>> adminDetail(
-            @PathVariable Long inquiryId) {
+    public ResponseEntity<ApiResponse<GetAdminInquiryDetailResponse>> adminDetail(@PathVariable Long inquiryId) {
 
         GetAdminInquiryDetailResponse adminInquiryDetail = inquiryService.getAdminInquiryDetail(inquiryId);
 
@@ -104,13 +98,11 @@ public class InquiryController {
 
     @PostMapping("/admin/{inquiryId}/answer")
     public ResponseEntity<ApiResponse<Void>> answerInquiry(
-            //@AuthenticationPrincipal Authentication authentication,
+            Authentication authentication,
             @PathVariable Long inquiryId,
             @Valid @RequestBody PostInquiryAnswerRequest request) {
-        // Long adminId = (Long) authentication.getPrincipal();
-        Long adminId = 1L; // 임시 관리자
 
-        inquiryService.answerInquiry(inquiryId, adminId, request);
+        inquiryService.answerInquiry(inquiryId, authentication.getName(), request);
 
         return ResponseEntity.ok(ApiResponse.success("문의 답변이 등록되었습니다."));
     }
