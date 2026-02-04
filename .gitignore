@@ -40,6 +40,8 @@ out/
 ### Local config ###
 application-local.yml
 Dockerfile.local
+*.log
+src/main/java/com/example/finalproject/forLocal/
 
 ### Secrets ###
 .env
@@ -56,5 +58,10 @@ src/main/generated/*
 
 .DS_Store
 
+myMd/
+
+
+
 minio_data/
 pgdata/
+GEMINI.md
