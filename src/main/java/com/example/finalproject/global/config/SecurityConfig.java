@@ -1,19 +1,30 @@
 package com.example.finalproject.global.config;
 
+import com.example.finalproject.auth.config.KakaoProperties;
+import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
+import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
+import com.example.finalproject.auth.service.KakaoService;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.security.JwtAuthenticationFilter;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
+
+import java.util.function.Consumer;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -23,13 +34,34 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final KakaoService kakaoService;
+    private final KakaoProperties kakaoProperties;
+    private final ClientRegistrationRepository clientRegistrationRepository;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          @Lazy KakaoService kakaoService,
+                          @Lazy KakaoProperties kakaoProperties,
+                          ClientRegistrationRepository clientRegistrationRepository) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.kakaoService = kakaoService;
+        this.kakaoProperties = kakaoProperties;
+        this.clientRegistrationRepository = clientRegistrationRepository;
+    }
+
+    private OAuth2AuthorizationRequestResolver kakaoAuthorizationRequestResolver() {
+        DefaultOAuth2AuthorizationRequestResolver resolver =
+                new DefaultOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/oauth2/authorization");
+        resolver.setAuthorizationRequestCustomizer(kakaoPromptLoginCustomizer());
+        return resolver;
+    }
+
+    private Consumer<OAuth2AuthorizationRequest.Builder> kakaoPromptLoginCustomizer() {
+        return customizer -> customizer
+                .additionalParameters(params -> params.put("prompt", "login"));
     }
 
     @Bean
@@ -62,19 +94,21 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .oauth2Login(Customizer.withDefaults())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // OAuth는 세션 사용
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.GET, "/api/auth/check-email", "/api/auth/check-phone").permitAll() 
-                        //이메일 중복 체크, 휴대폰 중복 체크 권한 부여
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/refresh").permitAll() 
-                        //회원가입, 토큰 갱신 권한 부여
-                        .requestMatchers(HttpMethod.POST, "/api/auth/send-verification", "/api/auth/verify-phone").permitAll() 
-                        //휴대폰 인증번호 발송, 검증 권한 부여
-                        .requestMatchers("/error").permitAll() 
-                        //에러 페이지 권한 부여
+                        .requestMatchers(HttpMethod.GET, "/api/auth/check-email", "/api/auth/check-phone").permitAll()
+                        .requestMatchers("/oauth2/authorization/**", "/login/oauth2/code/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/refresh", "/api/auth/login", "/api/auth/social-signup/complete").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/send-verification", "/api/auth/verify-phone").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .anyRequest().authenticated()
                 )
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                .authorizationRequestResolver(kakaoAuthorizationRequestResolver()))
+                        .successHandler(new OAuth2LoginSuccessHandler(kakaoService, kakaoProperties))
+                )
+                .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(), OAuth2AuthorizationRequestRedirectFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
