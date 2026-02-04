@@ -4,7 +4,7 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 
-//카카오 최초 로그인 후 회원가입 폼 제출 시 사용. 일반 회원가입과 동일한 항목(이름, 이메일, 연락처, 주소, 약관)
+// 카카오 최초 로그인 후 회원가입 폼 제출 시 사용
 @Getter
 @Setter
 public class SocialSignupCompleteRequest {
@@ -27,13 +27,4 @@ public class SocialSignupCompleteRequest {
 
     @AssertTrue(message = "개인정보 처리방침에 동의해야 합니다.")
     private boolean privacyAgreed;
-
-    /** 주소: 기본 주소 */
-    @NotBlank(message = "주소는 필수입니다.")
-    @Size(max = 255)
-    private String addressLine1;
-
-    /** 주소: 상세 주소 */
-    @Size(max = 255)
-    private String addressLine2;
 }

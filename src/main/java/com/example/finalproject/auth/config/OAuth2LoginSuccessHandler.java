@@ -53,28 +53,46 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         }
 
         if ("kakao".equals(registrationId)) {
+
             Map<String, Object> attrs = oauth2User.getAttributes();
             Object idObj = attrs.get("id");
             String providerUserId = idObj != null ? String.valueOf(idObj) : null;
             String nickname = resolveNickname(attrs);
 
             if (providerUserId != null && !providerUserId.isBlank()) {
-                // 최초 로그인도 자동 가입(플레이스홀더 정보) 후 로그인 처리. 회원가입 폼 없이 소셜 로그인만 사용.
-                OAuthLoginSessionResult result = kakaoService.findOrCreateByKakaoInfo(providerUserId, nickname);
-                CustomUserDetails userDetails = new CustomUserDetails(result.getUser(), result.getRoles());
-                UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(newAuth);
+                if (kakaoService.isKakaoUserRegistered(providerUserId)) {
+                    // 이미 가입된 카카오 회원 → 로그인 처리
+                    log.info("[OAuth2 카카오] 기존 회원 로그인 처리 providerUserId={}", providerUserId);
+                    OAuthLoginSessionResult result = kakaoService.findOrCreateByKakaoInfo(providerUserId, nickname);
+                    CustomUserDetails userDetails = new CustomUserDetails(result.getUser(), result.getRoles());
+                    UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(newAuth);
+                    redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
+                } else {
+                    // 최초 소셜 로그인 → 회원가입 폼 필요. 세션에 카카오 정보 저장 후 리다이렉트
+                    log.info("[OAuth2 카카오] 최초 로그인 - 회원가입 폼 필요 providerUserId={}", providerUserId);
+                    request.getSession().setAttribute("kakao_pending_provider_user_id", providerUserId);
+                    request.getSession().setAttribute("kakao_pending_nickname", nickname != null ? nickname : "");
+                    redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=signup_required";
+                }
+            } else {
+                redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
             }
+        } else {
+            redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
         }
 
-        redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
+        if (!redirectUrl.contains("kakao=")) {
+            redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
+        }
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 
     private String resolveNickname(Map<String, Object> attrs) {
+
         Object props = attrs.get("properties");
         if (props instanceof Map<?, ?> map) {
             Object n = map.get("nickname");
