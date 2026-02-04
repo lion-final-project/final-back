@@ -1,4 +1,4 @@
-package com.example.finalproject.moderation.dto;
+package com.example.finalproject.moderation.dto.admin.rider;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
@@ -8,8 +8,10 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class AdminStoreApprovalApproveRequest {
+public class AdminRiderApprovalApproveRequest {
 
+    // ?뱀씤 泥섎━ 愿由ъ옄 ID.
     @NotNull
     private Long adminUserId;
 }
+

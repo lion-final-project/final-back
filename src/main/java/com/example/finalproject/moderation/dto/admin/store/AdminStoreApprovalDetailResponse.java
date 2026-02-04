@@ -1,4 +1,4 @@
-package com.example.finalproject.moderation.dto;
+package com.example.finalproject.moderation.dto.admin.store;
 
 import com.example.finalproject.moderation.enums.ApprovalStatus;
 import com.example.finalproject.moderation.enums.DocumentType;
@@ -40,3 +40,4 @@ public class AdminStoreApprovalDetailResponse {
         private String documentUrl;
     }
 }
+

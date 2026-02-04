@@ -1,4 +1,4 @@
-package com.example.finalproject.moderation.dto;
+package com.example.finalproject.moderation.dto.admin.store;
 
 import com.example.finalproject.moderation.enums.ApprovalStatus;
 import java.time.LocalDateTime;
@@ -18,3 +18,4 @@ public class AdminStoreApprovalListResponse {
     private LocalDateTime appliedAt;
     private LocalDateTime heldUntil;
 }
+

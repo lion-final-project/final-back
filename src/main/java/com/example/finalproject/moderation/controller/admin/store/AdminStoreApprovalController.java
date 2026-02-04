@@ -1,13 +1,13 @@
-package com.example.finalproject.moderation.controller;
+package com.example.finalproject.moderation.controller.admin.store;
 
 import com.example.finalproject.global.response.ApiResponse;
-import com.example.finalproject.moderation.dto.AdminStoreApprovalApproveRequest;
-import com.example.finalproject.moderation.dto.AdminStoreApprovalDetailResponse;
-import com.example.finalproject.moderation.dto.AdminStoreApprovalHoldRequest;
-import com.example.finalproject.moderation.dto.AdminStoreApprovalListResponse;
-import com.example.finalproject.moderation.dto.AdminStoreApprovalRejectRequest;
+import com.example.finalproject.moderation.dto.admin.store.AdminStoreApprovalApproveRequest;
+import com.example.finalproject.moderation.dto.admin.store.AdminStoreApprovalDetailResponse;
+import com.example.finalproject.moderation.dto.admin.store.AdminStoreApprovalHoldRequest;
+import com.example.finalproject.moderation.dto.admin.store.AdminStoreApprovalListResponse;
+import com.example.finalproject.moderation.dto.admin.store.AdminStoreApprovalRejectRequest;
 import com.example.finalproject.moderation.enums.ApprovalStatus;
-import com.example.finalproject.moderation.service.AdminStoreApprovalService;
+import com.example.finalproject.moderation.service.admin.store.AdminStoreApprovalService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
@@ -62,3 +62,4 @@ public class AdminStoreApprovalController {
         return ResponseEntity.ok(ApiResponse.success("Rejected."));
     }
 }
+
