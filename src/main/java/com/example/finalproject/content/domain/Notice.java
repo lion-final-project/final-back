@@ -41,9 +41,6 @@ public class Notice extends BaseTimeEntity {
             foreignKey = @ForeignKey(name = "fk_notices_author"))
     private User author;
 
-    @Column(name = "is_pinned", nullable = false)
-    private Boolean isPinned = false;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ContentStatus status = ContentStatus.ACTIVE;
@@ -53,5 +50,10 @@ public class Notice extends BaseTimeEntity {
         this.title = title;
         this.content = content;
         this.author = author;
+    }
+
+    public void update(String title, String content) {
+        if (title != null) this.title = title;
+        if (content != null) this.content = content;
     }
 }
