@@ -49,6 +49,17 @@ public enum ErrorCode {
     PRODUCT_INACTIVE(HttpStatus.BAD_REQUEST, "PRODUCT-002", "판매 중지된 상품입니다"),
     PRODUCT_OUT_OF_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-003", "품절된 상품입니다"),
     PRODUCT_STOCK_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "PRODUCT-004", "재고가 부족합니다"),
+    CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT-005", "카테고리를 찾을 수 없습니다."),
+    PRODUCT_NOT_OWNED(HttpStatus.FORBIDDEN, "PRODUCT-006", "해당 상품에 대한 권한이 없습니다."),
+    INVALID_PRODUCT_NAME(HttpStatus.BAD_REQUEST, "PRODUCT-007", "상품명은 빈 값이거나 200자를 초과할 수 없습니다."),
+    INVALID_PRICE(HttpStatus.BAD_REQUEST, "PRODUCT-008", "가격은 1원 이상이어야 합니다."),
+    INVALID_DISCOUNT_RATE(HttpStatus.BAD_REQUEST, "PRODUCT-009", "할인율은 0에서 99 사이여야 합니다."),
+    INVALID_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-010", "재고는 0개 이상이어야 합니다."),
+    INVALID_ORIGIN(HttpStatus.BAD_REQUEST, "PRODUCT-011", "원산지는 100자를 초과할 수 없습니다."),
+    INVALID_PRODUCT_IMAGE_URL(HttpStatus.BAD_REQUEST, "PRODUCT-012", "상품 이미지 URL은 500자를 초과할 수 없습니다."),
+    PRODUCT_UPDATE_NOT_ALLOWED_DURING_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "PRODUCT-013", "운영 시간에는 상품 정보를 수정할 수 없습니다."),
+    INSUFFICIENT_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-014", "재고가 부족합니다."),
+    INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "PRODUCT-015", "수량은 1 이상이어야 합니다."),
 
     // Cart
     CART_NOT_FOUND(HttpStatus.NOT_FOUND, "CART-001", "장바구니가 없습니다"),
@@ -69,6 +80,8 @@ public enum ErrorCode {
     INVALID_BUSINESS_HOUR(HttpStatus.BAD_REQUEST, "STORE-005", "운영 시간 정보가 올바르지 않습니다."),
     STORE_CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE-006", "상점 카테고리를 찾을 수 없습니다."),
     DUPLICATE_TELECOM_SALES_NUMBER(HttpStatus.CONFLICT, "STORE-007", "이미 등록된 통신판매업 신고번호입니다."),
+    STORE_NOT_APPROVED(HttpStatus.FORBIDDEN, "STORE-008", "승인된 마트만 상품을 등록할 수 있습니다."),
+    DUPLICATE_PRODUCT_NAME(HttpStatus.CONFLICT, "STORE-009", "이미 마트에 등록된 상품명입니다."),
     ;
 
     private final HttpStatus status;
