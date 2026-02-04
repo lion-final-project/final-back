@@ -36,8 +36,8 @@ public class CartService {
     private final DeliveryFeeService deliveryFeeService;
 
     @Transactional
-    public GetCartResponse addToCart(Long userId, PostCartAddRequest request) {
-        User user = userRepository.findById(userId)
+    public GetCartResponse addToCart(String username, PostCartAddRequest request) {
+        User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Product product = productRepository.findById(request.getProductId())
@@ -49,13 +49,16 @@ public class CartService {
 
         addOrUpdateCartProduct(cart, product, request.getQuantity());
 
-        return getMyCart(userId);
+        return getMyCart(username);
     }
 
     @Transactional(readOnly = true)
-    public GetCartResponse getMyCart(Long userId) {
+    public GetCartResponse getMyCart(String username) {
 
-        Cart cart = cartRepository.findByUserId(userId).orElse(null);
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Cart cart = cartRepository.findByUserEmail(username).orElse(null);
 
         if (cart == null) {
             return GetCartResponse.empty();
@@ -75,7 +78,7 @@ public class CartService {
                     Long storeId = group.get(0).getStore().getId();
 
                     int deliveryFee =
-                            deliveryFeeService.calculateDeliveryFee(userId, storeId);
+                            deliveryFeeService.calculateDeliveryFee(user.getId(), storeId);
 
                     return GetCartStoreGroupResponse.from(group, deliveryFee);
                 })
@@ -93,8 +96,8 @@ public class CartService {
     }
 
     @Transactional
-    public GetCartResponse updateQuantity(Long userId, Long productId, PatchCartUpdateRequest request) {
-        Cart cart = cartRepository.findByUserId(userId)
+    public GetCartResponse updateQuantity(String username, Long productId, PatchCartUpdateRequest request) {
+        Cart cart = cartRepository.findByUserEmail(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
 
         CartProduct cp = cartProductRepository.findByCartIdAndProductId(cart.getId(), productId)
@@ -108,25 +111,25 @@ public class CartService {
         validateStock(product, requestQuantity);
         cp.changeQuantity(requestQuantity);
 
-        return getMyCart(userId);
+        return getMyCart(username);
     }
 
     @Transactional
-    public GetCartResponse removeItem(Long userId, Long productId) {
-        Cart cart = cartRepository.findByUserId(userId)
+    public GetCartResponse removeItem(String username, Long productId) {
+        Cart cart = cartRepository.findByUserEmail(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
 
         CartProduct cp = cartProductRepository.findByCartIdAndProductId(cart.getId(), productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_PRODUCT_NOT_FOUND));
 
         cartProductRepository.delete(cp);
-        return getMyCart(userId);
+        return getMyCart(username);
     }
 
 
     @Transactional
-    public GetCartResponse clearCart(Long userId) {
-        Cart cart = cartRepository.findByUserId(userId)
+    public GetCartResponse clearCart(String username) {
+        Cart cart = cartRepository.findByUserEmail(username)
                 .orElse(null);
 
         if (cart == null) {
@@ -134,7 +137,7 @@ public class CartService {
         }
 
         cartProductRepository.deleteAllByCartId(cart.getId());
-        return getMyCart(userId);
+        return getMyCart(username);
     }
 
     private Cart getOrCreateCart(User user) {

@@ -1,15 +1,15 @@
 package com.example.finalproject.order.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
-import com.example.finalproject.order.dto.request.PostCartAddRequest;
 import com.example.finalproject.order.dto.request.PatchCartUpdateRequest;
+import com.example.finalproject.order.dto.request.PostCartAddRequest;
 import com.example.finalproject.order.dto.response.GetCartResponse;
 import com.example.finalproject.order.service.CartService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -27,48 +27,41 @@ public class CartController {
     private final CartService cartService;
 
     @PostMapping("/items")
-    public ResponseEntity<ApiResponse<GetCartResponse>> add(//@AuthenticationPrincipal Long userId,
-                                                            @RequestBody @Valid PostCartAddRequest request) {
+    public ResponseEntity<ApiResponse<GetCartResponse>> add(
+            Authentication authentication,
+            @RequestBody @Valid PostCartAddRequest request) {
 
-        Long userId = 1L;
-
-        /**
-         * 배달비 계산 로직 필요
-         */
-        GetCartResponse cartResponse = cartService.addToCart(userId, request);
+        GetCartResponse cartResponse = cartService.addToCart(authentication.getName(), request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(cartResponse));
     }
 
     @GetMapping
-    public GetCartResponse getMyCart(//@AuthenticationPrincipal Long userId
-    ) {
-        Long userId = 1L;
+    public GetCartResponse getMyCart(Authentication authentication) {
 
-        return cartService.getMyCart(userId);
+        return cartService.getMyCart(authentication.getName());
     }
 
     @PatchMapping("/items/{productId}")
-    public GetCartResponse updateQuantity(//@AuthenticationPrincipal Long userId,
-                                          @PathVariable Long productId,
-                                          @RequestBody @Valid PatchCartUpdateRequest request) {
-        Long userId = 1L;
+    public GetCartResponse updateQuantity(
+            Authentication authentication,
+            @PathVariable Long productId,
+            @RequestBody @Valid PatchCartUpdateRequest request) {
 
-        return cartService.updateQuantity(userId, productId, request);
+        return cartService.updateQuantity(authentication.getName(), productId, request);
     }
 
     @DeleteMapping("/items/{productId}")
-    public GetCartResponse removeItem(//@AuthenticationPrincipal Long userId,
-                                      @PathVariable Long productId) {
+    public GetCartResponse removeItem(
+            Authentication authentication,
+            @PathVariable Long productId) {
 
-        Long userId = 1L;
-
-        return cartService.removeItem(userId, productId);
+        return cartService.removeItem(authentication.getName(), productId);
     }
 
     @DeleteMapping
-    public GetCartResponse clear(@AuthenticationPrincipal Long userId) {
+    public GetCartResponse clear(Authentication authentication) {
 
-        return cartService.clearCart(userId);
+        return cartService.clearCart(authentication.getName());
     }
 }
