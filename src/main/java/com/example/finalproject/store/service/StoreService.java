@@ -3,11 +3,9 @@ package com.example.finalproject.store.service;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.moderation.domain.Approval;
-import com.example.finalproject.moderation.domain.ApprovalDocument;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.ApprovalStatus;
 import com.example.finalproject.moderation.enums.DocumentType;
-import com.example.finalproject.moderation.repository.ApprovalDocumentRepository;
 import com.example.finalproject.moderation.repository.ApprovalRepository;
 import com.example.finalproject.store.domain.embedded.SettlementAccount;
 import com.example.finalproject.store.domain.Store;
@@ -18,10 +16,10 @@ import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.StoreRegistrationResponse;
 import com.example.finalproject.store.domain.StoreCategory;
-import com.example.finalproject.store.repository.StoreBusinessHourRepository;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.User;
+import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
@@ -33,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -43,35 +40,34 @@ import java.util.List;
 public class StoreService {
 
     private final StoreRepository storeRepository;
-    private final StoreBusinessHourRepository storeBusinessHourRepository;
     private final StoreCategoryRepository storeCategoryRepository;
     private final ApprovalRepository approvalRepository;
-    private final ApprovalDocumentRepository approvalDocumentRepository;
+    private final UserRepository userRepository;
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     //todo: 좌표 관련 컨피그 만들어지거나 할 경우 교체 되어야 한다.
     private static final int SRID = 4326;
 
 
-    public StoreRegistrationResponse registerStore(User user, PostStoreRegistrationRequest request) {
+
+    public StoreRegistrationResponse createStoreApplication(String userName, PostStoreRegistrationRequest request) {
+
+        User user = findUserByUserName(userName);
 
         //입점 신청 조건 확인
         validateRegistration(user, request);
 
-        //마트 생성(PENDING 상태)
+        //마트 생성(PENDING 상태) + 운영 시간 추가
         Store store = createStore(user, request);
+        addBusinessHours(store, request.getBusinessHours());
         Store savedStore = storeRepository.save(store);
+        log.info("마트 및 운영 시간 저장 성공");
 
-        //마트 운영 시간 생성
-        List<StoreBusinessHour> businessHours = createBusinessHours(savedStore, request.getBusinessHours());
-        log.info("마트 운영 시간 저장 성공");
-
+        //승인 신청 생성 + 증빙 서류 추가
         Approval approval = createApproval(user);
+        addApprovalDocuments(approval, request);
         Approval savedApproval = approvalRepository.save(approval);
         log.info("마트 승인 신청 이력 저장 성공 approvalId = {}", savedApproval.getId());
-
-        List<ApprovalDocument> approvalDocuments = createApprovalDocuments(savedApproval, request);
-        log.info("마트 승인 준비 서류 저장 성공 approvalDocuments's size = {}", approvalDocuments.size());
 
         log.info("마트 입점 신청 완료. storeId={}, userId={}", savedStore.getId(), user.getId());
 
@@ -137,9 +133,7 @@ public class StoreService {
                 .build();
     }
 
-    private List<StoreBusinessHour> createBusinessHours(Store store, List<PostStoreBusinessHourRequest> postStoreBusinessHourRequests) {
-        List<StoreBusinessHour> businessHours = new ArrayList<>();
-
+    private void addBusinessHours(Store store, List<PostStoreBusinessHourRequest> postStoreBusinessHourRequests) {
         for (PostStoreBusinessHourRequest hourRequest : postStoreBusinessHourRequests) {
             LocalTime openTime = null;
             LocalTime closeTime = null;
@@ -154,17 +148,14 @@ public class StoreService {
             }
 
             StoreBusinessHour businessHour = StoreBusinessHour.builder()
-                    .store(store)
                     .dayOfWeek(hourRequest.getDayOfWeek())
                     .openTime(openTime)
                     .closeTime(closeTime)
                     .isClosed(hourRequest.getIsClosed())
                     .build();
 
-            businessHours.add(businessHour);
+            store.addBusinessHour(businessHour);
         }
-
-        return storeBusinessHourRepository.saveAll(businessHours);
     }
 
     private Approval createApproval(User user) {
@@ -174,34 +165,21 @@ public class StoreService {
                 .build();
     }
 
-    private List<ApprovalDocument> createApprovalDocuments(Approval approval, PostStoreRegistrationRequest request) {
-        List<ApprovalDocument> documents = new ArrayList<>();
-
+    private void addApprovalDocuments(Approval approval, PostStoreRegistrationRequest request) {
         //사업자 등록증
-        documents.add(ApprovalDocument.builder()
-                .applicantType(ApplicantType.STORE)
-                .approval(approval)
-                .documentType(DocumentType.BUSINESS_LICENSE)
-                .documentUrl(request.getBusinessLicenseUrl())
-                .build());
+        approval.addDocument(DocumentType.BUSINESS_LICENSE, request.getBusinessLicenseUrl());
 
         //통신판매업 신고증
-        documents.add(ApprovalDocument.builder()
-                .applicantType(ApplicantType.STORE)
-                .approval(approval)
-                .documentType(DocumentType.BUSINESS_REPORT)
-                .documentUrl(request.getTelecomSalesReportUrl())
-                .build());
+        approval.addDocument(DocumentType.BUSINESS_REPORT, request.getTelecomSalesReportUrl());
 
         //통장 사본
-        documents.add(ApprovalDocument.builder()
-                .applicantType(ApplicantType.STORE)
-                .approval(approval)
-                .documentType(DocumentType.BANK_PASSBOOK)
-                .documentUrl(request.getBankPassbookUrl())
-                .build());
-
-        return approvalDocumentRepository.saveAll(documents);
-
+        approval.addDocument(DocumentType.BANK_PASSBOOK, request.getBankPassbookUrl());
     }
+
+    //todo: 유저서비스가 개발될건지,,? 없으면 해당 익센션 만들어야함 라이더에서도 스토어에서도 스토리지에서도 이 코드는 각기 쓰이고있음...
+    private User findUserByUserName(String username) {
+        return userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
 }

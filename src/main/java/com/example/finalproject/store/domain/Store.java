@@ -11,6 +11,8 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -91,6 +93,14 @@ public class Store extends BaseTimeEntity {
     private BigDecimal commissionRate = new BigDecimal("5.00");
 
     private LocalDateTime deletedAt;
+
+    @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoreBusinessHour> businessHours = new ArrayList<>();
+
+    public void addBusinessHour(StoreBusinessHour businessHour) {
+        businessHours.add(businessHour);
+        businessHour.assignStore(this);
+    }
 
     @Builder
     public Store(User owner, StoreCategory storeCategory, String storeName,
