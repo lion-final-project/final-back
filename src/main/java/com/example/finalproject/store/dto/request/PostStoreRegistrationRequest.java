@@ -78,7 +78,8 @@ public class PostStoreRegistrationRequest {
     private String settlementBankName;
 
     @NotBlank(message = "계좌번호는 필수입니다.")
-    @Size(max = 255, message = "계좌번호는 255자를 초과할 수 없습니다.")
+    @Pattern(regexp = "^[0-9]+$", message = "계좌번호는 숫자만 입력 가능합니다.")
+    @Size(min = 10, max = 17, message = "계좌번호는 10~17자리여야 합니다.")
     private String settlementBankAccount;
 
     @NotBlank(message = "예금주는 필수입니다.")
