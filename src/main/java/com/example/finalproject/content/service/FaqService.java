@@ -37,13 +37,9 @@ public class FaqService {
     }
 
     @Transactional
-    public PostFaqCreateResponse createFaq(PostFaqCreateRequest request, User user) {
-        // TODO: JWT 구현 후 관리자 권한 확인 로직 추가
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-
-        User author = userRepository.getReferenceById(user.getId());
+    public PostFaqCreateResponse createFaq(PostFaqCreateRequest request, String email) {
+        User author = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Faq faq = Faq.builder()
                 .question(request.getQuestion())
@@ -56,11 +52,9 @@ public class FaqService {
     }
 
     @Transactional
-    public PatchFaqUpdateResponse updateFaq(Long faqId, PatchFaqUpdateRequest request, User user) {
-        // TODO: JWT 구현 후 관리자 권한 확인 로직 추가
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
+    public PatchFaqUpdateResponse updateFaq(Long faqId, PatchFaqUpdateRequest request, String email) {
+        userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Faq faq = faqRepository.findById(faqId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FAQ_NOT_FOUND));
@@ -70,11 +64,9 @@ public class FaqService {
     }
 
     @Transactional
-    public void deleteFaq(Long faqId, User user) {
-        // TODO: JWT 구현 후 관리자 권한 확인 로직 추가
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
+    public void deleteFaq(Long faqId, String email) {
+        userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Faq faq = faqRepository.findById(faqId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FAQ_NOT_FOUND));
