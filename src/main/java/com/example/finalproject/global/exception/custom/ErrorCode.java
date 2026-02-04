@@ -33,6 +33,22 @@ public enum ErrorCode {
     // Delivery
     DISTANCE_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELIVERY-001", "배달바 계산에 실패했습니다."),
     DELIVERY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "DELIVERY-002", "배달 가능한 지역이 아닙니다."),
+
+    // File
+    INVALID_FILE_EXTENSION(HttpStatus.BAD_REQUEST, "FILE-001", "지원하지 않는 파일 형식입니다."),
+    FILE_UPLOAD_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "FILE-002", "파일 업로드에 실패했습니다."),
+
+    // Inquiry
+    INQUIRY_NOT_FOUND(HttpStatus.NOT_FOUND, "INQUIRY-001", "문의를 조회할 수 없습니다."),
+    INQUIRY_ALREADY_ANSWERED(HttpStatus.BAD_REQUEST, "INQUIRY-002", "이미 답변된 문의입니다."),
+
+    // Admin
+    ADMIN_AUTHORITY_REQUIRED(HttpStatus.FORBIDDEN, "ADMIN-001", "관리자만 접근 가능합니다."),
+
+    // Notification
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Notification-001", "알림을 조회할 수 없습니다."),
+    NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "Notification-002", "자신의 알림만 접근할 수 있습니다."),
+
     ;
 
     private final HttpStatus status;
