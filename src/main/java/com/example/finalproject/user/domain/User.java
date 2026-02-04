@@ -58,15 +58,22 @@ public class User extends BaseTimeEntity {
 
     private LocalDateTime deletedAt;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserRole> userRoles = new ArrayList<>();
 
     @Builder
-    public User(String email, String password, String name, String phone) {
+    public User(String email, String password, String name, String phone,
+                Boolean termsAgreed, Boolean privacyAgreed,
+                LocalDateTime termsAgreedAt, LocalDateTime privacyAgreedAt) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.phone = phone;
+        this.termsAgreed = termsAgreed != null ? termsAgreed : false;
+        this.privacyAgreed = privacyAgreed != null ? privacyAgreed : false;
+        this.termsAgreedAt = termsAgreedAt;
+        this.privacyAgreedAt = privacyAgreedAt;
     }
 
     public boolean isAdmin() {
