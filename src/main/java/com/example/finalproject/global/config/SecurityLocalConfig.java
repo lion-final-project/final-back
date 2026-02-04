@@ -1,5 +1,8 @@
 package com.example.finalproject.global.config;
 
+import java.util.List;
+import java.util.function.Consumer;
+
 import com.example.finalproject.auth.config.KakaoProperties;
 import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
 import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
@@ -24,27 +27,23 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
-
-import java.util.function.Consumer;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
-@Profile(value = "!local")
+@Profile(value = "local")
 @Configuration
 @EnableWebSecurity
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
-public class SecurityConfig {
+public class SecurityLocalConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final KakaoService kakaoService;
     private final KakaoProperties kakaoProperties;
     private final ClientRegistrationRepository clientRegistrationRepository;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+    public SecurityLocalConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
                           @Lazy KakaoService kakaoService,
                           @Lazy KakaoProperties kakaoProperties,
                           ClientRegistrationRepository clientRegistrationRepository) {
@@ -80,8 +79,8 @@ public class SecurityConfig {
                 "http://127.0.0.1:5173",
                 "http://127.0.0.1:3000"
         ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")); 
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type")); 
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true); //쿠키 포함 여부
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -92,20 +91,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // OAuth는 세션 사용
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.GET, "/api/auth/check-email", "/api/auth/check-phone").permitAll()
-                        .requestMatchers("/oauth2/authorization/**", "/login/oauth2/code/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/refresh", "/api/auth/login", "/api/auth/social-signup/complete").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/send-verification", "/api/auth/verify-phone").permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers("/api/admin/notices/**").hasRole("ADMIN")
-                        .requestMatchers("/api/notices").permitAll()
-                        .anyRequest().authenticated()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/admin/**").authenticated()
+                        .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
                         .authorizationEndpoint(auth -> auth

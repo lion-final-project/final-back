@@ -193,6 +193,7 @@ public class KakaoService {
                 .connectedAt(now)
                 .build());
 
+        // 주소 저장 로직 제거됨 (회원가입 시 주소 미입력 정책)
         List<String> roles = List.of(role.getRoleName());
         log.info("[카카오 소셜 가입] 완료 userId={}, providerUserId={}", user.getId(), providerUserId);
         return new OAuthLoginSessionResult(user, roles);

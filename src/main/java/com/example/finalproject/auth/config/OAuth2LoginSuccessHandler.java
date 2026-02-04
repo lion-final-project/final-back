@@ -61,7 +61,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
             if (providerUserId != null && !providerUserId.isBlank()) {
                 if (kakaoService.isKakaoUserRegistered(providerUserId)) {
-                    // 이미 가입된 카카오 회원 → 로그인 처리
+                    // 이미 가입된 경우: 로그인 처리
                     log.info("[OAuth2 카카오] 기존 회원 로그인 처리 providerUserId={}", providerUserId);
                     OAuthLoginSessionResult result = kakaoService.findOrCreateByKakaoInfo(providerUserId, nickname);
                     CustomUserDetails userDetails = new CustomUserDetails(result.getUser(), result.getRoles());
@@ -72,7 +72,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
                     SecurityContextHolder.getContext().setAuthentication(newAuth);
                     redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
                 } else {
-                    // 최초 소셜 로그인 → 회원가입 폼 필요. 세션에 카카오 정보 저장 후 리다이렉트
+                    // 가입되지 않은 경우: 세션에 정보 저장 및 추가 정보 입력 페이지로 리다이렉트
                     log.info("[OAuth2 카카오] 최초 로그인 - 회원가입 폼 필요 providerUserId={}", providerUserId);
                     request.getSession().setAttribute("kakao_pending_provider_user_id", providerUserId);
                     request.getSession().setAttribute("kakao_pending_nickname", nickname != null ? nickname : "");
