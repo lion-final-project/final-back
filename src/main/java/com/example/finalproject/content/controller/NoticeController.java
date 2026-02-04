@@ -14,7 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -49,7 +49,8 @@ public class NoticeController {
     @PostMapping
     public ResponseEntity<ApiResponse<PostNoticeCreateResponse>> createNotice(
             @Valid @RequestBody PostNoticeCreateRequest request,
-            @AuthenticationPrincipal String email) {
+            Authentication authentication) {
+        String email = authentication.getName();
         PostNoticeCreateResponse response = noticeService.createNotice(request, email);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(response));
@@ -62,7 +63,8 @@ public class NoticeController {
     public ResponseEntity<ApiResponse<PatchNoticeUpdateResponse>> updateNotice(
             @PathVariable Long noticeId,
             @RequestBody PatchNoticeUpdateRequest request,
-            @AuthenticationPrincipal String email) {
+            Authentication authentication) {
+        String email = authentication.getName();
         PatchNoticeUpdateResponse response = noticeService.updateNotice(noticeId, request, email);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -73,7 +75,8 @@ public class NoticeController {
     @DeleteMapping("/{noticeId}")
     public ResponseEntity<ApiResponse<Object>> deleteNotice(
             @PathVariable Long noticeId,
-            @AuthenticationPrincipal String email) {
+            Authentication authentication) {
+        String email = authentication.getName();
         noticeService.deleteNotice(noticeId, email);
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "공지사항이 삭제되었습니다.")));
     }
