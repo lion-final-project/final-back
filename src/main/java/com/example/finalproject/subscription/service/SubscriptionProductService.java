@@ -8,9 +8,11 @@ import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.subscription.domain.SubscriptionProduct;
 import com.example.finalproject.subscription.domain.SubscriptionProductItem;
-import com.example.finalproject.subscription.dto.request.SubscriptionProductRequest;
-import com.example.finalproject.subscription.dto.request.SubscriptionProductStatusRequest;
-import com.example.finalproject.subscription.dto.response.SubscriptionProductResponse;
+import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductRequest;
+import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductStatusRequest;
+import com.example.finalproject.subscription.dto.request.PostSubscriptionProductRequest;
+import com.example.finalproject.subscription.dto.response.PatchSubscriptionProductDeletionResponse;
+import com.example.finalproject.subscription.dto.response.GetSubscriptionProductResponse;
 import com.example.finalproject.subscription.enums.SubscriptionProductStatus;
 import com.example.finalproject.subscription.enums.SubscriptionStatus;
 import com.example.finalproject.subscription.repository.SubscriptionProductItemRepository;
@@ -21,7 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +38,9 @@ public class SubscriptionProductService {
     private final SubscriptionProductItemRepository subscriptionProductItemRepository;
     private final SubscriptionRepository subscriptionRepository;
 
+    private static final Set<SubscriptionStatus> DELETION_BLOCKING_STATUSES =
+            EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAUSED, SubscriptionStatus.CANCELLATION_PENDING);
+
     /**
      * 구독 상품을 등록한다(UC-S10).
      * 요청의 구성 품목(productId)은 모두 해당 마트(storeId) 소속 상품이어야 한다.
@@ -44,7 +51,7 @@ public class SubscriptionProductService {
      * @throws BusinessException 마트 없음(STORE_NOT_FOUND), 상품 없음/소속 불일치(PRODUCT_NOT_FOUND)
      */
     @Transactional
-    public SubscriptionProductResponse create(Long storeId, SubscriptionProductRequest request) {
+    public GetSubscriptionProductResponse create(Long storeId, PostSubscriptionProductRequest request) {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
 
@@ -65,7 +72,7 @@ public class SubscriptionProductService {
         SubscriptionProduct saved = subscriptionProductRepository.save(product);
 
         List<SubscriptionProductItem> items = new ArrayList<>();
-        for (SubscriptionProductRequest.SubscriptionProductItemRequest itemReq : request.getItems()) {
+        for (PostSubscriptionProductRequest.PostSubscriptionProductItemRequest itemReq : request.getItems()) {
             Product p = productRepository.findByIdAndStore_Id(itemReq.getProductId(), storeId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
             SubscriptionProductItem item = SubscriptionProductItem.builder()
@@ -91,13 +98,9 @@ public class SubscriptionProductService {
      * @throws BusinessException 구독 상품 없음/소속 불일치(SUBSCRIPTION_PRODUCT_NOT_FOUND), 상품 없음/소속 불일치(PRODUCT_NOT_FOUND)
      */
     @Transactional
-    public SubscriptionProductResponse update(Long storeId, Long subscriptionProductId,
-                                              SubscriptionProductRequest request) {
-        SubscriptionProduct product = subscriptionProductRepository.findById(subscriptionProductId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND));
-        if (!product.getStore().getId().equals(storeId)) {
-            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND);
-        }
+    public GetSubscriptionProductResponse update(Long storeId, Long subscriptionProductId,
+                                                 PatchSubscriptionProductRequest request) {
+        SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
 
         int deliveryCountOfWeek = request.getTotalDeliveryCount() != null && request.getTotalDeliveryCount() >= 4
                 ? Math.max(1, request.getTotalDeliveryCount() / 4)
@@ -114,7 +117,7 @@ public class SubscriptionProductService {
 
         subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
         List<SubscriptionProductItem> items = new ArrayList<>();
-        for (SubscriptionProductRequest.SubscriptionProductItemRequest itemReq : request.getItems()) {
+        for (PatchSubscriptionProductRequest.PatchSubscriptionProductItemRequest itemReq : request.getItems()) {
             Product p = productRepository.findByIdAndStore_Id(itemReq.getProductId(), storeId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
             SubscriptionProductItem item = SubscriptionProductItem.builder()
@@ -140,12 +143,11 @@ public class SubscriptionProductService {
      * @throws BusinessException 구독 상품 없음/소속 불일치(SUBSCRIPTION_PRODUCT_NOT_FOUND)
      */
     @Transactional
-    public SubscriptionProductResponse updateStatus(Long storeId, Long subscriptionProductId,
-                                                    SubscriptionProductStatusRequest request) {
-        SubscriptionProduct product = subscriptionProductRepository.findById(subscriptionProductId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND));
-        if (!product.getStore().getId().equals(storeId)) {
-            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND);
+    public GetSubscriptionProductResponse updateStatus(Long storeId, Long subscriptionProductId,
+                                                       PatchSubscriptionProductStatusRequest request) {
+        SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
+        if (request.getStatus() == SubscriptionProductStatus.PENDING_DELETE) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_INVALID_STATUS);
         }
         product.updateStatus(request.getStatus());
         subscriptionProductRepository.flush();
@@ -163,18 +165,79 @@ public class SubscriptionProductService {
      * @return 구독 상품 응답 목록
      */
     @Transactional(readOnly = true)
-    public List<SubscriptionProductResponse> findListByStoreId(Long storeId) {
+    public List<GetSubscriptionProductResponse> findListByStoreId(Long storeId) {
         if (storeRepository.findById(storeId).isEmpty()) {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
         List<SubscriptionProduct> products = subscriptionProductRepository.findByStore_IdOrderByCreatedAtDesc(storeId);
-        List<SubscriptionProductResponse> result = new ArrayList<>(products.size());
+        List<GetSubscriptionProductResponse> result = new ArrayList<>(products.size());
         for (SubscriptionProduct sp : products) {
             long subscriberCount = subscriptionRepository.countBySubscriptionProductAndStatus(sp, SubscriptionStatus.ACTIVE);
             List<SubscriptionProductItem> items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(sp);
             result.add(toResponse(sp, (int) subscriberCount, items));
         }
         return result;
+    }
+
+    /**
+     * 구독 상품 삭제 요청을 처리한다.
+     * - 숨김(INACTIVE) 상태에서만 삭제 요청 가능.
+     * - 구독자가 남아 있으면 삭제 예정(PENDING_DELETE)로 전환한다.
+     * - 구독자가 없으면 즉시 삭제한다.
+     *
+     * @param storeId              마트 ID
+     * @param subscriptionProductId 구독 상품 ID
+     * @return 삭제 처리 결과 (삭제 예정 혹은 즉시 삭제)
+     */
+    @Transactional
+    public PatchSubscriptionProductDeletionResponse requestDeletion(Long storeId, Long subscriptionProductId) {
+        SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
+
+        if (product.getStatus() == SubscriptionProductStatus.ACTIVE) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_DELETION_REQUIRES_INACTIVE);
+        }
+        if (product.getStatus() == SubscriptionProductStatus.PENDING_DELETE) {
+            return PatchSubscriptionProductDeletionResponse.scheduled(
+                    toResponse(product, getOngoingSubscriberCount(product),
+                            subscriptionProductItemRepository.findBySubscriptionProductOrderById(product)));
+        }
+
+        boolean hasOngoingSubscribers = subscriptionRepository.existsBySubscriptionProductAndStatusIn(
+                product, DELETION_BLOCKING_STATUSES);
+
+        if (hasOngoingSubscribers) {
+            product.updateStatus(SubscriptionProductStatus.PENDING_DELETE);
+            subscriptionProductRepository.flush();
+            List<SubscriptionProductItem> items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(product);
+            return PatchSubscriptionProductDeletionResponse.scheduled(
+                    toResponse(product, getOngoingSubscriberCount(product), items));
+        }
+
+        subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
+        subscriptionProductRepository.delete(product);
+        return PatchSubscriptionProductDeletionResponse.deleted();
+    }
+
+    /**
+     * API-SOP-010D2: 구독 상품 즉시 삭제.
+     * 구독자가 0명일 때만 호출 가능. 삭제 예정(PENDING_DELETE) 상태에서 구독자가 모두 없어진 후 사장님이 삭제할 때 사용한다.
+     *
+     * @param storeId              마트 ID
+     * @param subscriptionProductId 구독 상품 ID
+     * @throws BusinessException 구독 상품 없음/소속 불일치(SUBSCRIPTION_PRODUCT_NOT_FOUND), 구독자 존재(SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS)
+     */
+    @Transactional
+    public void deleteImmediately(Long storeId, Long subscriptionProductId) {
+        SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
+
+        boolean hasOngoingSubscribers = subscriptionRepository.existsBySubscriptionProductAndStatusIn(
+                product, DELETION_BLOCKING_STATUSES);
+        if (hasOngoingSubscribers) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS);
+        }
+
+        subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
+        subscriptionProductRepository.delete(product);
     }
 
     /**
@@ -186,12 +249,12 @@ public class SubscriptionProductService {
      * @return 구독 상품 응답 목록 (ACTIVE만 반환)
      */
     @Transactional(readOnly = true)
-    public List<SubscriptionProductResponse> findListByStoreIdForCustomer(Long storeId) {
+    public List<GetSubscriptionProductResponse> findListByStoreIdForCustomer(Long storeId) {
         if (storeRepository.findById(storeId).isEmpty()) {
             return List.of();
         }
         List<SubscriptionProduct> products = subscriptionProductRepository.findByStore_IdOrderByCreatedAtDesc(storeId);
-        List<SubscriptionProductResponse> result = new ArrayList<>();
+        List<GetSubscriptionProductResponse> result = new ArrayList<>();
         for (SubscriptionProduct sp : products) {
             if (sp.getStatus() != SubscriptionProductStatus.ACTIVE) {
                 continue;
@@ -203,19 +266,19 @@ public class SubscriptionProductService {
         return result;
     }
 
-    private SubscriptionProductResponse toResponse(SubscriptionProduct sp, int subscriberCount,
-                                                   List<SubscriptionProductItem> items) {
-        List<SubscriptionProductResponse.SubscriptionProductItemResponse> itemResponses = items == null
+    private GetSubscriptionProductResponse toResponse(SubscriptionProduct sp, int subscriberCount,
+                                                      List<SubscriptionProductItem> items) {
+        List<GetSubscriptionProductResponse.GetSubscriptionProductItemResponse> itemResponses = items == null
                 ? List.of()
                 : items.stream()
-                .map(i -> SubscriptionProductResponse.SubscriptionProductItemResponse.builder()
+                .map(i -> GetSubscriptionProductResponse.GetSubscriptionProductItemResponse.builder()
                         .productId(i.getProduct().getId())
                         .productName(i.getProduct().getProductName())
                         .quantity(i.getQuantity())
                         .build())
                 .collect(Collectors.toList());
 
-        return SubscriptionProductResponse.builder()
+        return GetSubscriptionProductResponse.builder()
                 .subscriptionProductId(sp.getId())
                 .name(sp.getSubscriptionProductName())
                 .description(sp.getDescription())
@@ -227,5 +290,18 @@ public class SubscriptionProductService {
                 .createdAt(sp.getCreatedAt())
                 .items(itemResponses)
                 .build();
+    }
+
+    private SubscriptionProduct getOwnedProduct(Long storeId, Long subscriptionProductId) {
+        SubscriptionProduct product = subscriptionProductRepository.findById(subscriptionProductId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND));
+        if (!product.getStore().getId().equals(storeId)) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND);
+        }
+        return product;
+    }
+
+    private int getOngoingSubscriberCount(SubscriptionProduct product) {
+        return (int) subscriptionRepository.countBySubscriptionProductAndStatusIn(product, DELETION_BLOCKING_STATUSES);
     }
 }

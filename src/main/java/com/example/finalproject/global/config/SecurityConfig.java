@@ -110,6 +110,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/notices").permitAll()
                         .requestMatchers("/api/riders","api/riders/register","api/riders/approvals/*").hasRole("CUSTOMER")
                         .requestMatchers("/api/riders/status").hasRole("RIDER")
+                        .requestMatchers("/api/store/subscription-products", "/api/store/subscription-products/**").hasRole("STORE_OWNER")
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

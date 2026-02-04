@@ -1,7 +1,7 @@
 package com.example.finalproject.store.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
-import com.example.finalproject.subscription.dto.response.SubscriptionProductResponse;
+import com.example.finalproject.subscription.dto.response.GetSubscriptionProductResponse;
 import com.example.finalproject.subscription.service.SubscriptionProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -32,9 +32,9 @@ public class StoreCustomerController {
      * @return 200 OK, 구독 상품 응답 목록 (마트 없거나 ACTIVE 없으면 빈 배열)
      */
     @GetMapping("/{storeId}/subscription-products")
-    public ResponseEntity<ApiResponse<List<SubscriptionProductResponse>>> listSubscriptionProducts(
+    public ResponseEntity<ApiResponse<List<GetSubscriptionProductResponse>>> listSubscriptionProducts(
             @PathVariable Long storeId) {
-        List<SubscriptionProductResponse> list = subscriptionProductService.findListByStoreIdForCustomer(storeId);
+        List<GetSubscriptionProductResponse> list = subscriptionProductService.findListByStoreIdForCustomer(storeId);
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 }
