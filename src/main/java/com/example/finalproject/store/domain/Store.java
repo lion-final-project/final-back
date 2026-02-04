@@ -66,7 +66,7 @@ public class Store extends BaseTimeEntity {
     @Embedded
     private StoreAddress address;
 
-    //정산 계좌 번호
+    //정산 계좌 번호 정보
     @Embedded
     private SettlementAccount settlementAccount;
 
