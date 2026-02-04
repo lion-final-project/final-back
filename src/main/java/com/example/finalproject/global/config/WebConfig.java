@@ -1,26 +1,20 @@
 package com.example.finalproject.global.config;
 
-import java.util.List;
-import lombok.RequiredArgsConstructor;
+import com.example.finalproject.moderation.enums.ApplicantType;
+import com.example.finalproject.moderation.enums.DocumentType;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.web.config.EnableSpringDataWebSupport;
-import org.springframework.web.method.support.HandlerMethodArgumentResolver;
+import org.springframework.format.FormatterRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-// 페이지 객체의 응답을 설정
 @Configuration
-@EnableSpringDataWebSupport(
-        pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO
-)
-@RequiredArgsConstructor
+@EnableSpringDataWebSupport(pageSerializationMode = EnableSpringDataWebSupport.PageSerializationMode.VIA_DTO)
 public class WebConfig implements WebMvcConfigurer {
 
-
-    //Security 설정 전 인증객체 자동생성
-    private final List<HandlerMethodArgumentResolver> customArgumentResolvers;
-
     @Override
-    public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.addAll(customArgumentResolvers);
+    public void addFormatters(FormatterRegistry registry) {
+        // 개별 Enum 컨버터 등록 store -> ApplicantType.STORE
+        registry.addConverter(String.class, ApplicantType.class, ApplicantType::from);
+        registry.addConverter(String.class, DocumentType.class, DocumentType::from);
     }
 }
