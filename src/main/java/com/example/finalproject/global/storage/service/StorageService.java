@@ -26,6 +26,21 @@ public interface StorageService {
     String uploadDocument(MultipartFile file, Long userId, ApplicantType applicantType, DocumentType documentType);
 
     /**
+     * 일반 이미지/썸네일 업로드 (상품 이미지 등)
+     * @param file 업로드할 이미지 파일
+     * @param folder 저장 폴더 (예: product, thumbnail)
+     * @return 업로드된 파일의 전체 URL
+     */
+    String uploadImage(MultipartFile file, String folder);
+
+    /**
+     * S3에 올렸던 URL로 파일 바이트 조회
+     * @param fileUrl S3 파일 URL
+     * @return 파일 바이트 (없거나 실패 시 null)
+     */
+    byte[] downloadByUrl(String fileUrl);
+
+    /**
      * 파일 삭제
      * @param fileUrl 삭제할 파일의 URL ex)http://localhost:9000/market-bucket/12/store/file.png
      */
