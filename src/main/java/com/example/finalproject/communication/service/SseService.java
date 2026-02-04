@@ -43,9 +43,18 @@ public class SseService {
     public void sendToUser(Long userId, String eventName, Object data) {
         Set<String> emitterIds = repository.getEmitterIdsByUser(userId);
 
+        if (emitterIds.isEmpty()) {
+            log.warn("[SSE] 사용자 {}에게 연결된 emitter가 없습니다. eventName={}, data={}", userId, eventName, data);
+            return;
+        }
+
+        log.info("[SSE] 사용자 {}에게 이벤트 전송 시도: {} = {}, 연결된 emitter 수: {}", 
+                userId, eventName, data, emitterIds.size());
+
         for (String emitterId : emitterIds) {
             SseEmitter emitter = repository.get(emitterId);
             if (emitter == null) {
+                log.warn("[SSE] emitter {}를 찾을 수 없습니다.", emitterId);
                 continue;
             }
 
@@ -53,7 +62,10 @@ public class SseService {
                 emitter.send(SseEmitter.event()
                         .name(eventName)
                         .data(data));
+                log.info("[SSE] 사용자 {}에게 이벤트 전송 성공: {} = {}", userId, eventName, data);
             } catch (IOException e) {
+                log.error("[SSE] 사용자 {}에게 이벤트 전송 실패: emitterId={}, eventName={}, error={}", 
+                        userId, emitterId, eventName, e.getMessage());
                 repository.remove(userId, emitterId);
             }
         }

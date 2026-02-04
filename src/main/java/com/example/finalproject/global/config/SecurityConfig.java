@@ -107,6 +107,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/admin/notices/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/notices").permitAll()
                         .anyRequest().authenticated()
                 )
