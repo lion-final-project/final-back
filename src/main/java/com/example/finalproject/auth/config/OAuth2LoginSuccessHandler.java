@@ -59,18 +59,25 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
             String nickname = resolveNickname(attrs);
 
             if (providerUserId != null && !providerUserId.isBlank()) {
-                // 최초 로그인도 자동 가입(플레이스홀더 정보) 후 로그인 처리. 회원가입 폼 없이 소셜 로그인만 사용.
-                OAuthLoginSessionResult result = kakaoService.findOrCreateByKakaoInfo(providerUserId, nickname);
-                CustomUserDetails userDetails = new CustomUserDetails(result.getUser(), result.getRoles());
-                UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(newAuth);
+                if (kakaoService.isKakaoUserRegistered(providerUserId)) {
+                    // 이미 가입된 경우: 로그인 처리
+                    OAuthLoginSessionResult result = kakaoService.findOrCreateByKakaoInfo(providerUserId, nickname);
+                    CustomUserDetails userDetails = new CustomUserDetails(result.getUser(), result.getRoles());
+                    UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+                    SecurityContextHolder.getContext().setAuthentication(newAuth);
+                    redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
+                } else {
+                    // 가입되지 않은 경우: 세션에 정보 저장 및 추가 정보 입력 페이지로 리다이렉트
+                    request.getSession().setAttribute("kakao_pending_provider_user_id", providerUserId);
+                    request.getSession().setAttribute("kakao_pending_nickname", nickname);
+                    redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=signup_required";
+                }
             }
         }
 
-        redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 
