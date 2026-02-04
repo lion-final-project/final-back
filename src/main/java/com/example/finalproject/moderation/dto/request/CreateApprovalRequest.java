@@ -1,7 +1,10 @@
 package com.example.finalproject.moderation.dto.request;
 
+import com.example.finalproject.moderation.domain.Approval;
+import com.example.finalproject.moderation.domain.ApprovalDocument;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.DocumentType;
+import com.example.finalproject.user.domain.User;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;

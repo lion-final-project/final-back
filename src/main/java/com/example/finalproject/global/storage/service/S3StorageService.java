@@ -2,10 +2,8 @@ package com.example.finalproject.global.storage.service;
 
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
-import com.example.finalproject.moderation.enums.ApplicantType;
-import com.example.finalproject.moderation.enums.DocumentType;
+import com.example.finalproject.global.storage.service.interfaces.StorageService;
 import io.awspring.cloud.s3.S3Template;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,16 +18,17 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class S3StorageService implements StorageService {
 
     private static final List<String> ALLOWED_EXTENSIONS = java.util.List.of("jpg", "jpeg", "png", "pdf");
 
     private final S3Template s3Template;
+    private final String bucket;
 
-    @Value("${custom.s3.bucket}")
-    private String bucket;
-
+    public S3StorageService(S3Template s3Template, @Value("${custom.s3.bucket}") String bucket) {
+        this.s3Template = s3Template;
+        this.bucket = bucket;
+    }
 
     @Override
     public String upload(MultipartFile file, String directoryPath) {
@@ -64,17 +63,17 @@ public class S3StorageService implements StorageService {
         }
     }
 
-    @Override
-    public String uploadDocument(MultipartFile file, Long userId, ApplicantType applicantType, DocumentType documentType) {
-        String directoryPath = String.format("document/%d/%s/%s",
-                userId,
-                applicantType.name().toLowerCase(),
-                documentType.name().toLowerCase()
-        );
-
-        log.info("StorageService.uploadDocument() userId: {}, path: {}", userId, directoryPath);
-        return upload(file, directoryPath);
-    }
+//    @Override
+//    public String uploadDocument(MultipartFile file, Long userId, ApplicantType applicantType, DocumentType documentType) {
+//        String directoryPath = String.format("document/%d/%s/%s",
+//                userId,
+//                applicantType.name().toLowerCase(),
+//                documentType.name().toLowerCase()
+//        );
+//
+//        log.info("StorageService.uploadDocument() userId: {}, path: {}", userId, directoryPath);
+//        return upload(file, directoryPath);
+//    }
 
 
     @Override
