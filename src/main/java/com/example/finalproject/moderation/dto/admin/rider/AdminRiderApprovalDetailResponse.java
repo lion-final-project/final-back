@@ -11,51 +11,50 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AdminRiderApprovalDetailResponse {
 
-    // ?뱀씤 ?대젰 ID.
+    // 승인 이력 ID.
     private Long approvalId;
-    // ?뱀씤 ?곹깭.
+    // 승인 상태.
     private ApprovalStatus status;
-    // ?뱀씤/嫄곗젅/蹂대쪟 ?ъ쑀.
+    // 승인/거절/보류 사유.
     private String reason;
-    // ?좎껌 ?쇱떆.
+    // 신청 일시.
     private LocalDateTime appliedAt;
-    // ?뱀씤 泥섎━ ?쇱떆.
+    // 승인 처리 일시.
     private LocalDateTime approvedAt;
-    // 蹂대쪟 留뚮즺 ?쇱떆.
+    // 보류 만료 일시.
     private LocalDateTime heldUntil;
-    // ?쇱씠??湲곕낯 ?뺣낫.
+    // 라이더 기본 정보.
     private RiderInfo rider;
-    // ?쒖텧 ?쒕쪟 紐⑸줉.
+    // 제출 서류 목록.
     private List<DocumentInfo> documents;
 
     @Getter
     @AllArgsConstructor
     public static class RiderInfo {
-        // ?쇱씠??ID.
+        // 라이더 ID.
         private Long riderId;
-        // ?ъ슜??ID.
+        // 사용자 ID.
         private Long userId;
-        // ?ъ슜???대쫫.
+        // 사용자 이름.
         private String userName;
-        // ?ъ슜???곕씫泥?
+        // 사용자 연락처.
         private String userPhone;
-        // ?좊텇利??몄쬆 ?щ?.
+        // 신분증 인증 여부.
         private Boolean idCardVerified;
-        // ?뺤궛 ??됰챸.
+        // 정산 은행명.
         private String bankName;
-        // ?뺤궛 怨꾩쥖踰덊샇.
+        // 정산 계좌번호.
         private String bankAccount;
-        // ?덇툑二?
+        // 예금주.
         private String accountHolder;
     }
 
     @Getter
     @AllArgsConstructor
     public static class DocumentInfo {
-        // ?쒕쪟 ?좏삎.
+        // 서류 유형.
         private DocumentType documentType;
-        // ?쒕쪟 URL.
+        // 서류 URL.
         private String documentUrl;
     }
 }
-

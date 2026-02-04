@@ -129,8 +129,8 @@ public class AdminStoreApprovalService {
 
         notificationRepository.save(new Notification(
                 approval.getUser(),
-                "留덊듃 ?뱀씤 ?꾨즺",
-                "留덊듃 ?뱀씤 ?붿껌???뱀씤?섏뿀?듬땲??",
+                "마트 승인 완료",
+                "마트 승인 요청이 승인되었습니다.",
                 NotificationRefType.STORE
         ));
     }
@@ -151,8 +151,8 @@ public class AdminStoreApprovalService {
 
         notificationRepository.save(new Notification(
                 approval.getUser(),
-                "留덊듃 ?쒕쪟 蹂대쪟",
-                "?쒖텧 ?쒕쪟 蹂댁셿???꾩슂?⑸땲?? ?ъ쑀: " + reason,
+                "마트 서류 보류",
+                "제출 서류 보완이 필요합니다. 사유: " + reason,
                 NotificationRefType.STORE
         ));
     }
@@ -176,8 +176,8 @@ public class AdminStoreApprovalService {
 
         notificationRepository.save(new Notification(
                 approval.getUser(),
-                "留덊듃 ?뱀씤 嫄곗젅",
-                "留덊듃 ?뱀씤 ?붿껌??嫄곗젅?섏뿀?듬땲?? ?ъ쑀: " + reason,
+                "마트 승인 거절",
+                "마트 승인 요청이 거절되었습니다. 사유: " + reason,
                 NotificationRefType.STORE
         ));
     }
@@ -200,7 +200,7 @@ public class AdminStoreApprovalService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
     }
 
-    // 승인 대상 사용자에게 역할 부여 (중복 시 스킵).
+    // 승인 시 사용자에게 역할 부여 (중복 방지).
     private void grantRole(User user, String roleName) {
         Role role = roleRepository.findByRoleName(roleName)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
@@ -214,7 +214,6 @@ public class AdminStoreApprovalService {
         if (!Objects.equals(status, ApprovalStatus.PENDING)
                 && !Objects.equals(status, ApprovalStatus.HELD)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 }
-}
-

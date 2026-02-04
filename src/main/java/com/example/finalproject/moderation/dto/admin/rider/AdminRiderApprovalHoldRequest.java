@@ -11,12 +11,11 @@ import lombok.Setter;
 @NoArgsConstructor
 public class AdminRiderApprovalHoldRequest {
 
-    // 蹂대쪟 泥섎━ 愿由ъ옄 ID.
+    // 보류 처리 관리자 ID.
     @NotNull
     private Long adminUserId;
 
-    // 蹂대쪟 ?ъ쑀.
+    // 보류 사유.
     @NotBlank
     private String reason;
 }
-
