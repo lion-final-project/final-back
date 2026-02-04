@@ -101,6 +101,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/refresh", "/api/auth/login", "/api/auth/social-signup/complete").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/send-verification", "/api/auth/verify-phone").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/api/admin/notices/**").hasRole("ADMIN")
+                        .requestMatchers("/api/notices").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

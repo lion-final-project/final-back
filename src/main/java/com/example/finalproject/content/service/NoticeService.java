@@ -37,13 +37,9 @@ public class NoticeService {
     }
 
     @Transactional
-    public PostNoticeCreateResponse createNotice(PostNoticeCreateRequest request, User user) {
-        // TODO: JWT 구현 후 관리자 권한 확인 로직 추가
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
-
-        User author = userRepository.getReferenceById(user.getId());
+    public PostNoticeCreateResponse createNotice(PostNoticeCreateRequest request, String email) {
+        User author = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Notice notice = Notice.builder()
                 .title(request.getTitle())
@@ -56,11 +52,9 @@ public class NoticeService {
     }
 
     @Transactional
-    public PatchNoticeUpdateResponse updateNotice(Long noticeId, PatchNoticeUpdateRequest request, User user) {
-        // TODO: JWT 구현 후 관리자 권한 확인 로직 추가
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
+    public PatchNoticeUpdateResponse updateNotice(Long noticeId, PatchNoticeUpdateRequest request, String email) {
+        userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOTICE_NOT_FOUND));
@@ -70,11 +64,9 @@ public class NoticeService {
     }
 
     @Transactional
-    public void deleteNotice(Long noticeId, User user) {
-        // TODO: JWT 구현 후 관리자 권한 확인 로직 추가
-        if (user == null) {
-            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
-        }
+    public void deleteNotice(Long noticeId, String email) {
+        userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Notice notice = noticeRepository.findById(noticeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOTICE_NOT_FOUND));
