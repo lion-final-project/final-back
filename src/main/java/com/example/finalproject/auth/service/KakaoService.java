@@ -187,17 +187,7 @@ public class KakaoService {
                 .connectedAt(now)
                 .build());
 
-        String line2 = request.getAddressLine2() != null ? request.getAddressLine2() : "";
-        addressRepository.save(Address.builder()
-                .user(user)
-                .contact(request.getPhone())
-                .addressName("기본")
-                .postalCode("00000")
-                .addressLine1(request.getAddressLine1())
-                .addressLine2(line2)
-                .location(null)
-                .isDefault(true)
-                .build());
+        // 주소 저장 로직 제거됨 (회원가입 시 주소 미입력 정책)
 
         List<String> roles = List.of(role.getRoleName());
         return new OAuthLoginSessionResult(user, roles);
