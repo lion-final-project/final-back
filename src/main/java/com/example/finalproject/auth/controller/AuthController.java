@@ -180,18 +180,16 @@ public class AuthController {
     }
 
 
-    //RT or Cookie(nm_refreshToken) 중 하나로 무효화, 프론트 credentials: 'include' 시 쿠키만으로 로그아웃 가능
+    // RT or Cookie(nm_refreshToken) 중 하나로 무효화. 토큰이 없어도 200 + 쿠키 삭제 (프론트 로그아웃 UI 항상 성공)
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-        
             @RequestBody(required = false) RefreshTokenRequest request,
             @CookieValue(name = CookieUtil.REFRESH_TOKEN_COOKIE, required = false) String refreshTokenFromCookie) {
         String token = (request != null && request.getRefreshToken() != null && !request.getRefreshToken().isBlank())
                 ? request.getRefreshToken() : refreshTokenFromCookie;
-        if (token == null || token.isBlank()) {
-            throw new BusinessException(ErrorCode.REFRESH_TOKEN_MISSING);
+        if (token != null && !token.isBlank()) {
+            authService.logout(token);
         }
-        authService.logout(token);
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearAccessTokenCookie().toString());
         headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearRefreshTokenCookie().toString());
