@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ApprovalRepository extends JpaRepository<Approval, Long> {
 
+    boolean existsByUserAndApplicantTypeAndStatus(User user, ApplicantType applicantType, ApprovalStatus status);
 
     boolean existsByUserAndStatus(User user, ApprovalStatus status);
 
