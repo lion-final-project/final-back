@@ -1,46 +1,109 @@
-//package com.example.finalproject.global.config;
-//
-//import java.util.List;
-//
-//import org.springframework.context.annotation.Bean;
-//import org.springframework.context.annotation.Configuration;
-//import org.springframework.context.annotation.Profile;
-//import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-//import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-//import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-//import org.springframework.security.web.SecurityFilterChain;
-//import org.springframework.web.cors.CorsConfiguration;
-//import org.springframework.web.cors.CorsConfigurationSource;
-//import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-//
-//@Profile(value = "local")
-//@Configuration
-//@EnableWebSecurity
-//public class SecurityLocalConfig {
-//
-//    @Bean
-//    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-//        http
-//                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-//                .csrf(AbstractHttpConfigurer::disable)
-//                .formLogin(AbstractHttpConfigurer::disable)
-//                .httpBasic(AbstractHttpConfigurer::disable)
-//                .authorizeHttpRequests(auth -> auth
-//                        .anyRequest().permitAll()
-//                );
-//        return http.build();
-//    }
-//
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration configuration = new CorsConfiguration();
-//        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-//        configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE"));
-//        configuration.setAllowedHeaders(List.of("*"));
-//        configuration.setAllowCredentials(true);
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        source.registerCorsConfiguration("/**", configuration);
-//        return source;
-//    }
-//}
+package com.example.finalproject.global.config;
+
+import java.util.List;
+import java.util.function.Consumer;
+
+import com.example.finalproject.auth.config.KakaoProperties;
+import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
+import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
+import com.example.finalproject.auth.service.KakaoService;
+import com.example.finalproject.global.jwt.JwtProperties;
+import com.example.finalproject.global.security.JwtAuthenticationFilter;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+@Profile(value = "local")
+@Configuration
+@EnableWebSecurity
+@EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
+public class SecurityLocalConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final KakaoService kakaoService;
+    private final KakaoProperties kakaoProperties;
+    private final ClientRegistrationRepository clientRegistrationRepository;
+
+    public SecurityLocalConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          @Lazy KakaoService kakaoService,
+                          @Lazy KakaoProperties kakaoProperties,
+                          ClientRegistrationRepository clientRegistrationRepository) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.kakaoService = kakaoService;
+        this.kakaoProperties = kakaoProperties;
+        this.clientRegistrationRepository = clientRegistrationRepository;
+    }
+
+    private OAuth2AuthorizationRequestResolver kakaoAuthorizationRequestResolver() {
+        DefaultOAuth2AuthorizationRequestResolver resolver =
+                new DefaultOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/oauth2/authorization");
+        resolver.setAuthorizationRequestCustomizer(kakaoPromptLoginCustomizer());
+        return resolver;
+    }
+
+    private Consumer<OAuth2AuthorizationRequest.Builder> kakaoPromptLoginCustomizer() {
+        return customizer -> customizer
+                .additionalParameters(params -> params.put("prompt", "login"));
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of( //허용할 도메인 리스트
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:3000"
+        ));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowCredentials(true); //쿠키 포함 여부
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(auth -> auth
+                                .authorizationRequestResolver(kakaoAuthorizationRequestResolver()))
+                        .successHandler(new OAuth2LoginSuccessHandler(kakaoService, kakaoProperties))
+                )
+                .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(), OAuth2AuthorizationRequestRedirectFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+}
