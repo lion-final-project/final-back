@@ -109,7 +109,7 @@ public class RiderServiceImpl implements RiderService {
 
     // 유저 조회
     private User findUserByUserName(String username) {
-        return userRepository.findUserByEmail(username)
+        return userRepository.findByEmail(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
