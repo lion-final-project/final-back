@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.10'
     id 'io.spring.dependency-management' version '1.1.7'
@@ -26,9 +26,15 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'org.postgresql:postgresql'
@@ -39,6 +45,12 @@ dependencies {
 
     implementation 'org.hibernate.orm:hibernate-spatial:'
     implementation 'org.locationtech.jts:jts-core'
+
+    // AWS S3 (Spring Cloud AWS) - miniO 사용 시 제외 가능
+    implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.1.1'
+
+    // CoolSMS 의존성 (문자 인증)
+    implementation 'net.nurigo:sdk:4.3.2'
 }
 
 tasks.named('test') {

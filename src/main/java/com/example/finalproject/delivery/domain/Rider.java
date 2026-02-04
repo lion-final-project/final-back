@@ -1,5 +1,6 @@
 package com.example.finalproject.delivery.domain;
 
+import com.example.finalproject.delivery.dto.response.RiderResponse;
 import com.example.finalproject.delivery.enums.RiderApprovalStatus;
 import com.example.finalproject.delivery.enums.RiderOperationStatus;
 import com.example.finalproject.global.domain.BaseTimeEntity;
@@ -16,10 +17,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "riders")
@@ -39,10 +37,8 @@ public class Rider extends BaseTimeEntity {
     @Column(name = "id_card_verified", nullable = false)
     private Boolean idCardVerified = false;
 
-    @Column(name = "id_card_image", length = 500)
-    private String idCardImage;
-
     @Enumerated(EnumType.STRING)
+    @Setter
     @Column(name = "operation_status", nullable = false)
     private RiderOperationStatus operationStatus = RiderOperationStatus.OFFLINE;
 
@@ -70,7 +66,24 @@ public class Rider extends BaseTimeEntity {
     }
 
     @Builder
-    public Rider(User user) {
+    public Rider(User user, String bankName, String bankAccount, String accountHolder) {
         this.user = user;
+        this.bankName = bankName;
+        this.bankAccount = bankAccount;
+        this.accountHolder = accountHolder;
+    }
+
+    public RiderResponse createResponse() {
+        return RiderResponse.builder()
+                .id(this.getId())
+                .userId(this.user.getId())
+                .name(this.user.getName())
+                .phone(this.user.getPhone())
+                .bankAccount(this.bankAccount)
+                .bankName(this.bankName)
+                .accountHolder(this.accountHolder)
+                .status(this.status)
+                .operationStatus(this.operationStatus)
+                .build();
     }
 }
