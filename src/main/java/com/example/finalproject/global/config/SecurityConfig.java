@@ -74,15 +74,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of( //허용할 도메인 리스트
+        config.setAllowedOrigins(List.of( // 허용할 도메인 리스트
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "http://127.0.0.1:5173",
                 "http://127.0.0.1:3000"
         ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")); 
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type")); 
-        config.setAllowCredentials(true); //쿠키 포함 여부
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowCredentials(true); // 쿠키 포함 여부
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -96,12 +96,15 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // OAuth는 세션 사용
+                .sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // OAuth는 세션 사용
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.GET, "/api/auth/check-email", "/api/auth/check-phone").permitAll()
                         .requestMatchers("/oauth2/authorization/**", "/login/oauth2/code/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/refresh", "/api/auth/login", "/api/auth/social-signup/complete").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/send-verification", "/api/auth/verify-phone").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/refresh", "/api/auth/login",
+                                "/api/auth/social-signup/complete").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/send-verification", "/api/auth/verify-phone")
+                        .permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/admin/notices/**").hasRole("ADMIN")
                         .requestMatchers("/api/notices").permitAll()
@@ -112,7 +115,8 @@ public class SecurityConfig {
                                 .authorizationRequestResolver(kakaoAuthorizationRequestResolver()))
                         .successHandler(new OAuth2LoginSuccessHandler(kakaoService, kakaoProperties))
                 )
-                .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(), OAuth2AuthorizationRequestRedirectFilter.class)
+                .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(),
+                        OAuth2AuthorizationRequestRedirectFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
