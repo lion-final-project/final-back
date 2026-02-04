@@ -12,7 +12,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -31,8 +30,11 @@ public class Cart extends BaseTimeEntity {
             foreignKey = @ForeignKey(name = "fk_carts_user"))
     private User user;
 
-    @Builder
-    public Cart(User user) {
+    private Cart(User user) {
         this.user = user;
+    }
+
+    public static Cart create(User user) {
+        return new Cart(user);
     }
 }
