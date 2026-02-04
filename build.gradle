@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.10'
     id 'io.spring.dependency-management' version '1.1.7'
@@ -34,7 +34,6 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
-
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     runtimeOnly 'org.postgresql:postgresql'
@@ -43,13 +42,17 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
+
     implementation 'org.hibernate.orm:hibernate-spatial:'
     implementation 'org.locationtech.jts:jts-core'
 
-    // AWS S3 (Spring Cloud AWS) - miniO 사용 시 제외 가능
+    testImplementation "org.testcontainers:junit-jupiter"
+    testImplementation "org.testcontainers:postgresql"
+    
+    // AWS S3 (Spring Cloud AWS) 지금은 miniO 사용하는데 바꿔도 호환됨
     implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.1.1'
 
-    // CoolSMS 의존성 (문자 인증)
+    // CoolSMS 의존성 추가 (문자인증)
     implementation 'net.nurigo:sdk:4.3.2'
 }
 
