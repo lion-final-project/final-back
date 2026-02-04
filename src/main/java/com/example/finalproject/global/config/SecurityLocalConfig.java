@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
@@ -89,12 +90,17 @@ public class SecurityLocalConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {
-                })
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/admin/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/products/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/{productId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
+                        .requestMatchers("/api/products/**").authenticated()
+                        .requestMatchers("/api/stores/**").authenticated()
+                        .requestMatchers("/api/storage/store/image").authenticated()
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2
