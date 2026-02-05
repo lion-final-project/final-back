@@ -1,6 +1,9 @@
 package com.example.finalproject.store.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
+import com.example.finalproject.store.domain.embedded.SettlementAccount;
+import com.example.finalproject.store.domain.embedded.StoreAddress;
+import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.enums.StoreActiveStatus;
 import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.user.domain.User;
