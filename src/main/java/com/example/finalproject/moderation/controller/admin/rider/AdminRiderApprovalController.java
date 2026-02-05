@@ -27,7 +27,7 @@ public class AdminRiderApprovalController {
 
     private final AdminRiderApprovalService adminRiderApprovalService;
 
-    // ?쇱씠???뱀씤 ?湲?蹂대쪟 紐⑸줉 議고쉶 (status 由ъ뒪?몃줈 ?꾪꽣).
+    // 배달원 승인 대기 목록 조회 (status 필터)
     @GetMapping
     public ResponseEntity<ApiResponse<List<AdminRiderApprovalListResponse>>> getApprovals(
             @RequestParam(name = "status", required = false) List<ApprovalStatus> statuses) {
@@ -35,7 +35,7 @@ public class AdminRiderApprovalController {
                 adminRiderApprovalService.getRiderApprovals(statuses)));
     }
 
-    // ?쇱씠???뱀씤 ?곸꽭 議고쉶 (approvalId).
+    // 배달원 승인 상세 조회 (approvalId)
     @GetMapping("/{approvalId}")
     public ResponseEntity<ApiResponse<AdminRiderApprovalDetailResponse>> getApprovalDetail(
             @PathVariable Long approvalId) {
@@ -43,28 +43,27 @@ public class AdminRiderApprovalController {
                 adminRiderApprovalService.getRiderApprovalDetail(approvalId)));
     }
 
-    // ?뱀씤 泥섎━ (approvalId, adminUserId).
+    // 승인 처리
     @PostMapping("/{approvalId}/approve")
     public ResponseEntity<ApiResponse<Void>> approve(@PathVariable Long approvalId,
                                      @Valid @RequestBody AdminRiderApprovalApproveRequest request) {
         adminRiderApprovalService.approveRider(approvalId, request.getAdminUserId());
-        return ResponseEntity.ok(ApiResponse.success("Approved."));
+        return ResponseEntity.ok(ApiResponse.success("승인 완료"));
     }
 
-    // 蹂대쪟 泥섎━ (approvalId, adminUserId, reason).
+    // 보류 처리
     @PostMapping("/{approvalId}/hold")
     public ResponseEntity<ApiResponse<Void>> hold(@PathVariable Long approvalId,
                                   @Valid @RequestBody AdminRiderApprovalHoldRequest request) {
         adminRiderApprovalService.holdRider(approvalId, request.getAdminUserId(), request.getReason());
-        return ResponseEntity.ok(ApiResponse.success("Held."));
+        return ResponseEntity.ok(ApiResponse.success("보류 처리 완료"));
     }
 
-    // 嫄곗젅 泥섎━ (approvalId, adminUserId, reason).
+    // 거절 처리
     @PostMapping("/{approvalId}/reject")
     public ResponseEntity<ApiResponse<Void>> reject(@PathVariable Long approvalId,
                                     @Valid @RequestBody AdminRiderApprovalRejectRequest request) {
         adminRiderApprovalService.rejectRider(approvalId, request.getAdminUserId(), request.getReason());
-        return ResponseEntity.ok(ApiResponse.success("Rejected."));
+        return ResponseEntity.ok(ApiResponse.success("거절 처리 완료"));
     }
 }
-

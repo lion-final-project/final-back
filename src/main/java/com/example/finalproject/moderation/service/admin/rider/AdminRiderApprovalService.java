@@ -35,7 +35,6 @@ import org.springframework.util.StringUtils;
 @Transactional
 public class AdminRiderApprovalService {
 
-    // 蹂대쪟 湲곌컙(?쇱닔).
     private static final int HOLD_DAYS = 7;
 
     private final ApprovalRepository approvalRepository;
@@ -46,7 +45,6 @@ public class AdminRiderApprovalService {
     private final UserRoleRepository userRoleRepository;
     private final NotificationRepository notificationRepository;
 
-    // ?쇱씠???뱀씤 ?湲?蹂대쪟 紐⑸줉 議고쉶 (status 由ъ뒪??.
     @Transactional(readOnly = true)
     public List<AdminRiderApprovalListResponse> getRiderApprovals(List<ApprovalStatus> statuses) {
         List<ApprovalStatus> targetStatuses = (statuses == null || statuses.isEmpty())
@@ -76,7 +74,6 @@ public class AdminRiderApprovalService {
         return result;
     }
 
-    // ?쇱씠???뱀씤 ?곸꽭 議고쉶 (approvalId).
     @Transactional(readOnly = true)
     public AdminRiderApprovalDetailResponse getRiderApprovalDetail(Long approvalId) {
         Approval approval = approvalRepository.findByIdAndApplicantType(approvalId, ApplicantType.RIDER)
@@ -118,7 +115,6 @@ public class AdminRiderApprovalService {
         );
     }
 
-    // ?뱀씤 泥섎━ (approvalId, adminUserId).
     public void approveRider(Long approvalId, Long adminUserId) {
         Approval approval = getRiderApprovalForDecision(approvalId);
         validateStatusForApprove(approval);
@@ -132,13 +128,12 @@ public class AdminRiderApprovalService {
 
         notificationRepository.save(new Notification(
                 approval.getUser(),
-                "?쇱씠???뱀씤 ?꾨즺",
-                "?쇱씠???뱀씤 ?붿껌???뱀씤?섏뿀?듬땲??",
+                "배달원 승인 완료",
+                "배달원 신청이 승인되었습니다.",
                 NotificationRefType.RIDER
         ));
     }
 
-    // 蹂대쪟 泥섎━ (approvalId, adminUserId, reason).
     public void holdRider(Long approvalId, Long adminUserId, String reason) {
         if (!StringUtils.hasText(reason)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
@@ -155,13 +150,12 @@ public class AdminRiderApprovalService {
 
         notificationRepository.save(new Notification(
                 approval.getUser(),
-                "?쇱씠???쒕쪟 蹂대쪟",
-                "?쒖텧 ?쒕쪟 蹂댁셿???꾩슂?⑸땲?? ?ъ쑀: " + reason,
+                "배달원 신청 보류",
+                "배달원 신청이 보류되었습니다. 사유: " + reason,
                 NotificationRefType.RIDER
         ));
     }
 
-    // 嫄곗젅 泥섎━ (approvalId, adminUserId, reason).
     public void rejectRider(Long approvalId, Long adminUserId, String reason) {
         if (!StringUtils.hasText(reason)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
@@ -181,25 +175,22 @@ public class AdminRiderApprovalService {
 
         notificationRepository.save(new Notification(
                 approval.getUser(),
-                "?쇱씠???뱀씤 嫄곗젅",
-                "?쇱씠???뱀씤 ?붿껌??嫄곗젅?섏뿀?듬땲?? ?ъ쑀: " + reason,
+                "배달원 신청 거절",
+                "배달원 신청이 거절되었습니다. 사유: " + reason,
                 NotificationRefType.RIDER
         ));
     }
 
-    // ?쇱씠???뱀씤 ???議고쉶 (approvalId).
     private Approval getRiderApprovalForDecision(Long approvalId) {
         return approvalRepository.findByIdAndApplicantType(approvalId, ApplicantType.RIDER)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
     }
 
-    // ?뱀씤 ?붿껌???곌껐???쇱씠??議고쉶.
     private Rider getRiderByApproval(Approval approval) {
         return riderRepository.findByUserId(approval.getUser().getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
     }
 
-    // 愿由ъ옄 ?ъ슜??議고쉶 (adminUserId).
     private User getAdminUser(Long adminUserId) {
         if (adminUserId == null) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
@@ -208,7 +199,6 @@ public class AdminRiderApprovalService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
     }
 
-    // 승인 대상 사용자에게 역할 부여 (중복 시 스킵).
     private void grantRole(User user, String roleName) {
         Role role = roleRepository.findByRoleName(roleName)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
@@ -217,7 +207,6 @@ public class AdminRiderApprovalService {
         }
     }
 
-    // ?뱀씤 媛?ν븳 ?곹깭?몄? 寃利?
     private void validateStatusForApprove(Approval approval) {
         ApprovalStatus status = approval.getStatus();
         if (!Objects.equals(status, ApprovalStatus.PENDING)
@@ -226,4 +215,3 @@ public class AdminRiderApprovalService {
         }
     }
 }
-

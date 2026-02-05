@@ -9,19 +9,18 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AdminRiderApprovalListResponse {
 
-    // ?뱀씤 ?대젰 ID.
+    // 승인 요청 ID
     private Long approvalId;
-    // ?쇱씠??ID.
+    // 배달원 ID
     private Long riderId;
-    // ?ъ슜??ID.
+    // 사용자 ID
     private Long userId;
-    // ?ъ슜???대쫫.
+    // 사용자 이름
     private String userName;
-    // ?뱀씤 ?곹깭.
+    // 승인 상태
     private ApprovalStatus status;
-    // ?좎껌 ?쇱떆.
+    // 신청 일시
     private LocalDateTime appliedAt;
-    // 蹂대쪟 留뚮즺 ?쇱떆.
+    // 보류 만료 일시
     private LocalDateTime heldUntil;
 }
-

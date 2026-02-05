@@ -1,10 +1,14 @@
 package com.example.finalproject.moderation.domain;
 
 
+import com.example.finalproject.delivery.domain.Rider;
+import com.example.finalproject.delivery.dto.response.RiderApprovalResponse;
 import com.example.finalproject.global.domain.BaseTimeEntity;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.ApprovalStatus;
+import com.example.finalproject.moderation.enums.DocumentType;
 import com.example.finalproject.user.domain.User;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -16,8 +20,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -61,6 +68,9 @@ public class Approval extends BaseTimeEntity {
     @Column(name = "held_until")
     private LocalDateTime heldUntil;
 
+    @OneToMany(mappedBy = "approval", cascade = CascadeType.ALL, orphanRemoval = true)
+    private final List<ApprovalDocument> documents = new ArrayList<>();
+
     @Builder
     public Approval(User user, ApplicantType applicantType) {
         this.user = user;
@@ -89,5 +99,36 @@ public class Approval extends BaseTimeEntity {
         this.approvedAt = LocalDateTime.now();
         this.reason = StringUtils.hasText(reason) ? reason : null;
         this.heldUntil = heldUntil;
+    }
+
+    public void addDocument(DocumentType type, String url) {
+        if (type == null || !StringUtils.hasText(url)) {
+            return;
+        }
+        ApprovalDocument document = ApprovalDocument.builder()
+                .applicantType(this.applicantType)
+                .approval(this)
+                .documentType(type)
+                .documentUrl(url)
+                .build();
+        this.documents.add(document);
+    }
+
+    public RiderApprovalResponse createResponse(Rider rider) {
+        List<String> docUrls = new ArrayList<>();
+        for (ApprovalDocument document : documents) {
+            docUrls.add(document.getDocumentUrl());
+        }
+        return RiderApprovalResponse.builder()
+                .approvalId(this.id)
+                .userId(this.user.getId())
+                .name(this.user.getName())
+                .phone(this.user.getPhone())
+                .bankName(rider.getBankName())
+                .bankAccount(rider.getBankAccount())
+                .accountHolder(rider.getAccountHolder())
+                .documents(docUrls)
+                .status(this.status.name())
+                .build();
     }
 }
