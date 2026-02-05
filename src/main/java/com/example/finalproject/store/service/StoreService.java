@@ -17,6 +17,7 @@ import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreRegistrationStatusResponse;
 import com.example.finalproject.store.dto.response.PostStoreRegistrationResponse;
+import com.example.finalproject.store.dto.response.GetMyStoreResponse;
 import com.example.finalproject.store.domain.StoreCategory;
 import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
@@ -101,6 +102,15 @@ public class StoreService {
         log.info("마트 입점 신청 취소 완료. storeId={}, userId={}", store.getId(), user.getId());
     }
 
+    @Transactional(readOnly = true)
+    public GetMyStoreResponse getMyStore(String userName) {
+        User user = userRepository.findByEmail(userName)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        return GetMyStoreResponse.from(store);
+    }
+
     private void validateRegistration(User user, PostStoreRegistrationRequest request) {
         if (storeRepository.existsBySubmittedDocumentInfo_BusinessNumber(request.getBusinessNumber())) {
             throw new BusinessException(ErrorCode.DUPLICATE_BUSINESS_NUMBER);
@@ -116,6 +126,19 @@ public class StoreService {
 
         if (approvalRepository.existsByUserAndApplicantTypeAndStatus(user, ApplicantType.STORE, ApprovalStatus.PENDING)) {
             throw new BusinessException(ErrorCode.PENDING_APPROVAL_EXISTS);
+        }
+
+        validateBusinessHours(request.getBusinessHours());
+    }
+
+    private void validateBusinessHours(List<PostStoreBusinessHourRequest> businessHours) {
+        for (PostStoreBusinessHourRequest hour : businessHours) {
+            if (!hour.getIsClosed()) {
+                if (hour.getOpenTime() == null || hour.getOpenTime().isBlank() ||
+                    hour.getCloseTime() == null || hour.getCloseTime().isBlank()) {
+                    throw new BusinessException(ErrorCode.INVALID_BUSINESS_HOUR);
+                }
+            }
         }
     }
 
