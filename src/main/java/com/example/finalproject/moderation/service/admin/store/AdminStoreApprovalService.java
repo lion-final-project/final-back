@@ -96,12 +96,11 @@ public class AdminStoreApprovalService {
                 new AdminStoreApprovalDetailResponse.StoreInfo(
                         store.getId(),
                         store.getStoreName(),
-                        store.getBusinessNumber(),
+                        store.getSubmittedDocumentInfo().getBusinessNumber(),
                         store.getRepresentativeName(),
                         store.getRepresentativePhone(),
-                        store.getAddressLine1(),
-                        store.getAddressLine2(),
-                        store.getPostalCode()
+                        store.getAddress().getAddressLine1(),
+                        store.getAddress().getAddressLine2()
                 );
 
         return new AdminStoreApprovalDetailResponse(

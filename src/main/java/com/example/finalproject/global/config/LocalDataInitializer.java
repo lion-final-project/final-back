@@ -1,5 +1,8 @@
 package com.example.finalproject.global.config;
 
+import com.example.finalproject.store.domain.StoreCategory;
+import com.example.finalproject.store.enums.StoreCategoryType;
+import com.example.finalproject.store.repository.StoreCategoryRepository;
 import com.example.finalproject.user.domain.Role;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.domain.UserRole;
@@ -26,10 +29,19 @@ public class LocalDataInitializer implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StoreCategoryRepository storeCategoryRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
+        // StoreCategory 시드 (입점 신청 시 카테고리 조회용)
+        for (StoreCategoryType type : StoreCategoryType.values()) {
+            if (storeCategoryRepository.findByCategoryName(type).isEmpty()) {
+                storeCategoryRepository.save(StoreCategory.builder().categoryName(type).build());
+                log.info("StoreCategory 시드: {}", type);
+            }
+        }
+
         // ADMIN 역할 생성 (없으면)
         Role adminRole = roleRepository.findByRoleName("ADMIN")
                 .orElseGet(() -> roleRepository.save(Role.builder()
