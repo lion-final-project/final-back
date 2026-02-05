@@ -140,6 +140,8 @@ public class ProductService {
         User user = findUserByUserName(userName);
         Store store = findStoreByUser(user);
 
+        validateNotDuringBusinessHours(store);
+
         Product product = findActiveProduct(productId);
 
         validateProductOwner(store, product);
@@ -284,7 +286,22 @@ public class ProductService {
         return user;
     }
 
-    //상품 수정 가능 조건 체크
+    //상품 수정,삭제 가능 여부 확인
+    private void validateNotDuringBusinessHours(Store store) {
+        CanEditProductResponse result = checkBusinessHours(store);
+        if (!result.getCanEdit()) {
+            throw new BusinessException(ErrorCode.PRODUCT_CHANGE_NOT_ALLOWED_DURING_BUSINESS_HOURS);
+        }
+    }
+
+    //유저아이디 기반의 store 정보와 등록된 product의 store 정보가 일치하는지 확인
+    private void validateProductOwner(Store store, Product product) {
+        if (!product.getStore().getId().equals(store.getId())) {
+            throw new BusinessException(ErrorCode.PRODUCT_NOT_OWNED);
+        }
+    }
+
+    //상품 수정,삭제 가능 조건 체크
     private CanEditProductResponse checkBusinessHours(Store store) {
         LocalTime now = LocalTime.now();
         DayOfWeek today = LocalDate.now().getDayOfWeek();
@@ -293,20 +310,20 @@ public class ProductService {
         Optional<StoreBusinessHour> businessHourOpt = storeBusinessHourRepository.findByStoreAndDayOfWeek(store, dayOfWeek);
 
         if (businessHourOpt.isEmpty()) {
-            return CanEditProductResponse.of(true, "운영 시간 정보가 없어 수정 가능합니다.");
+            return CanEditProductResponse.of(true, "운영 시간 정보가 없어 수정, 삭제 가능합니다.");
         }
 
         StoreBusinessHour businessHour = businessHourOpt.get();
 
         if (businessHour.getIsClosed()) {
-            return CanEditProductResponse.of(true, "휴무일이므로 수정 가능합니다.");
+            return CanEditProductResponse.of(true, "휴무일이므로 수정, 삭제 가능합니다.");
         }
 
         LocalTime openTime = businessHour.getOpenTime();
         LocalTime closeTime = businessHour.getCloseTime();
 
         if (openTime == null || closeTime == null) {
-            return CanEditProductResponse.of(true, "운영 시간 정보가 없어 수정 가능합니다.");
+            return CanEditProductResponse.of(true, "운영 시간 정보가 없어 수정, 삭제 가능합니다.");
         }
 
         boolean isDuringBusinessHours;
@@ -317,26 +334,10 @@ public class ProductService {
         }
 
         if (isDuringBusinessHours) {
-            return CanEditProductResponse.of(false, "운영 시간에는 상품 정보를 수정할 수 없습니다.");
+            return CanEditProductResponse.of(false, "운영 시간에는 상품 정보를 수정, 삭제 할 수 없습니다.");
         }
 
-        return CanEditProductResponse.of(true, "운영 시간 외이므로 수정 가능합니다.");
+        return CanEditProductResponse.of(true, "운영 시간 외이므로 수정, 삭제 가능합니다.");
     }
-    
-    //유저아이디 기반의 store 정보와 등록된 product의 store 정보가 일치하는지 확인
-    private void validateProductOwner(Store store, Product product) {
-        if (!product.getStore().getId().equals(store.getId())) {
-            throw new BusinessException(ErrorCode.PRODUCT_NOT_OWNED);
-        }
-    }
-    
-    //상품 수정 가능 여부 확인
-    private void validateNotDuringBusinessHours(Store store) {
-        CanEditProductResponse result = checkBusinessHours(store);
-        if (!result.getCanEdit()) {
-            throw new BusinessException(ErrorCode.PRODUCT_UPDATE_NOT_ALLOWED_DURING_BUSINESS_HOURS);
-        }
-    }
-
 
 }

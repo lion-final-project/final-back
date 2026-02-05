@@ -57,7 +57,7 @@ public enum ErrorCode {
     INVALID_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-010", "재고는 0개 이상이어야 합니다."),
     INVALID_ORIGIN(HttpStatus.BAD_REQUEST, "PRODUCT-011", "원산지는 100자를 초과할 수 없습니다."),
     INVALID_PRODUCT_IMAGE_URL(HttpStatus.BAD_REQUEST, "PRODUCT-012", "상품 이미지 URL은 500자를 초과할 수 없습니다."),
-    PRODUCT_UPDATE_NOT_ALLOWED_DURING_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "PRODUCT-013", "운영 시간에는 상품 정보를 수정할 수 없습니다."),
+    PRODUCT_CHANGE_NOT_ALLOWED_DURING_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "PRODUCT-013", "운영 시간에는 상품 정보를 수정, 삭제 할 수 없습니다."),
     INSUFFICIENT_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-014", "재고가 부족합니다."),
     INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "PRODUCT-015", "수량은 1 이상이어야 합니다."),
 
