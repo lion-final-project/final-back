@@ -71,16 +71,36 @@ public class SubscriptionProductService {
 
         SubscriptionProduct saved = subscriptionProductRepository.save(product);
 
+        // 동일 상품이 여러 번 포함되었을 경우를 대비해
+        // productId 기준으로 수량을 합산하여 UNIQUE 제약조건 위반 방지
         List<SubscriptionProductItem> items = new ArrayList<>();
-        for (PostSubscriptionProductRequest.PostSubscriptionProductItemRequest itemReq : request.getItems()) {
-            Product p = productRepository.findByIdAndStoreId(itemReq.getProductId(), storeId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-            SubscriptionProductItem item = SubscriptionProductItem.builder()
-                    .subscriptionProduct(saved)
-                    .product(p)
-                    .quantity(itemReq.getQuantity())
-                    .build();
-            items.add(subscriptionProductItemRepository.save(item));
+        if (request.getItems() != null) {
+            // LinkedHashMap 사용으로 요청 순서를 유지
+            java.util.Map<Long, Integer> quantityByProductId = new java.util.LinkedHashMap<>();
+            for (PostSubscriptionProductRequest.PostSubscriptionProductItemRequest itemReq : request.getItems()) {
+                Long productId = itemReq.getProductId();
+                if (productId == null) {
+                    continue;
+                }
+                int quantity = itemReq.getQuantity() != null ? itemReq.getQuantity() : 0;
+                quantityByProductId.merge(productId, quantity, Integer::sum);
+            }
+
+            for (java.util.Map.Entry<Long, Integer> entry : quantityByProductId.entrySet()) {
+                Long productId = entry.getKey();
+                Integer quantity = entry.getValue();
+                if (quantity == null || quantity < 1) {
+                    continue;
+                }
+                Product p = productRepository.findByIdAndStoreId(productId, storeId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+                SubscriptionProductItem item = SubscriptionProductItem.builder()
+                        .subscriptionProduct(saved)
+                        .product(p)
+                        .quantity(quantity)
+                        .build();
+                items.add(subscriptionProductItemRepository.save(item));
+            }
         }
 
         return toResponse(saved, 0, items);
@@ -116,16 +136,36 @@ public class SubscriptionProductService {
         subscriptionProductRepository.flush();
 
         subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
+
+        // 수정 시에도 동일 상품이 중복으로 들어오는 것을 방지하기 위해
+        // productId 기준으로 수량을 합산하여 저장한다.
         List<SubscriptionProductItem> items = new ArrayList<>();
-        for (PatchSubscriptionProductRequest.PatchSubscriptionProductItemRequest itemReq : request.getItems()) {
-            Product p = productRepository.findByIdAndStoreId(itemReq.getProductId(), storeId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-            SubscriptionProductItem item = SubscriptionProductItem.builder()
-                    .subscriptionProduct(product)
-                    .product(p)
-                    .quantity(itemReq.getQuantity())
-                    .build();
-            items.add(subscriptionProductItemRepository.save(item));
+        if (request.getItems() != null) {
+            java.util.Map<Long, Integer> quantityByProductId = new java.util.LinkedHashMap<>();
+            for (PatchSubscriptionProductRequest.PatchSubscriptionProductItemRequest itemReq : request.getItems()) {
+                Long productId = itemReq.getProductId();
+                if (productId == null) {
+                    continue;
+                }
+                int quantity = itemReq.getQuantity() != null ? itemReq.getQuantity() : 0;
+                quantityByProductId.merge(productId, quantity, Integer::sum);
+            }
+
+            for (java.util.Map.Entry<Long, Integer> entry : quantityByProductId.entrySet()) {
+                Long productId = entry.getKey();
+                Integer quantity = entry.getValue();
+                if (quantity == null || quantity < 1) {
+                    continue;
+                }
+                Product p = productRepository.findByIdAndStoreId(productId, storeId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+                SubscriptionProductItem item = SubscriptionProductItem.builder()
+                        .subscriptionProduct(product)
+                        .product(p)
+                        .quantity(quantity)
+                        .build();
+                items.add(subscriptionProductItemRepository.save(item));
+            }
         }
 
         int subscriberCount = (int) subscriptionRepository.countBySubscriptionProductAndStatus(product, SubscriptionStatus.ACTIVE);
