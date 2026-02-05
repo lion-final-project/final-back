@@ -1,0 +1,168 @@
+package com.example.finalproject.checkout.service;
+
+import com.example.finalproject.checkout.dto.response.GetCheckoutResponse;
+import com.example.finalproject.global.exception.custom.BusinessException;
+import com.example.finalproject.global.exception.custom.ErrorCode;
+import com.example.finalproject.order.domain.Cart;
+import com.example.finalproject.order.domain.CartProduct;
+import com.example.finalproject.order.repository.CartProductRepository;
+import com.example.finalproject.order.repository.CartRepository;
+import com.example.finalproject.payment.domain.PaymentMethod;
+import com.example.finalproject.payment.repository.PaymentMethodRepository;
+import com.example.finalproject.user.domain.Address;
+import com.example.finalproject.user.domain.User;
+import com.example.finalproject.user.repository.AddressRepository;
+import com.example.finalproject.user.repository.UserRepository;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class CheckoutService {
+
+    private static final int DEFAULT_DELIVERY_FEE = 3000;
+
+    private final UserRepository userRepository;
+    private final CartRepository cartRepository;
+    private final CartProductRepository cartProductRepository;
+    private final AddressRepository addressRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final PriceCalculator priceCalculator;
+
+    public GetCheckoutResponse getCheckout(String email, List<Long> cartItemIds, Long addressId) {
+        if (cartItemIds == null || cartItemIds.isEmpty()) {
+            log.warn("getCheckout: cartItemIds empty or null");
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Cart cart = cartRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
+
+        List<CartProduct> cartProducts = cartProductRepository.findAllByIdIn(cartItemIds);
+        if (cartProducts.size() != cartItemIds.size()) {
+            throw new BusinessException(ErrorCode.CART_PRODUCT_NOT_FOUND);
+        }
+
+        for (CartProduct cartProduct : cartProducts) {
+            if (!cartProduct.getCart().getId().equals(cart.getId())) {
+                throw new BusinessException(ErrorCode.FORBIDDEN);
+            }
+        }
+
+        Address address = resolveAddress(user, addressId);
+        PaymentMethod defaultPayment = paymentMethodRepository.findFirstByUserIdAndIsDefaultTrue(user.getId()).orElse(null);
+
+        Map<Long, List<CartProduct>> grouped = new LinkedHashMap<>();
+        cartProducts.stream().sorted(Comparator.comparing(cp -> cp.getStore().getId())).forEach(cp ->
+                grouped.computeIfAbsent(cp.getStore().getId(), k -> new ArrayList<>()).add(cp)
+        );
+
+        List<PriceCalculator.CheckoutItem> calculatorItems = cartProducts.stream()
+                .map(cp -> new PriceCalculator.CheckoutItem(
+                        cp.getProduct().getId(),
+                        cp.getStore().getId(),
+                        cp.getProduct().getEffectivePrice(),
+                        cp.getQuantity()
+                ))
+                .toList();
+
+        PriceCalculationResult result = priceCalculator.calculate(calculatorItems, storeId -> DEFAULT_DELIVERY_FEE, 0, 0);
+        Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = result.storeSummaries().stream()
+                .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s));
+
+        List<GetCheckoutResponse.StoreGroup> storeGroups = grouped.values().stream()
+                .map(group -> {
+                    CartProduct first = group.getFirst();
+                    PriceCalculationResult.StorePriceSummary storeSummary = summaryMap.get(first.getStore().getId());
+                    List<GetCheckoutResponse.Item> items = group.stream().map(this::toItem).toList();
+                    return GetCheckoutResponse.StoreGroup.builder()
+                            .storeId(first.getStore().getId())
+                            .storeName(first.getStore().getStoreName())
+                            .deliveryFee(storeSummary.deliveryFee())
+                            .storeProductPrice(storeSummary.storeProductPrice())
+                            .storeFinalPrice(storeSummary.storeFinalPrice())
+                            .items(items)
+                            .build();
+                })
+                .toList();
+
+        log.debug("getCheckout success: userId={}, storeGroups={}", user.getId(), storeGroups.size());
+        return GetCheckoutResponse.builder()
+                .address(GetCheckoutResponse.AddressInfo.builder()
+                        .addressId(address.getId())
+                        .addressLine1(address.getAddressLine1())
+                        .addressLine2(address.getAddressLine2())
+                        .recipientName(address.getAddressName())
+                        .recipientPhone(address.getContact())
+                        .build())
+                .payment(GetCheckoutResponse.PaymentInfo.builder()
+                        .defaultPaymentMethodId(defaultPayment != null ? defaultPayment.getId() : null)
+                        .build())
+                .storeGroups(storeGroups)
+                .priceSummary(GetCheckoutResponse.PriceSummary.builder()
+                        .productTotal(result.priceSummary().productTotal())
+                        .deliveryTotal(result.priceSummary().deliveryTotal())
+                        .discount(result.priceSummary().discount())
+                        .points(result.priceSummary().points())
+                        .finalTotal(result.priceSummary().finalTotal())
+                        .build())
+                .build();
+    }
+
+    private GetCheckoutResponse.Item toItem(CartProduct cp) {
+        int unitPrice = cp.getProduct().getEffectivePrice();
+        GetCheckoutResponse.AvailabilityReason reason = null;
+        boolean available = true;
+
+        if (!Boolean.TRUE.equals(cp.getProduct().getIsActive())) {
+            available = false;
+            reason = GetCheckoutResponse.AvailabilityReason.INACTIVE;
+        } else if (cp.getProduct().getStock() == null || cp.getProduct().getStock() <= 0) {
+            available = false;
+            reason = GetCheckoutResponse.AvailabilityReason.OUT_OF_STOCK;
+        } else if (cp.getQuantity() > cp.getProduct().getStock()) {
+            available = false;
+            reason = GetCheckoutResponse.AvailabilityReason.EXCEEDS_STOCK;
+        }
+
+        return GetCheckoutResponse.Item.builder()
+                .cartItemId(cp.getId())
+                .productId(cp.getProduct().getId())
+                .productName(cp.getProduct().getProductName())
+                .unitPrice(unitPrice)
+                .quantity(cp.getQuantity())
+                .subtotal(unitPrice * cp.getQuantity())
+                .availability(GetCheckoutResponse.Availability.builder()
+                        .isAvailable(available)
+                        .reason(reason)
+                        .build())
+                .build();
+    }
+
+    private Address resolveAddress(User user, Long addressId) {
+        if (addressId != null) {
+            Address selected = addressRepository.findById(addressId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
+            if (!selected.getUser().getId().equals(user.getId())) {
+                throw new BusinessException(ErrorCode.FORBIDDEN);
+            }
+            return selected;
+        }
+
+        return addressRepository.findByUserOrderByIsDefaultDesc(user).stream()
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
+    }
+}
