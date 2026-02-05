@@ -1,10 +1,10 @@
 package com.example.finalproject.global.config;
 
-import com.example.finalproject.product.domain.Category;
-import com.example.finalproject.product.repository.CategoryRepository;
 import com.example.finalproject.store.domain.StoreCategory;
 import com.example.finalproject.store.enums.StoreCategoryType;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
+import com.example.finalproject.product.domain.Category;
+import com.example.finalproject.product.repository.CategoryRepository;
 import com.example.finalproject.user.domain.Role;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.domain.UserRole;
@@ -38,14 +38,6 @@ public class LocalDataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
 
-        // Product Category 초기 데이터
-        seedCategory("채소", "https://cdn.example.com/icons/vegetable.png");
-        seedCategory("과일", "https://cdn.example.com/icons/fruit.png");
-        seedCategory("정육", "https://cdn.example.com/icons/meat.png");
-        seedCategory("유제품", "https://cdn.example.com/icons/dairy.png");
-        seedCategory("식재료", "https://cdn.example.com/icons/ingredient.png");
-        seedCategory("생활용품", "https://cdn.example.com/icons/living.png");
-
         // StoreCategory 시드 (입점 신청 시 카테고리 조회용)
         for (StoreCategoryType type : StoreCategoryType.values()) {
             if (storeCategoryRepository.findByCategoryName(type).isEmpty()) {
@@ -53,6 +45,14 @@ public class LocalDataInitializer implements CommandLineRunner {
                 log.info("StoreCategory 시드: {}", type);
             }
         }
+
+        // Product Category 초기 데이터
+        seedCategory("채소", "https://cdn.example.com/icons/vegetable.png");
+        seedCategory("과일", "https://cdn.example.com/icons/fruit.png");
+        seedCategory("정육", "https://cdn.example.com/icons/meat.png");
+        seedCategory("유제품", "https://cdn.example.com/icons/dairy.png");
+        seedCategory("식재료", "https://cdn.example.com/icons/ingredient.png");
+        seedCategory("생활용품", "https://cdn.example.com/icons/living.png");
 
         // ADMIN 역할 생성 (없으면)
         Role adminRole = roleRepository.findByRoleName("ADMIN")

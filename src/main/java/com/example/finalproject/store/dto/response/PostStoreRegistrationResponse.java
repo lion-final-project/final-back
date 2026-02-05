@@ -6,17 +6,19 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class StoreRegistrationResponse {
+public class PostStoreRegistrationResponse {
 
     private Long storeId;
     private Long approvalId;
     private StoreStatus status;
+    private String storeName;
 
-    public static StoreRegistrationResponse of(Long storeId, Long approvalId, StoreStatus status) {
-        return StoreRegistrationResponse.builder()
+    public static PostStoreRegistrationResponse of(Long storeId, Long approvalId, StoreStatus status, String storeName) {
+        return PostStoreRegistrationResponse.builder()
                 .storeId(storeId)
                 .approvalId(approvalId)
                 .status(status)
+                .storeName(storeName)
                 .build();
     }
 }

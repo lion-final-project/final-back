@@ -11,6 +11,8 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -66,7 +68,7 @@ public class Store extends BaseTimeEntity {
     @Embedded
     private StoreAddress address;
 
-    //정산 계좌 번호
+    //정산 계좌 번호 정보
     @Embedded
     private SettlementAccount settlementAccount;
 
@@ -91,6 +93,24 @@ public class Store extends BaseTimeEntity {
     private BigDecimal commissionRate = new BigDecimal("5.00");
 
     private LocalDateTime deletedAt;
+
+    @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<StoreBusinessHour> businessHours = new ArrayList<>();
+
+    public void addBusinessHour(StoreBusinessHour businessHour) {
+        businessHours.add(businessHour);
+        businessHour.assignStore(this);
+    }
+
+    // 마트 승인 처리 (상태를 APPROVED로 변경).
+    public void approve() {
+        this.status = StoreStatus.APPROVED;
+    }
+
+    // 마트 거절 처리 (상태를 REJECTED로 변경).
+    public void reject() {
+        this.status = StoreStatus.REJECTED;
+    }
 
     @Builder
     public Store(User owner, StoreCategory storeCategory, String storeName,
