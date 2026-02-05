@@ -15,6 +15,7 @@ import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
+import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
 import com.example.finalproject.store.dto.response.GetStoreRegistrationStatusResponse;
 import com.example.finalproject.store.dto.response.PostStoreRegistrationResponse;
 import com.example.finalproject.store.dto.response.GetMyStoreResponse;
@@ -109,6 +110,11 @@ public class StoreService {
         Store store = storeRepository.findByOwner(user)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
         return GetMyStoreResponse.from(store);
+    }
+
+    @Transactional(readOnly = true)
+    public List<GetStoreCategoryResponse> getAllCategories() {
+        return GetStoreCategoryResponse.fromList(storeCategoryRepository.findAll());
     }
 
     private void validateRegistration(User user, PostStoreRegistrationRequest request) {

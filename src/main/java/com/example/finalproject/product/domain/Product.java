@@ -42,7 +42,7 @@ public class Product extends BaseTimeEntity {
     @JoinColumn(name = "category_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_products_category"))
     @OnDelete(action = OnDeleteAction.RESTRICT)
-    private Category category;
+    private ProductCategory productCategory;
 
     @Column(name = "product_name", nullable = false, length = 200)
     private String productName;
@@ -79,7 +79,7 @@ public class Product extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     @Builder
-    public Product(Store store, Category category, String productName,
+    public Product(Store store, ProductCategory productCategory, String productName,
                    String description, Integer price,
                    Integer discountRate, Integer stock, String origin, String productImageUrl) {
 
@@ -97,7 +97,7 @@ public class Product extends BaseTimeEntity {
         }
 
         this.store = store;
-        this.category = category;
+        this.productCategory = productCategory;
         this.productName = productName;
         this.description = description;
         this.price = price;
@@ -115,8 +115,8 @@ public class Product extends BaseTimeEntity {
         return price * (100 - discountRate) / 100;
     }
 
-    public void updateCategory(Category category) {
-        this.category = category;
+    public void updateCategory(ProductCategory productCategory) {
+        this.productCategory = productCategory;
     }
 
     public void updateStatus(Boolean isActive) {

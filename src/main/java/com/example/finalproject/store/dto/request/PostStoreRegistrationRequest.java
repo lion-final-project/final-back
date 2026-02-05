@@ -1,6 +1,5 @@
 package com.example.finalproject.store.dto.request;
 
-import com.example.finalproject.store.enums.StoreCategoryType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,8 +14,8 @@ import java.util.List;
 @NoArgsConstructor
 public class PostStoreRegistrationRequest {
 
-    @NotNull(message = "카테고리 선택은 필수입니다.")
-    private StoreCategoryType storeCategory;
+    @NotBlank(message = "카테고리 선택은 필수입니다.")
+    private String storeCategory;
 
     @NotBlank(message = "사업자명은 필수입니다.")
     @Size(max = 50, message = "사업자명은 50자를 초과할 수 없습니다.")

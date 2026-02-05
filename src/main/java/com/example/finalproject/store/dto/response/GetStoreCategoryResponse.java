@@ -1,11 +1,10 @@
 package com.example.finalproject.store.dto.response;
 
-import com.example.finalproject.store.enums.StoreCategoryType;
+import com.example.finalproject.store.domain.StoreCategory;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -14,15 +13,15 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class GetStoreCategoryResponse {
 
-    private String code;        // enum name (e.g. FRUIT_VEGETABLE)
-    private String displayName; // 표시명 (e.g. 과일/채소)
+    private Long id;
+    private String categoryName;
 
-    public static GetStoreCategoryResponse from(StoreCategoryType type) {
-        return new GetStoreCategoryResponse(type.name(), type.getDisplayName());
+    public static GetStoreCategoryResponse from(StoreCategory category) {
+        return new GetStoreCategoryResponse(category.getId(), category.getCategoryName());
     }
 
-    public static List<GetStoreCategoryResponse> listAll() {
-        return Arrays.stream(StoreCategoryType.values())
+    public static List<GetStoreCategoryResponse> fromList(List<StoreCategory> categories) {
+        return categories.stream()
                 .map(GetStoreCategoryResponse::from)
                 .collect(Collectors.toList());
     }
