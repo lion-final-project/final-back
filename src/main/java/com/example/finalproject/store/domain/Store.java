@@ -103,16 +103,6 @@ public class Store extends BaseTimeEntity {
 
     private LocalDateTime deletedAt;
 
-    // 마트 승인 처리 (상태를 APPROVED로 변경).
-    public void approve() {
-        this.status = StoreStatus.APPROVED;
-    }
-
-    // 마트 거절 처리 (상태를 REJECTED로 변경).
-    public void reject() {
-        this.status = StoreStatus.REJECTED;
-    }
-
     @Builder
     public Store(User owner, String storeName, String businessNumber,
                  String representativeName, String representativePhone,
