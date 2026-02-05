@@ -30,7 +30,6 @@ public class AdminStoreApprovalDetailResponse {
         private String representativePhone;
         private String addressLine1;
         private String addressLine2;
-        private String postalCode;
     }
 
     @Getter
