@@ -49,6 +49,7 @@ public enum ErrorCode {
     PRODUCT_INACTIVE(HttpStatus.BAD_REQUEST, "PRODUCT-002", "판매 중지된 상품입니다"),
     PRODUCT_OUT_OF_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-003", "품절된 상품입니다"),
     PRODUCT_STOCK_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "PRODUCT-004", "재고가 부족합니다"),
+    INVALID_KEYWORD_LENGTH(HttpStatus.BAD_REQUEST, "PRODUCT-005", "검색어는 2자 이상 8자 이하여야 합니다"),
 
     // Cart
     CART_NOT_FOUND(HttpStatus.NOT_FOUND, "CART-001", "장바구니가 없습니다"),
