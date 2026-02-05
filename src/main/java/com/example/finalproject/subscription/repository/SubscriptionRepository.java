@@ -18,7 +18,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
      * @param statuses 조회할 상태 집합 (ACTIVE, PAUSED, CANCELLATION_PENDING)
      * @return 구독 목록
      */
-    List<Subscription> findByUser_IdAndStatusInOrderByCreatedAtDesc(Long userId, Collection<SubscriptionStatus> statuses);
+    List<Subscription> findByUserIdAndStatusInOrderByCreatedAtDesc(Long userId, Collection<SubscriptionStatus> statuses);
 
     /**
      * 구독 ID와 소유 사용자 ID로 구독을 조회한다. 본인 구독 여부 검증용.
@@ -27,7 +27,7 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
      * @param userId 사용자 ID
      * @return 구독 (Optional)
      */
-    Optional<Subscription> findByIdAndUser_Id(Long id, Long userId);
+    Optional<Subscription> findByIdAndUserId(Long id, Long userId);
 
     /**
      * 구독 상품별로 활성(ACTIVE) 구독자 수를 센다.

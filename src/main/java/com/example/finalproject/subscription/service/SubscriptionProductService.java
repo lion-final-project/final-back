@@ -73,7 +73,7 @@ public class SubscriptionProductService {
 
         List<SubscriptionProductItem> items = new ArrayList<>();
         for (PostSubscriptionProductRequest.PostSubscriptionProductItemRequest itemReq : request.getItems()) {
-            Product p = productRepository.findByIdAndStore_Id(itemReq.getProductId(), storeId)
+            Product p = productRepository.findByIdAndStoreId(itemReq.getProductId(), storeId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
             SubscriptionProductItem item = SubscriptionProductItem.builder()
                     .subscriptionProduct(saved)
@@ -118,7 +118,7 @@ public class SubscriptionProductService {
         subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
         List<SubscriptionProductItem> items = new ArrayList<>();
         for (PatchSubscriptionProductRequest.PatchSubscriptionProductItemRequest itemReq : request.getItems()) {
-            Product p = productRepository.findByIdAndStore_Id(itemReq.getProductId(), storeId)
+            Product p = productRepository.findByIdAndStoreId(itemReq.getProductId(), storeId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
             SubscriptionProductItem item = SubscriptionProductItem.builder()
                     .subscriptionProduct(product)
@@ -169,7 +169,7 @@ public class SubscriptionProductService {
         if (storeRepository.findById(storeId).isEmpty()) {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
-        List<SubscriptionProduct> products = subscriptionProductRepository.findByStore_IdOrderByCreatedAtDesc(storeId);
+        List<SubscriptionProduct> products = subscriptionProductRepository.findByStoreIdOrderByCreatedAtDesc(storeId);
         List<GetSubscriptionProductResponse> result = new ArrayList<>(products.size());
         for (SubscriptionProduct sp : products) {
             long subscriberCount = subscriptionRepository.countBySubscriptionProductAndStatus(sp, SubscriptionStatus.ACTIVE);
@@ -253,7 +253,7 @@ public class SubscriptionProductService {
         if (storeRepository.findById(storeId).isEmpty()) {
             return List.of();
         }
-        List<SubscriptionProduct> products = subscriptionProductRepository.findByStore_IdOrderByCreatedAtDesc(storeId);
+        List<SubscriptionProduct> products = subscriptionProductRepository.findByStoreIdOrderByCreatedAtDesc(storeId);
         List<GetSubscriptionProductResponse> result = new ArrayList<>();
         for (SubscriptionProduct sp : products) {
             if (sp.getStatus() != SubscriptionProductStatus.ACTIVE) {

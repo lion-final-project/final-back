@@ -11,6 +11,9 @@ import com.example.finalproject.subscription.dto.request.PostSubscriptionProduct
 import com.example.finalproject.subscription.dto.response.PatchSubscriptionProductDeletionResponse;
 import com.example.finalproject.subscription.dto.response.GetSubscriptionProductResponse;
 import com.example.finalproject.subscription.service.SubscriptionProductService;
+import com.example.finalproject.user.domain.User;
+import com.example.finalproject.user.repository.UserRepository;
+import com.example.finalproject.global.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -39,6 +42,7 @@ import java.util.List;
 public class StoreSubscriptionProductController {
 
     private final StoreRepository storeRepository;
+    private final UserRepository userRepository;
     private final SubscriptionProductService subscriptionProductService;
 
     /**
@@ -180,21 +184,18 @@ public class StoreSubscriptionProductController {
         }
         Object principal = auth.getPrincipal();
         Long ownerId = null;
-        if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
-            try {
-                ownerId = Long.parseLong(((org.springframework.security.core.userdetails.UserDetails) principal).getUsername());
-            } catch (NumberFormatException ignored) {
-            }
+        if (principal instanceof CustomUserDetails details) {
+            ownerId = details.getUser().getId();
         } else if (principal instanceof String) {
-            try {
-                ownerId = Long.parseLong((String) principal);
-            } catch (NumberFormatException ignored) {
-            }
+            // JWT 인증 시 subject가 이메일로 설정되어 있음
+            User user = userRepository.findByEmail((String) principal)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+            ownerId = user.getId();
         }
         if (ownerId == null) {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
-        Store store = storeRepository.findByOwner_Id(ownerId)
+        Store store = storeRepository.findByOwnerId(ownerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
         return store.getId();
     }

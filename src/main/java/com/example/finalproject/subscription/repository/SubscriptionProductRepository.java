@@ -13,5 +13,5 @@ public interface SubscriptionProductRepository extends JpaRepository<Subscriptio
      * @param storeId 마트 ID
      * @return 구독 상품 목록
      */
-    List<SubscriptionProduct> findByStore_IdOrderByCreatedAtDesc(Long storeId);
+    List<SubscriptionProduct> findByStoreIdOrderByCreatedAtDesc(Long storeId);
 }
