@@ -74,4 +74,19 @@ public class Address extends BaseTimeEntity {
         this.isDefault = isDefault != null ? isDefault : false;
     }
 
+    public void update(String addressName, String postalCode, String addressLine1,
+                       String addressLine2, String contact, Point location, Boolean isDefault) {
+        this.addressName = addressName;
+        this.postalCode = postalCode;
+        this.addressLine1 = addressLine1;
+        this.addressLine2 = addressLine2;
+        this.contact = contact;
+        this.location = location;
+        this.isDefault = isDefault;
+    }
+
+    public void changeDefault() {
+        this.isDefault = true;
+    }
+
 }
