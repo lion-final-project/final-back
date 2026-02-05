@@ -4,8 +4,6 @@ import com.example.finalproject.product.domain.Product;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.math.BigDecimal;
-
 @Getter
 @Builder
 public class GetProductResponse {
@@ -27,8 +25,8 @@ public class GetProductResponse {
     public static GetProductResponse from(Product product) {
         return GetProductResponse.builder()
                 .productId(product.getId())
-                .categoryId(product.getCategory().getId())
-                .categoryName(product.getCategory().getCategoryName())
+                .categoryId(product.getProductCategory().getId())
+                .categoryName(product.getProductCategory().getCategoryName())
                 .productName(product.getProductName())
                 .description(product.getDescription())
                 .price(product.getPrice())

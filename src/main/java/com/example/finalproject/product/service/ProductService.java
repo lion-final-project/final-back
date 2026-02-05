@@ -2,7 +2,7 @@ package com.example.finalproject.product.service;
 
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
-import com.example.finalproject.product.domain.Category;
+import com.example.finalproject.product.domain.ProductCategory;
 import com.example.finalproject.product.domain.Product;
 import com.example.finalproject.product.domain.ProductStockHistory;
 import com.example.finalproject.product.domain.StockEventType;
@@ -18,12 +18,11 @@ import com.example.finalproject.product.dto.response.GetProductStatsResponse;
 import com.example.finalproject.product.dto.response.GetStockHistoryResponse;
 import com.example.finalproject.product.dto.response.PostProductResponse;
 import com.example.finalproject.product.dto.response.StockAdjustResponse;
-import com.example.finalproject.product.repository.CategoryRepository;
+import com.example.finalproject.product.repository.ProductCategoryRepository;
 import com.example.finalproject.product.repository.ProductRepository;
 import com.example.finalproject.product.repository.ProductStockHistoryRepository;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.domain.StoreBusinessHour;
-import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.store.repository.StoreBusinessHourRepository;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.User;
@@ -49,7 +48,7 @@ import java.util.Optional;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final CategoryRepository categoryRepository;
+    private final ProductCategoryRepository productCategoryRepository;
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
     private final StoreBusinessHourRepository storeBusinessHourRepository;
@@ -73,10 +72,10 @@ public class ProductService {
             throw new BusinessException(ErrorCode.DUPLICATE_PRODUCT_NAME);
         }
 
-        Category category = categoryRepository.findById(request.getCategoryId())
+        ProductCategory productCategory = productCategoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
-        Product product = createProduct(request, store, category);
+        Product product = createProduct(request, store, productCategory);
 
         Product savedProduct = productRepository.save(product);
 
@@ -116,9 +115,9 @@ public class ProductService {
         validateProductOwner(store, product);
 
         if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
+            ProductCategory productCategory = productCategoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-            product.updateCategory(category);
+            product.updateCategory(productCategory);
         }
 
         product.update(
@@ -240,7 +239,7 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<GetCategoryResponse> getCategories() {
-        return categoryRepository.findAll().stream()
+        return productCategoryRepository.findAll().stream()
                 .map(GetCategoryResponse::from)
                 .toList();
     }
@@ -254,10 +253,10 @@ public class ProductService {
         return checkBusinessHours(store);
     }
 
-    private Product createProduct(PostProductRequest request, Store store, Category category) {
+    private Product createProduct(PostProductRequest request, Store store, ProductCategory productCategory) {
         return Product.builder()
                 .store(store)
-                .category(category)
+                .productCategory(productCategory)
                 .productName(request.getProductName())
                 .description(request.getDescription())
                 .price(request.getPrice())

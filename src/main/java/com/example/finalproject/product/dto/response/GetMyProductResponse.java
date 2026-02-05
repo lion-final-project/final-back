@@ -25,8 +25,8 @@ public class GetMyProductResponse {
     public static GetMyProductResponse from(Product product) {
         return GetMyProductResponse.builder()
                 .productId(product.getId())
-                .categoryId(product.getCategory().getId())
-                .categoryName(product.getCategory().getCategoryName())
+                .categoryId(product.getProductCategory().getId())
+                .categoryName(product.getProductCategory().getCategoryName())
                 .productName(product.getProductName())
                 .description(product.getDescription())
                 .price(product.getPrice())
