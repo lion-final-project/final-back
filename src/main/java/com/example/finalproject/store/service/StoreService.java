@@ -16,12 +16,14 @@ import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
+import com.example.finalproject.store.dto.response.GetMyStoreResponse;
 import com.example.finalproject.store.dto.response.StoreRegistrationResponse;
 import com.example.finalproject.store.domain.StoreCategory;
 import com.example.finalproject.store.repository.StoreBusinessHourRepository;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.User;
+import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Coordinate;
@@ -47,6 +49,7 @@ public class StoreService {
     private final StoreCategoryRepository storeCategoryRepository;
     private final ApprovalRepository approvalRepository;
     private final ApprovalDocumentRepository approvalDocumentRepository;
+    private final UserRepository userRepository;
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     //todo: 좌표 관련 컨피그 만들어지거나 할 경우 교체 되어야 한다.
@@ -76,6 +79,15 @@ public class StoreService {
         log.info("마트 입점 신청 완료. storeId={}, userId={}", savedStore.getId(), user.getId());
 
         return StoreRegistrationResponse.of(savedStore.getId(), savedApproval.getId(), savedStore.getStatus());
+    }
+
+    @Transactional(readOnly = true)
+    public GetMyStoreResponse getMyStore(String userName) {
+        User user = userRepository.findByEmail(userName)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        return GetMyStoreResponse.from(store);
     }
 
     private void validateRegistration(User user, PostStoreRegistrationRequest request) {
@@ -119,6 +131,7 @@ public class StoreService {
                 .telecomSalesReportNumber(request.getTelecomSalesReportNumber())
                 .build();
 
+        //todo: 좌표는 더 알아보고 수정 할 것.
         GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), SRID);
         Point location = geometryFactory.createPoint(
                 new Coordinate(request.getLongitude(), request.getLatitude())

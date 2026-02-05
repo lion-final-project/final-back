@@ -2,6 +2,7 @@ package com.example.finalproject.store.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
+import com.example.finalproject.store.dto.response.GetMyStoreResponse;
 import com.example.finalproject.store.dto.response.StoreRegistrationResponse;
 import com.example.finalproject.store.service.StoreService;
 import com.example.finalproject.user.domain.User;
@@ -10,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -45,6 +47,16 @@ public class StoreController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("입점 신청이 완료되었습니다.", response));
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<GetMyStoreResponse>> getMyStore(Authentication authentication) {
+        String userName = authentication != null ? authentication.getName() : null;
+        if (userName == null || userName.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        GetMyStoreResponse response = storeService.getMyStore(userName);
+        return ResponseEntity.ok(ApiResponse.success("내 상점 정보 조회가 완료되었습니다.", response));
     }
 
 }
