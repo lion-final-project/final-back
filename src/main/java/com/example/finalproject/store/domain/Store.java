@@ -1,9 +1,6 @@
 package com.example.finalproject.store.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
-import com.example.finalproject.store.domain.embedded.SettlementAccount;
-import com.example.finalproject.store.domain.embedded.StoreAddress;
-import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.enums.StoreActiveStatus;
 import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.user.domain.User;
@@ -100,6 +97,16 @@ public class Store extends BaseTimeEntity {
     public void addBusinessHour(StoreBusinessHour businessHour) {
         businessHours.add(businessHour);
         businessHour.assignStore(this);
+    }
+
+    // 마트 승인 처리 (상태를 APPROVED로 변경).
+    public void approve() {
+        this.status = StoreStatus.APPROVED;
+    }
+
+    // 마트 거절 처리 (상태를 REJECTED로 변경).
+    public void reject() {
+        this.status = StoreStatus.REJECTED;
     }
 
     @Builder

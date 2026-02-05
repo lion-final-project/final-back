@@ -33,5 +33,15 @@ public interface RiderService {
      */
     Page<RiderApprovalResponse> getApprovals(String username, Pageable pageable);
 
+    /**
+     * 라이더 신청 삭제
+     * @param approvalId 신청ID
+     */
     void deleteApproval(Long approvalId);
+
+    /**
+     * 라이더 정보조회
+     * @param username 유저 이메일
+     */
+    RiderResponse getRiderInfo(String username);
 }

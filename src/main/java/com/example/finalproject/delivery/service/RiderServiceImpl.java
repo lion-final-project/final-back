@@ -31,6 +31,12 @@ public class RiderServiceImpl implements RiderService {
     private final ApprovalRepository approvalRepository;
 
     @Override
+    public RiderResponse getRiderInfo(String username) {
+        Rider rider = findRiderByUsername(username);
+        return rider.createResponse();
+    }
+
+    @Override
     @Transactional
     public RiderResponse updateOperationStatus(String username, PatchRiderStatusRequest request) {
 
@@ -80,6 +86,9 @@ public class RiderServiceImpl implements RiderService {
     @Override
     public Page<RiderApprovalResponse> getApprovals(String username, Pageable pageable) {
         User user = findUserByUserName(username);
+        if (!riderRepository.existsByUserId(user.getId())){
+            throw new RuntimeException("Rider not found");
+        }
         Rider rider = findRiderByUsername(username);
 
         Page<Approval> approvalPage = approvalRepository
