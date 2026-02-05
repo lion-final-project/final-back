@@ -63,6 +63,14 @@ public class Rider extends BaseTimeEntity {
         this.accountHolder = accountHolder;
     }
 
+    public void approve() {
+        this.status = RiderApprovalStatus.APPROVED;
+    }
+
+    public void reject() {
+        this.status = RiderApprovalStatus.REJECTED;
+    }
+
     public RiderResponse createResponse() {
         return RiderResponse.builder()
                 .id(this.getId())
