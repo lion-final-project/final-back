@@ -22,6 +22,8 @@ public enum ErrorCode {
     INVALID_BUSINESS_HOUR(HttpStatus.BAD_REQUEST, "STORE-005", "운영 시간 정보가 올바르지 않습니다."),
     STORE_CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE-006", "상점 카테고리를 찾을 수 없습니다."),
     DUPLICATE_TELECOM_SALES_NUMBER(HttpStatus.CONFLICT, "STORE-007", "이미 등록된 통신판매업 신고번호입니다."),
+    STORE_PENDING_REGISTRATION_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE-008", "취소할 수 있는 입점 신청(심사중)이 없습니다."),
+    STORE_ALREADY_APPROVED(HttpStatus.BAD_REQUEST, "STORE-009", "이미 승인된 상점은 취소할 수 없습니다."),
 	NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON-005", "리소스를 찾을 수 없습니다."),
 	FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON-006", "접근 권한이 없습니다."),
 

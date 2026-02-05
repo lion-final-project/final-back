@@ -2,6 +2,7 @@ package com.example.finalproject.store.service;
 
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
+import com.example.finalproject.global.util.GeometryUtil;
 import com.example.finalproject.moderation.domain.Approval;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.ApprovalStatus;
@@ -16,16 +17,14 @@ import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.StoreRegistrationResponse;
 import com.example.finalproject.store.domain.StoreCategory;
+import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,8 +44,6 @@ public class StoreService {
     private final UserRepository userRepository;
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
-    //todo: 좌표 관련 컨피그 만들어지거나 할 경우 교체 되어야 한다.
-    private static final int SRID = 4326;
 
 
 
@@ -72,6 +69,24 @@ public class StoreService {
         log.info("마트 입점 신청 완료. storeId={}, userId={}", savedStore.getId(), user.getId());
 
         return StoreRegistrationResponse.of(savedStore.getId(), savedApproval.getId(), savedStore.getStatus());
+    }
+
+    public void cancelStoreRegistration(String userName) {
+        User user = findUserByUserName(userName);
+
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_PENDING_REGISTRATION_NOT_FOUND));
+
+        if (store.getStatus() != StoreStatus.PENDING) {
+            throw new BusinessException(ErrorCode.STORE_ALREADY_APPROVED);
+        }
+
+        Approval approval = approvalRepository.findFirstByUserAndApplicantTypeAndStatus(user, ApplicantType.STORE, ApprovalStatus.PENDING)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_PENDING_REGISTRATION_NOT_FOUND));
+
+        approvalRepository.delete(approval);
+        storeRepository.delete(store);
+        log.info("마트 입점 신청 취소 완료. storeId={}, userId={}", store.getId(), user.getId());
     }
 
     private void validateRegistration(User user, PostStoreRegistrationRequest request) {
@@ -102,10 +117,7 @@ public class StoreService {
                 .telecomSalesReportNumber(request.getTelecomSalesReportNumber())
                 .build();
 
-        GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), SRID);
-        Point location = geometryFactory.createPoint(
-                new Coordinate(request.getLongitude(), request.getLatitude())
-        );
+        Point location = GeometryUtil.createPoint(request.getLongitude(), request.getLatitude());
 
         StoreAddress address = StoreAddress.builder()
                 .addressLine1(request.getAddressLine())
@@ -176,10 +188,9 @@ public class StoreService {
         approval.addDocument(DocumentType.BANK_PASSBOOK, request.getBankPassbookUrl());
     }
 
-    //todo: 유저서비스가 개발될건지,,? 없으면 해당 익센션 만들어야함 라이더에서도 스토어에서도 스토리지에서도 이 코드는 각기 쓰이고있음...
     private User findUserByUserName(String username) {
         return userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
 }

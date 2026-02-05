@@ -43,6 +43,19 @@ public class StoreController {
     }
 
     /**
+     * 마트 입점 신청 취소 (심사중 PENDING 상태일 때만 가능)
+     */
+    @DeleteMapping("/registration")
+    public ResponseEntity<ApiResponse<Void>> cancelStoreRegistration(Authentication authentication) {
+        String userName = authentication != null ? authentication.getName() : null;
+        if (userName == null || userName.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        storeService.cancelStoreRegistration(userName);
+        return ResponseEntity.ok(ApiResponse.success("입점 신청이 취소되었습니다."));
+    }
+
+    /**
      * 마트 카테고리 목록 조회
      * @return 전체 카테고리 목록 (과일/채소, 정육/계란, 수산/해산물 등)
      */
