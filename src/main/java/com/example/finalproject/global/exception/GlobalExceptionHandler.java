@@ -3,6 +3,8 @@ package com.example.finalproject.global.exception;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.response.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -71,17 +73,35 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(ec.getCode(), e.getMessage()));
     }
 
-    //핸들러/리소스 없음 (404) 인증 확인용 URL 사용
+    // 핸들러/리소스 없음 (404) 인증 확인용 URL 사용
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNoResourceFoundException(NoResourceFoundException e) {
-        log.debug("NoResourceFound: {}", e.getResourcePath()); 
+        log.debug("NoResourceFound: {}", e.getResourcePath());
         return ResponseEntity.status(ErrorCode.NOT_FOUND.getStatus())
                 .body(ApiResponse.fail(ErrorCode.NOT_FOUND));
     }
 
+    // @ExceptionHandler(Exception.class)
+    // public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
+    //     log.error("Unhandled Exception", e);
+    //     return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus())
+    //             .body(ApiResponse.fail(ErrorCode.INTERNAL_SERVER_ERROR));
+    // }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
-        log.error("Unhandled Exception", e);
+    public ResponseEntity<ApiResponse<Void>> handleException(Exception e, HttpServletRequest request) {
+
+        String accept = request.getHeader("Accept");
+        if (accept != null && accept.contains("text/event-stream")) {
+            // 정상적인 SSE 종료 계열
+            if (e instanceof IOException) {
+                log.debug("[SSE] client disconnected: {}", e.getMessage());
+            } else {
+                log.error("[SSE] unexpected exception", e);
+            }
+            return ResponseEntity.noContent().build();
+        }
+
         return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus())
                 .body(ApiResponse.fail(ErrorCode.INTERNAL_SERVER_ERROR));
     }

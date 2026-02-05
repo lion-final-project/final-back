@@ -66,11 +66,6 @@ public class SseService {
                 log.debug("[SSE] emitter 종료됨: emitterId={}, reason={}",
                         emitterId, e.getMessage());
 
-                try {
-                    emitter.complete();
-                } catch (Exception ignore) {
-                }
-
                 repository.remove(userId, emitterId);
             }
         }
