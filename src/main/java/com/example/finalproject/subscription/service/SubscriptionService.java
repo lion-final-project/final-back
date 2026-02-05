@@ -32,7 +32,7 @@ public class SubscriptionService {
      */
     @Transactional(readOnly = true)
     public List<GetSubscriptionResponse> findListByUserId(Long userId) {
-        List<Subscription> list = subscriptionRepository.findByUser_IdAndStatusInOrderByCreatedAtDesc(userId, LISTABLE_STATUSES);
+        List<Subscription> list = subscriptionRepository.findByUserIdAndStatusInOrderByCreatedAtDesc(userId, LISTABLE_STATUSES);
         return list.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
@@ -93,7 +93,7 @@ public class SubscriptionService {
      * 구독 ID와 사용자 ID로 본인 구독을 조회한다. 없거나 소유자가 아니면 예외.
      */
     private Subscription getOwnSubscription(Long subscriptionId, Long userId) {
-        return subscriptionRepository.findByIdAndUser_Id(subscriptionId, userId)
+        return subscriptionRepository.findByIdAndUserId(subscriptionId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND));
     }
 

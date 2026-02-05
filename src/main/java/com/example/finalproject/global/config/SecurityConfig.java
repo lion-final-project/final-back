@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -36,6 +37,7 @@ import java.util.List;
 @Profile(value = "!local")
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
 public class SecurityConfig {
 
@@ -107,9 +109,13 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/admin/notices/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/notices").permitAll()
-                        .requestMatchers("/api/riders","api/riders/register","api/riders/approvals/*").hasRole("CUSTOMER")
+                        .requestMatchers("/api/riders", "api/riders/register", "api/riders/approvals/*").hasRole("CUSTOMER")
                         .requestMatchers("/api/riders/status").hasRole("RIDER")
+                        .requestMatchers(HttpMethod.GET, "/api/products/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/{productId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
                         .requestMatchers("/api/store/subscription-products", "/api/store/subscription-products/**").hasRole("STORE_OWNER")
                         .anyRequest().authenticated()
                 )

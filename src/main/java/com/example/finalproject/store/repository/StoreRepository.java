@@ -1,17 +1,22 @@
 package com.example.finalproject.store.repository;
 
 import com.example.finalproject.store.domain.Store;
+import com.example.finalproject.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Repository
 public interface StoreRepository extends JpaRepository<Store, Long> {
+    Optional<Store> findByOwnerId(Long ownerId);
 
-    /**
-     * 소유자(owner) ID로 마트를 조회한다.
-     *
-     * @param ownerId 사용자(사장) ID
-     * @return 해당 사용자가 소유한 마트 (0 또는 1건)
-     */
-    Optional<Store> findByOwner_Id(Long ownerId);
+    boolean existsBySubmittedDocumentInfo_BusinessNumber(String businessNumber);
+
+    boolean existsBySubmittedDocumentInfo_TelecomSalesReportNumber(String telecomSalesReportNumber);
+
+    boolean existsByOwner(User owner);
+
+    Optional<Store> findByOwner(User owner);
+
 }
