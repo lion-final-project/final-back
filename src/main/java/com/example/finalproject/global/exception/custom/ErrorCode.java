@@ -17,6 +17,17 @@ public enum ErrorCode {
     NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON-005", "리소스를 찾을 수 없습니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON-006", "접근 권한이 없습니다."),
 
+    // STORE
+    DUPLICATE_BUSINESS_NUMBER(HttpStatus.CONFLICT, "STORE-001", "이미 등록된 사업자등록번호입니다."),
+    ALREADY_REGISTERED_STORE(HttpStatus.CONFLICT, "STORE-002", "이미 입점 신청한 사용자입니다."),
+    PENDING_APPROVAL_EXISTS(HttpStatus.CONFLICT, "STORE-003", "이미 승인 대기중인 신청이 있습니다."),
+    STORE_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE-004", "상점을 찾을 수 없습니다."),
+    INVALID_BUSINESS_HOUR(HttpStatus.BAD_REQUEST, "STORE-005", "운영 시간 정보가 올바르지 않습니다."),
+    STORE_CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE-006", "상점 카테고리를 찾을 수 없습니다."),
+    DUPLICATE_TELECOM_SALES_NUMBER(HttpStatus.CONFLICT, "STORE-007", "이미 등록된 통신판매업 신고번호입니다."),
+    STORE_PENDING_REGISTRATION_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE-008", "취소할 수 있는 입점 신청(심사중)이 없습니다."),
+    STORE_ALREADY_APPROVED(HttpStatus.BAD_REQUEST, "STORE-009", "이미 승인된 상점은 취소할 수 없습니다."),
+
     // AUTH
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH-001", "인증이 필요합니다."),
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "AUTH-002", "이미 사용 중인 이메일입니다."),
@@ -49,6 +60,7 @@ public enum ErrorCode {
     PRODUCT_INACTIVE(HttpStatus.BAD_REQUEST, "PRODUCT-002", "판매 중지된 상품입니다"),
     PRODUCT_OUT_OF_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-003", "품절된 상품입니다"),
     PRODUCT_STOCK_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "PRODUCT-004", "재고가 부족합니다"),
+    INVALID_KEYWORD_LENGTH(HttpStatus.BAD_REQUEST, "PRODUCT-005", "검색어는 2자 이상 8자 이하여야 합니다"),
 
     // Cart
     CART_NOT_FOUND(HttpStatus.NOT_FOUND, "CART-001", "장바구니가 없습니다"),
@@ -60,6 +72,19 @@ public enum ErrorCode {
     // Delivery
     DISTANCE_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELIVERY-001", "배달바 계산에 실패했습니다."),
     DELIVERY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "DELIVERY-002", "배달 가능한 지역이 아닙니다."),
+
+
+    // Inquiry
+    INQUIRY_NOT_FOUND(HttpStatus.NOT_FOUND, "INQUIRY-001", "문의를 조회할 수 없습니다."),
+    INQUIRY_ALREADY_ANSWERED(HttpStatus.BAD_REQUEST, "INQUIRY-002", "이미 답변된 문의입니다."),
+
+    // Admin
+    ADMIN_AUTHORITY_REQUIRED(HttpStatus.FORBIDDEN, "ADMIN-001", "관리자만 접근 가능합니다."),
+
+    // Notification
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Notification-001", "알림을 조회할 수 없습니다."),
+    NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "Notification-002", "자신의 알림만 접근할 수 있습니다."),
+
     ;
 
     private final HttpStatus status;
