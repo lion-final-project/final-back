@@ -46,4 +46,30 @@ public class PostRiderRegisterRequest {
     @NotBlank(message = "통장 사본 이미지는 필수 입력 값입니다.")
     @JsonProperty("bankbook-image")
     private String bankbookImage;
+
+    /**
+     * moderation 도메인의 승인 요청 DTO로 변환하는 메서드
+     * 유저 id는 따로 안받고 시큐리티 컨텍스트 사용해 가져옴
+     *
+     * @param userId 인증된 사용자의 식별자
+     * @return moderation도메인 서비스에 전달할 승인 요청 객체
+     */
+    public CreateApprovalRequest toApprovalRequest(Long userId) {
+        List<CreateDocumentRequest> documents = List.of(
+                CreateDocumentRequest.builder()
+                        .documentType(DocumentType.ID_CARD)
+                        .documentUrl(idCardImage)
+                        .build(),
+                CreateDocumentRequest.builder()
+                        .documentType(DocumentType.BANK_PASSBOOK)
+                        .documentUrl(bankbookImage)
+                        .build()
+        );
+
+        return CreateApprovalRequest.builder()
+                .userId(userId)
+                .applicantType(ApplicantType.RIDER)
+                .documents(documents)
+                .build();
+    }
 }

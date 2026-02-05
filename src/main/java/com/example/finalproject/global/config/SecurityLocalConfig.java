@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -88,13 +89,18 @@ public class SecurityLocalConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {
-                })
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/admin/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/products/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/{productId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
+                        .requestMatchers("/api/products/**").authenticated()
+                        .requestMatchers("/api/stores/**").authenticated()
+                        .requestMatchers("/api/storage/store/image").authenticated()
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> oauth2

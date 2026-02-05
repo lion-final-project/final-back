@@ -1,6 +1,5 @@
 package com.example.finalproject.moderation.enums;
 
-
 import lombok.Getter;
 
 @Getter
