@@ -99,4 +99,41 @@ public class Subscription extends BaseTimeEntity {
         this.totalAmount = totalAmount;
         this.startedAt = startedAt;
     }
+
+    /**
+     * 구독을 일시정지한다 (UC-C10). ACTIVE 상태에서만 호출 가능.
+     */
+    public void pause() {
+        if (this.status != SubscriptionStatus.ACTIVE) {
+            throw new IllegalStateException("ACTIVE 상태에서만 일시정지할 수 있습니다.");
+        }
+        this.status = SubscriptionStatus.PAUSED;
+        this.pausedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 일시정지된 구독을 재개한다 (UC-C10). PAUSED 상태에서만 호출 가능.
+     */
+    public void resume() {
+        if (this.status != SubscriptionStatus.PAUSED) {
+            throw new IllegalStateException("PAUSED 상태에서만 재개할 수 있습니다.");
+        }
+        this.status = SubscriptionStatus.ACTIVE;
+        this.pausedAt = null;
+    }
+
+    /**
+     * 구독 해지를 요청한다 (UC-C10). 다음 결제일 기준 해지 정책에 따라 해지 예정 상태로 전환한다.
+     * ACTIVE 또는 PAUSED 상태에서만 호출 가능.
+     *
+     * @param reason 해지 사유 (선택)
+     */
+    public void requestCancellation(String reason) {
+        if (this.status != SubscriptionStatus.ACTIVE && this.status != SubscriptionStatus.PAUSED) {
+            throw new IllegalStateException("ACTIVE 또는 PAUSED 상태에서만 해지 요청할 수 있습니다.");
+        }
+        this.status = SubscriptionStatus.CANCELLATION_PENDING;
+        this.cancelReason = reason;
+        this.cancelledAt = LocalDateTime.now();
+    }
 }

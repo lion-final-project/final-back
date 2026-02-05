@@ -13,10 +13,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "categories")
+@Table(name = "product_categories")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Category extends BaseTimeEntity {
+public class ProductCategory extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,11 +25,12 @@ public class Category extends BaseTimeEntity {
     @Column(name = "category_name", nullable = false, unique = true, length = 50)
     private String categoryName;
 
-    @Column(name = "icon_url", length = 500)
+
+    @Column(name = "icon_url",nullable = false ,length = 500)
     private String iconUrl;
 
     @Builder
-    public Category(String categoryName, String iconUrl) {
+    public ProductCategory(String categoryName, String iconUrl) {
         this.categoryName = categoryName;
         this.iconUrl = iconUrl;
     }

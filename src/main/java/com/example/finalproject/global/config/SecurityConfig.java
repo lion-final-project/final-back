@@ -111,9 +111,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/notices/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/notices").permitAll()
-                        .requestMatchers("/api/riders","api/riders/register","api/riders/approvals/*").hasRole("CUSTOMER")
+                        .requestMatchers("/api/riders", "api/riders/register", "api/riders/approvals/*").hasRole("CUSTOMER")
                         .requestMatchers("/api/riders/status").hasRole("RIDER")
+                        .requestMatchers(HttpMethod.GET, "/api/products/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/{productId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
+                        .requestMatchers("/api/store/subscription-products", "/api/store/subscription-products/**").hasRole("STORE_OWNER")
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

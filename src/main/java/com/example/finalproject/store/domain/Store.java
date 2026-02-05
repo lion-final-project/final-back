@@ -112,6 +112,11 @@ public class Store extends BaseTimeEntity {
         this.status = StoreStatus.REJECTED;
     }
 
+    /** 배달 가능 여부 설정 (시드/테스트 데이터용) */
+    public void setDeliveryAvailable(boolean deliveryAvailable) {
+        this.isDeliveryAvailable = deliveryAvailable;
+    }
+
     @Builder
     public Store(User owner, StoreCategory storeCategory, String storeName,
                  String phone, String description,
