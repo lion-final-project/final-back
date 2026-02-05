@@ -55,6 +55,16 @@ public class Rider extends BaseTimeEntity {
     @Column(nullable = false)
     private RiderApprovalStatus status = RiderApprovalStatus.PENDING;
 
+    // 라이더 승인 처리 (상태를 APPROVED로 변경).
+    public void approve() {
+        this.status = RiderApprovalStatus.APPROVED;
+    }
+
+    // 라이더 거절 처리 (상태를 REJECTED로 변경).
+    public void reject() {
+        this.status = RiderApprovalStatus.REJECTED;
+    }
+
     @Builder
     public Rider(User user, String bankName, String bankAccount, String accountHolder) {
         this.user = user;

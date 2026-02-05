@@ -1,4 +1,4 @@
-package com.example.finalproject.moderation.domain;
+﻿package com.example.finalproject.moderation.domain;
 
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.dto.response.RiderApprovalResponse;
@@ -17,6 +17,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Entity
 @Table(name = "approvals")
@@ -49,6 +50,9 @@ public class Approval extends BaseTimeEntity {
 
     private LocalDateTime approvedAt;
 
+    @Column(name = "held_until")
+    private LocalDateTime heldUntil;
+
     @OneToMany(mappedBy = "approval", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ApprovalDocument> documents = new ArrayList<>();
 
@@ -62,6 +66,30 @@ public class Approval extends BaseTimeEntity {
     public Approval(User user, ApplicantType applicantType) {
         this.user = user;
         this.applicantType = applicantType;
+    }
+
+    public void approve(User admin) {
+        this.status = ApprovalStatus.APPROVED;
+        this.approvedBy = admin;
+        this.approvedAt = LocalDateTime.now();
+        this.reason = null;
+        this.heldUntil = null;
+    }
+
+    public void reject(User admin, String reason) {
+        this.status = ApprovalStatus.REJECTED;
+        this.approvedBy = admin;
+        this.approvedAt = LocalDateTime.now();
+        this.reason = StringUtils.hasText(reason) ? reason : null;
+        this.heldUntil = null;
+    }
+
+    public void hold(User admin, String reason, LocalDateTime heldUntil) {
+        this.status = ApprovalStatus.HELD;
+        this.approvedBy = admin;
+        this.approvedAt = LocalDateTime.now();
+        this.reason = StringUtils.hasText(reason) ? reason : null;
+        this.heldUntil = heldUntil;
     }
 
     public RiderApprovalResponse createResponse(Rider rider) {
