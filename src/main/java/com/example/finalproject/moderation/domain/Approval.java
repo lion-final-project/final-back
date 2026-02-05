@@ -1,4 +1,4 @@
-﻿package com.example.finalproject.moderation.domain;
+package com.example.finalproject.moderation.domain;
 
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.dto.response.RiderApprovalResponse;

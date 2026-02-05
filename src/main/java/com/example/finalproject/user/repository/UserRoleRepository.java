@@ -1,4 +1,4 @@
-﻿package com.example.finalproject.user.repository;
+package com.example.finalproject.user.repository;
 
 import com.example.finalproject.user.domain.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;

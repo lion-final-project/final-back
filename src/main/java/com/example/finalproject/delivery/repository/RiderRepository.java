@@ -1,4 +1,4 @@
-﻿package com.example.finalproject.delivery.repository;
+package com.example.finalproject.delivery.repository;
 
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.enums.RiderOperationStatus;

@@ -1,4 +1,4 @@
-﻿package com.example.finalproject.moderation.repository;
+package com.example.finalproject.moderation.repository;
 
 import com.example.finalproject.moderation.domain.Approval;
 import com.example.finalproject.moderation.enums.ApplicantType;
