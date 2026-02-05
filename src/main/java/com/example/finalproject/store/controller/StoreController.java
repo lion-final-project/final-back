@@ -5,6 +5,7 @@ import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
 import com.example.finalproject.store.dto.response.GetStoreRegistrationStatusResponse;
 import com.example.finalproject.store.dto.response.PostStoreRegistrationResponse;
+import com.example.finalproject.store.dto.response.GetMyStoreResponse;
 import com.example.finalproject.store.service.StoreService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -75,6 +76,16 @@ public class StoreController {
     public ResponseEntity<ApiResponse<List<GetStoreCategoryResponse>>> getStoreCategories() {
         List<GetStoreCategoryResponse> list = GetStoreCategoryResponse.listAll();
         return ResponseEntity.ok(ApiResponse.success("상점 카테고리 목록 조회가 완료되었습니다.", list));
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<GetMyStoreResponse>> getMyStore(Authentication authentication) {
+        String userName = authentication != null ? authentication.getName() : null;
+        if (userName == null || userName.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        GetMyStoreResponse response = storeService.getMyStore(userName);
+        return ResponseEntity.ok(ApiResponse.success("내 상점 정보 조회가 완료되었습니다.", response));
     }
 
 }
