@@ -116,6 +116,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/{productId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
+                        .requestMatchers("/api/store/subscription-products", "/api/store/subscription-products/**").hasRole("STORE_OWNER")
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
