@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -36,6 +37,7 @@ import java.util.List;
 @Profile(value = "!local")
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
 public class SecurityConfig {
 
@@ -111,7 +113,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/notices").permitAll()
                         .requestMatchers("/api/riders","api/riders/register","api/riders/approvals/*").hasRole("CUSTOMER")
                         .requestMatchers("/api/riders/status").hasRole("RIDER")
-                        .requestMatchers(HttpMethod.GET, "/api/v1/products/search").hasRole("CUSTOMER")
+                        .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
