@@ -17,4 +17,6 @@ public interface StorageService {
      * @param fileUrl 삭제할 파일의 URL ex)http://localhost:9000/market-bucket/12/store/file.png
      */
     void delete(String fileUrl);
+
+    byte[] downloadByUrl(String fileUrl);
 }

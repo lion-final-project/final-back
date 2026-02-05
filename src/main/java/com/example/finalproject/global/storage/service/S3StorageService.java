@@ -6,9 +6,11 @@ import com.example.finalproject.global.storage.service.interfaces.StorageService
 import io.awspring.cloud.s3.S3Template;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,6 +20,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@Primary
 public class S3StorageService implements StorageService {
 
     private static final List<String> ALLOWED_EXTENSIONS = java.util.List.of("jpg", "jpeg", "png", "pdf");
@@ -81,6 +84,21 @@ public class S3StorageService implements StorageService {
         String key = extractKeyFromUrl(fileUrl);
         log.info("Deleting File. Bucket: {}, Key: {}", bucket, key);
         s3Template.deleteObject(bucket, key);
+    }
+
+    @Override
+    public byte[] downloadByUrl(String fileUrl) {
+        if (fileUrl == null || fileUrl.isBlank()) return null;
+        String key = extractKeyFromUrl(fileUrl);
+        try {
+            var resource = s3Template.download(bucket, key);
+            try (InputStream is = resource.getInputStream()) {
+                return is.readAllBytes();
+            }
+        } catch (IOException | S3Exception e) {
+            log.warn("S3 download failed. url={}, key={}, error={}", fileUrl, key, e.getMessage());
+            return null;
+        }
     }
 
     /**
