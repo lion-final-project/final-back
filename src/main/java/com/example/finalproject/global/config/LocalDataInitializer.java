@@ -1,10 +1,9 @@
 package com.example.finalproject.global.config;
 
 import com.example.finalproject.store.domain.StoreCategory;
-import com.example.finalproject.store.enums.StoreCategoryType;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
-import com.example.finalproject.product.domain.Category;
-import com.example.finalproject.product.repository.CategoryRepository;
+import com.example.finalproject.product.domain.ProductCategory;
+import com.example.finalproject.product.repository.ProductCategoryRepository;
 import com.example.finalproject.user.domain.Role;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.domain.UserRole;
@@ -20,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -30,7 +30,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
-    private final CategoryRepository categoryRepository;
+    private final ProductCategoryRepository productCategoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final StoreCategoryRepository storeCategoryRepository;
 
@@ -39,10 +39,11 @@ public class LocalDataInitializer implements CommandLineRunner {
     public void run(String... args) {
 
         // StoreCategory 시드 (입점 신청 시 카테고리 조회용)
-        for (StoreCategoryType type : StoreCategoryType.values()) {
-            if (storeCategoryRepository.findByCategoryName(type).isEmpty()) {
-                storeCategoryRepository.save(StoreCategory.builder().categoryName(type).build());
-                log.info("StoreCategory 시드: {}", type);
+        List<String> storeCategories = List.of("과일/채소", "정육/계란", "수산/해산물", "반찬/간편식", "간식", "베이커리", "기타");
+        for (String categoryName : storeCategories) {
+            if (storeCategoryRepository.findByCategoryName(categoryName).isEmpty()) {
+                storeCategoryRepository.save(StoreCategory.builder().categoryName(categoryName).build());
+                log.info("StoreCategory 시드: {}", categoryName);
             }
         }
 
@@ -122,9 +123,9 @@ public class LocalDataInitializer implements CommandLineRunner {
     }
 
     private void seedCategory(String name, String iconUrl) {
-        if (categoryRepository.findByCategoryName(name).isEmpty()) {
-            categoryRepository.save(
-                    Category.builder()
+        if (productCategoryRepository.findByCategoryName(name).isEmpty()) {
+            productCategoryRepository.save(
+                    ProductCategory.builder()
                             .categoryName(name)
                             .iconUrl(iconUrl)
                             .build()
