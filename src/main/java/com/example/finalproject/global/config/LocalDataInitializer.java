@@ -39,7 +39,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     public void run(String... args) {
 
         // StoreCategory 시드 (입점 신청 시 카테고리 조회용)
-        List<String> storeCategories = List.of("과일/채소", "정육/계란", "수산/해산물", "반찬/간편식", "간식", "베이커리", "기타");
+        List<String> storeCategories = List.of("마트/슈퍼", "청과물", "정육점", "수산시장", "간식", "베이커리", "반찬가게", "철물/생활", "준비중");
         for (String categoryName : storeCategories) {
             if (storeCategoryRepository.findByCategoryName(categoryName).isEmpty()) {
                 storeCategoryRepository.save(StoreCategory.builder().categoryName(categoryName).build());
