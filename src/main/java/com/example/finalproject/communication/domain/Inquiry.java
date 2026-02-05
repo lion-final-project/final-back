@@ -65,10 +65,22 @@ public class Inquiry extends BaseTimeEntity {
     private User answeredBy;
 
     @Builder
-    public Inquiry(User user, InquiryCategory category, String title, String content) {
+    public Inquiry(User user, InquiryCategory category, String title, String content, String fileUrl) {
         this.user = user;
         this.category = category;
         this.title = title;
         this.content = content;
+        this.fileUrl = fileUrl;
+    }
+
+    public boolean isAnswered() {
+        return this.status == InquiryStatus.ANSWERED;
+    }
+
+    public void markAnswered(User admin, String answer) {
+        this.status = InquiryStatus.ANSWERED;
+        this.answeredBy = admin;
+        this.answer = answer;
+        this.answeredAt = LocalDateTime.now();
     }
 }
