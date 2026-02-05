@@ -15,7 +15,8 @@ import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
-import com.example.finalproject.store.dto.response.StoreRegistrationResponse;
+import com.example.finalproject.store.dto.response.GetStoreRegistrationStatusResponse;
+import com.example.finalproject.store.dto.response.PostStoreRegistrationResponse;
 import com.example.finalproject.store.domain.StoreCategory;
 import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
@@ -47,7 +48,7 @@ public class StoreService {
 
 
 
-    public StoreRegistrationResponse createStoreApplication(String userName, PostStoreRegistrationRequest request) {
+    public PostStoreRegistrationResponse createStoreApplication(String userName, PostStoreRegistrationRequest request) {
 
         User user = findUserByUserName(userName);
 
@@ -68,7 +69,18 @@ public class StoreService {
 
         log.info("마트 입점 신청 완료. storeId={}, userId={}", savedStore.getId(), user.getId());
 
-        return StoreRegistrationResponse.of(savedStore.getId(), savedApproval.getId(), savedStore.getStatus());
+        return PostStoreRegistrationResponse.of(savedStore.getId(), savedApproval.getId(), savedStore.getStatus(), savedStore.getStoreName());
+    }
+
+    /**
+     * 현재 사용자의 마트 입점 신청 현황 조회 (상호명 포함).
+     * 신청 이력이 없으면 Optional.empty() 반환.
+     */
+    @Transactional(readOnly = true)
+    public java.util.Optional<GetStoreRegistrationStatusResponse> getMyStoreRegistration(String userName) {
+        User user = findUserByUserName(userName);
+        return storeRepository.findByOwner(user)
+                .map(store -> GetStoreRegistrationStatusResponse.of(store.getStatus(), store.getStoreName()));
     }
 
     public void cancelStoreRegistration(String userName) {

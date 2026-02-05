@@ -3,7 +3,8 @@ package com.example.finalproject.store.controller;
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
-import com.example.finalproject.store.dto.response.StoreRegistrationResponse;
+import com.example.finalproject.store.dto.response.GetStoreRegistrationStatusResponse;
+import com.example.finalproject.store.dto.response.PostStoreRegistrationResponse;
 import com.example.finalproject.store.service.StoreService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,12 +15,26 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
+
 @RestController
 @RequestMapping("/api/stores")
 @RequiredArgsConstructor
 public class StoreController {
 
     private final StoreService storeService;
+
+    /**
+     * 마트 입점 신청 현황 조회 (마이페이지용). 신청 이력이 있으면 상태와 상호명 반환, 없으면 404.
+     */
+    @GetMapping("/registration")
+    public ResponseEntity<ApiResponse<GetStoreRegistrationStatusResponse>> getMyStoreRegistration(Authentication authentication) {
+        String userName = authentication.getName();
+        Optional<GetStoreRegistrationStatusResponse> result = storeService.getMyStoreRegistration(userName);
+        return result
+                .map(data -> ResponseEntity.ok(ApiResponse.success("조회되었습니다.", data)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    }
 
     /**
      * 마트 입점 신청
@@ -30,13 +45,13 @@ public class StoreController {
     //todo: Authentication authentication -> 나중에 userDetails 로 수정할 것.
     @PostMapping("/registration")
     //@PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<StoreRegistrationResponse>> createStoreApplication(
+    public ResponseEntity<ApiResponse<PostStoreRegistrationResponse>> createStoreApplication(
             @Valid @RequestBody PostStoreRegistrationRequest request,
             Authentication authentication) {
 
         String userName = authentication.getName();
 
-        StoreRegistrationResponse response = storeService.createStoreApplication(userName, request);
+        PostStoreRegistrationResponse response = storeService.createStoreApplication(userName, request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("입점 신청이 완료되었습니다.", response));
@@ -47,10 +62,7 @@ public class StoreController {
      */
     @DeleteMapping("/registration")
     public ResponseEntity<ApiResponse<Void>> cancelStoreRegistration(Authentication authentication) {
-        String userName = authentication != null ? authentication.getName() : null;
-        if (userName == null || userName.isBlank()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+        String userName = authentication.getName();
         storeService.cancelStoreRegistration(userName);
         return ResponseEntity.ok(ApiResponse.success("입점 신청이 취소되었습니다."));
     }
