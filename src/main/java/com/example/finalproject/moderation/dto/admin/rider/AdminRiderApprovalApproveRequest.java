@@ -10,7 +10,6 @@ import lombok.Setter;
 @NoArgsConstructor
 public class AdminRiderApprovalApproveRequest {
 
-    // ?뱀씤 泥섎━ 愿由ъ옄 ID.
     @NotNull
     private Long adminUserId;
 }

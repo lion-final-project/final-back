@@ -11,11 +11,9 @@ import lombok.Setter;
 @NoArgsConstructor
 public class AdminRiderApprovalRejectRequest {
 
-    // 嫄곗젅 泥섎━ 愿由ъ옄 ID.
     @NotNull
     private Long adminUserId;
 
-    // 嫄곗젅 ?ъ쑀.
     @NotBlank
     private String reason;
 }
