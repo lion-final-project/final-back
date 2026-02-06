@@ -1,7 +1,6 @@
 package com.example.finalproject.moderation.controller.admin.rider;
 
 import com.example.finalproject.global.response.ApiResponse;
-import com.example.finalproject.moderation.dto.admin.rider.AdminRiderApprovalApproveRequest;
 import com.example.finalproject.moderation.dto.admin.rider.AdminRiderApprovalDetailResponse;
 import com.example.finalproject.moderation.dto.admin.rider.AdminRiderApprovalHoldRequest;
 import com.example.finalproject.moderation.dto.admin.rider.AdminRiderApprovalListResponse;
@@ -12,6 +11,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,24 +46,26 @@ public class AdminRiderApprovalController {
     // 승인 처리
     @PostMapping("/{approvalId}/approve")
     public ResponseEntity<ApiResponse<Void>> approve(@PathVariable Long approvalId,
-                                     @Valid @RequestBody AdminRiderApprovalApproveRequest request) {
-        adminRiderApprovalService.approveRider(approvalId, request.getAdminUserId());
-        return ResponseEntity.ok(ApiResponse.success("승인 완료"));
+                                                     Authentication authentication) {
+        adminRiderApprovalService.approveRider(approvalId, authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success("Approved."));
     }
 
     // 보류 처리
     @PostMapping("/{approvalId}/hold")
     public ResponseEntity<ApiResponse<Void>> hold(@PathVariable Long approvalId,
-                                  @Valid @RequestBody AdminRiderApprovalHoldRequest request) {
-        adminRiderApprovalService.holdRider(approvalId, request.getAdminUserId(), request.getReason());
-        return ResponseEntity.ok(ApiResponse.success("보류 처리 완료"));
+                                                  @Valid @RequestBody AdminRiderApprovalHoldRequest request,
+                                                  Authentication authentication) {
+        adminRiderApprovalService.holdRider(approvalId, authentication.getName(), request.getReason());
+        return ResponseEntity.ok(ApiResponse.success("Held."));
     }
 
     // 거절 처리
     @PostMapping("/{approvalId}/reject")
     public ResponseEntity<ApiResponse<Void>> reject(@PathVariable Long approvalId,
-                                    @Valid @RequestBody AdminRiderApprovalRejectRequest request) {
-        adminRiderApprovalService.rejectRider(approvalId, request.getAdminUserId(), request.getReason());
-        return ResponseEntity.ok(ApiResponse.success("거절 처리 완료"));
+                                                    @Valid @RequestBody AdminRiderApprovalRejectRequest request,
+                                                    Authentication authentication) {
+        adminRiderApprovalService.rejectRider(approvalId, authentication.getName(), request.getReason());
+        return ResponseEntity.ok(ApiResponse.success("Rejected."));
     }
 }
