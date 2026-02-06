@@ -92,15 +92,25 @@ public class AdminStoreApprovalService {
             ));
         }
 
+        String businessNumber = store.getSubmittedDocumentInfo() != null
+                ? store.getSubmittedDocumentInfo().getBusinessNumber()
+                : null;
+        String addressLine1 = store.getAddress() != null
+                ? store.getAddress().getAddressLine1()
+                : null;
+        String addressLine2 = store.getAddress() != null
+                ? store.getAddress().getAddressLine2()
+                : null;
+
         AdminStoreApprovalDetailResponse.StoreInfo storeInfo =
                 new AdminStoreApprovalDetailResponse.StoreInfo(
                         store.getId(),
                         store.getStoreName(),
-                        store.getSubmittedDocumentInfo().getBusinessNumber(),
+                        businessNumber,
                         store.getRepresentativeName(),
                         store.getRepresentativePhone(),
-                        store.getAddress().getAddressLine1(),
-                        store.getAddress().getAddressLine2()
+                        addressLine1,
+                        addressLine2
                 );
 
         return new AdminStoreApprovalDetailResponse(
@@ -115,11 +125,11 @@ public class AdminStoreApprovalService {
         );
     }
 
-    public void approveStore(Long approvalId, Long adminUserId) {
+    public void approveStore(Long approvalId, String adminEmail) {
         Approval approval = getStoreApprovalForDecision(approvalId);
         validateStatusForApprove(approval);
 
-        User admin = getAdminUser(adminUserId);
+        User admin = getAdminUser(adminEmail);
         Store store = getStoreByApproval(approval);
 
         approval.approve(admin);
@@ -134,7 +144,7 @@ public class AdminStoreApprovalService {
         ));
     }
 
-    public void holdStore(Long approvalId, Long adminUserId, String reason) {
+    public void holdStore(Long approvalId, String adminEmail, String reason) {
         if (!StringUtils.hasText(reason)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
@@ -144,7 +154,7 @@ public class AdminStoreApprovalService {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
-        User admin = getAdminUser(adminUserId);
+        User admin = getAdminUser(adminEmail);
         LocalDateTime heldUntil = LocalDateTime.now().plusDays(HOLD_DAYS);
         approval.hold(admin, reason, heldUntil);
 
@@ -156,7 +166,7 @@ public class AdminStoreApprovalService {
         ));
     }
 
-    public void rejectStore(Long approvalId, Long adminUserId, String reason) {
+    public void rejectStore(Long approvalId, String adminEmail, String reason) {
         if (!StringUtils.hasText(reason)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
@@ -167,7 +177,7 @@ public class AdminStoreApprovalService {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
-        User admin = getAdminUser(adminUserId);
+        User admin = getAdminUser(adminEmail);
         Store store = getStoreByApproval(approval);
 
         approval.reject(admin, reason);
@@ -191,12 +201,16 @@ public class AdminStoreApprovalService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
     }
 
-    private User getAdminUser(Long adminUserId) {
-        if (adminUserId == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+    private User getAdminUser(String adminEmail) {
+        if (!StringUtils.hasText(adminEmail)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        return userRepository.findById(adminUserId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+        if (!admin.isAdmin()) {
+            throw new BusinessException(ErrorCode.ADMIN_AUTHORITY_REQUIRED);
+        }
+        return admin;
     }
 
     private void grantRole(User user, String roleName) {

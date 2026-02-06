@@ -115,11 +115,11 @@ public class AdminRiderApprovalService {
         );
     }
 
-    public void approveRider(Long approvalId, Long adminUserId) {
+    public void approveRider(Long approvalId, String adminEmail) {
         Approval approval = getRiderApprovalForDecision(approvalId);
         validateStatusForApprove(approval);
 
-        User admin = getAdminUser(adminUserId);
+        User admin = getAdminUser(adminEmail);
         Rider rider = getRiderByApproval(approval);
 
         approval.approve(admin);
@@ -134,7 +134,7 @@ public class AdminRiderApprovalService {
         ));
     }
 
-    public void holdRider(Long approvalId, Long adminUserId, String reason) {
+    public void holdRider(Long approvalId, String adminEmail, String reason) {
         if (!StringUtils.hasText(reason)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
@@ -144,7 +144,7 @@ public class AdminRiderApprovalService {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
-        User admin = getAdminUser(adminUserId);
+        User admin = getAdminUser(adminEmail);
         LocalDateTime heldUntil = LocalDateTime.now().plusDays(HOLD_DAYS);
         approval.hold(admin, reason, heldUntil);
 
@@ -156,7 +156,7 @@ public class AdminRiderApprovalService {
         ));
     }
 
-    public void rejectRider(Long approvalId, Long adminUserId, String reason) {
+    public void rejectRider(Long approvalId, String adminEmail, String reason) {
         if (!StringUtils.hasText(reason)) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
@@ -167,7 +167,7 @@ public class AdminRiderApprovalService {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
-        User admin = getAdminUser(adminUserId);
+        User admin = getAdminUser(adminEmail);
         Rider rider = getRiderByApproval(approval);
 
         approval.reject(admin, reason);
@@ -191,12 +191,16 @@ public class AdminRiderApprovalService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
     }
 
-    private User getAdminUser(Long adminUserId) {
-        if (adminUserId == null) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+    private User getAdminUser(String adminEmail) {
+        if (!StringUtils.hasText(adminEmail)) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
-        return userRepository.findById(adminUserId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT_VALUE));
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+        if (!admin.isAdmin()) {
+            throw new BusinessException(ErrorCode.ADMIN_AUTHORITY_REQUIRED);
+        }
+        return admin;
     }
 
     private void grantRole(User user, String roleName) {
