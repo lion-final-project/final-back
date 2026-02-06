@@ -74,7 +74,7 @@ public class StoreController {
      */
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<List<GetStoreCategoryResponse>>> getStoreCategories() {
-        List<GetStoreCategoryResponse> list = GetStoreCategoryResponse.listAll();
+        List<GetStoreCategoryResponse> list = storeService.getAllCategories();
         return ResponseEntity.ok(ApiResponse.success("상점 카테고리 목록 조회가 완료되었습니다.", list));
     }
 

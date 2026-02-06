@@ -18,7 +18,7 @@ import com.example.finalproject.product.dto.response.GetProductStatsResponse;
 import com.example.finalproject.product.dto.response.GetStockHistoryResponse;
 import com.example.finalproject.product.dto.response.PostProductResponse;
 import com.example.finalproject.product.dto.response.StockAdjustResponse;
-import com.example.finalproject.product.repository.CategoryRepository;
+import com.example.finalproject.product.repository.ProductCategoryRepository;
 import com.example.finalproject.product.repository.ProductRepository;
 import com.example.finalproject.product.repository.ProductStockHistoryRepository;
 import com.example.finalproject.store.domain.Store;
@@ -48,7 +48,7 @@ import java.util.Optional;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final CategoryRepository categoryRepository;
+    private final ProductCategoryRepository productCategoryRepository;
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
     private final StoreBusinessHourRepository storeBusinessHourRepository;
@@ -72,7 +72,7 @@ public class ProductService {
             throw new BusinessException(ErrorCode.DUPLICATE_PRODUCT_NAME);
         }
 
-        ProductCategory productCategory = categoryRepository.findById(request.getCategoryId())
+        ProductCategory productCategory = productCategoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
         Product product = createProduct(request, store, productCategory);
@@ -115,7 +115,7 @@ public class ProductService {
         validateProductOwner(store, product);
 
         if (request.getCategoryId() != null) {
-            ProductCategory productCategory = categoryRepository.findById(request.getCategoryId())
+            ProductCategory productCategory = productCategoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
             product.updateCategory(productCategory);
         }
@@ -239,7 +239,7 @@ public class ProductService {
 
     @Transactional(readOnly = true)
     public List<GetCategoryResponse> getCategories() {
-        return categoryRepository.findAll().stream()
+        return productCategoryRepository.findAll().stream()
                 .map(GetCategoryResponse::from)
                 .toList();
     }

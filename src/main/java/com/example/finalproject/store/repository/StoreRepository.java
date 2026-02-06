@@ -3,9 +3,10 @@ package com.example.finalproject.store.repository;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import com.example.finalproject.store.repository.custom.StoreRepositoryCustom;
-import java.util.Optional;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
 @Repository
 public interface StoreRepository extends JpaRepository<Store, Long>, StoreRepositoryCustom {
     Optional<Store> findByOwnerId(Long ownerId);
@@ -17,4 +18,5 @@ public interface StoreRepository extends JpaRepository<Store, Long>, StoreReposi
     boolean existsByOwner(User owner);
 
     Optional<Store> findByOwner(User owner);
+
 }
