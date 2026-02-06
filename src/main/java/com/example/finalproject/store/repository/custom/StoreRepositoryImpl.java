@@ -1,14 +1,13 @@
 package com.example.finalproject.store.repository.custom;
 
-import static com.example.finalproject.product.domain.QCategory.category;
-import static com.example.finalproject.product.domain.QProduct.product;
-import static com.example.finalproject.store.domain.QStore.store;
+
+
 
 import com.example.finalproject.store.dto.response.QStoreNearbyResponse;
 import com.example.finalproject.store.dto.response.StoreNearbyResponse;
 import com.example.finalproject.store.enums.StoreActiveStatus;
 import com.example.finalproject.store.enums.StoreStatus;
-import com.querydsl.core.BooleanBuilder;
+
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberTemplate;
@@ -22,18 +21,21 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
+
+import static com.example.finalproject.product.domain.QProduct.product;
+import static com.example.finalproject.store.domain.QStore.store;
+
 @Repository
 @RequiredArgsConstructor
 public class StoreRepositoryImpl implements StoreRepositoryCustom {
-
     private final JPAQueryFactory queryFactory;
-    private static final double SEARCH_RADIUS = 3000.0; // 3km 반경 상수화
+    private static final double SEARCH_RADIUS = 3000.0;
 
     @Override
     public Slice<StoreNearbyResponse> findNearbyStoresByCategory(
             Double latitude,
             Double longitude,
-            Long categoryId,
+            Long storeCategoryId, // 마트 카테고리 ID
             String keyword,
             Double lastDistance,
             Long lastId,
@@ -41,15 +43,14 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
     ) {
         Point currentLocation = GeometryUtil.createPoint(longitude, latitude);
 
-        // 1. 거리 계산 표현식
+        // 1. 거리 계산 쿼리
         NumberTemplate<Double> distanceExpr = Expressions.numberTemplate(
                 Double.class,
                 "ST_Distance({0}, {1})",
-                store.location,
+                store.address.location,
                 currentLocation
         );
 
-        // 2. 최종 결과 조회
         List<StoreNearbyResponse> content = queryFactory
                 .select(new QStoreNearbyResponse(
                         store.id,
@@ -58,14 +59,15 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
                         store.reviewCount.coalesce(0),
                         store.storeImage,
                         store.isActive.eq(StoreActiveStatus.ACTIVE),
-                        store.addressLine1
+                        store.address.addressLine1
                 ))
                 .from(store)
                 .where(
-                        within3km(currentLocation),      // 반경 필터
-                        isApprovedAndActive(),           // 상태 필터
-                        productSearchCond(categoryId, keyword), // 상품 필터(Exists 사용)
-                        cursorCondition(lastDistance, lastId, distanceExpr) // 페이징 커서
+                        within3km(currentLocation),
+                        isApprovedAndActive(),
+                        storeCategoryEq(storeCategoryId),    // 마트 카테고리 조건 (직접 필터링)
+                        productKeywordCond(keyword),         // 상품 키워드 조건 (EXISTS 서브쿼리)
+                        cursorCondition(lastDistance, lastId, distanceExpr)
                 )
                 .orderBy(distanceExpr.asc(), store.id.asc())
                 .limit(pageable.getPageSize() + 1)
@@ -75,12 +77,37 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
     }
 
     /**
+     * 마트 카테고리 필터 조건 (Store 엔티티 직접 참조)
+     */
+    private BooleanExpression storeCategoryEq(Long storeCategoryId) {
+        return storeCategoryId != null ? store.storeCategory.id.eq(storeCategoryId) : null;
+    }
+
+    /**
+     * 상품 키워드 검색 조건 (해당 키워드의 상품을 하나라도 가지고 있는 마트인지 확인)
+     */
+    private BooleanExpression productKeywordCond(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return null;
+        }
+
+        return JPAExpressions
+                .selectOne()
+                .from(product)
+                .where(
+                        product.store.id.eq(store.id),
+                        product.isActive.isTrue(),
+                        product.productName.containsIgnoreCase(keyword)
+                ).exists();
+    }
+
+    /**
      * 1. 반경 3km 필터 조건 (is true 구문 유지로 Hibernate 6 에러 방지)
      */
     private BooleanExpression within3km(Point currentLocation) {
         return Expressions.booleanTemplate(
                 "ST_DWithin({0}, {1}, {2}) is true",
-                store.location, currentLocation, SEARCH_RADIUS
+                store.address.location, currentLocation, SEARCH_RADIUS
         );
     }
 
@@ -113,7 +140,7 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
     }
 
     private BooleanExpression categoryIdEq(Long categoryId) {
-        return categoryId != null ? product.category.id.eq(categoryId) : null;
+        return categoryId != null ? product.productCategory.id.eq(categoryId) : null;
     }
 
     private BooleanExpression productNameContains(String keyword) {

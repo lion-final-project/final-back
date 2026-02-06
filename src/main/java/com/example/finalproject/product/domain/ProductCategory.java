@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "categories")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Category extends BaseTimeEntity {
+public class ProductCategory extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,7 +30,7 @@ public class Category extends BaseTimeEntity {
     private String iconUrl;
 
     @Builder
-    public Category(String categoryName, String iconUrl) {
+    public ProductCategory(String categoryName, String iconUrl) {
         this.categoryName = categoryName;
         this.iconUrl = iconUrl;
     }

@@ -2,7 +2,7 @@ package com.example.finalproject.product.service;
 
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
-import com.example.finalproject.product.domain.Category;
+import com.example.finalproject.product.domain.ProductCategory;
 import com.example.finalproject.product.domain.Product;
 import com.example.finalproject.product.domain.ProductStockHistory;
 import com.example.finalproject.product.domain.StockEventType;
@@ -23,7 +23,6 @@ import com.example.finalproject.product.repository.ProductRepository;
 import com.example.finalproject.product.repository.ProductStockHistoryRepository;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.domain.StoreBusinessHour;
-import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.store.repository.StoreBusinessHourRepository;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.User;
@@ -73,10 +72,10 @@ public class ProductService {
             throw new BusinessException(ErrorCode.DUPLICATE_PRODUCT_NAME);
         }
 
-        Category category = categoryRepository.findById(request.getCategoryId())
+        ProductCategory productCategory = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
 
-        Product product = createProduct(request, store, category);
+        Product product = createProduct(request, store, productCategory);
 
         Product savedProduct = productRepository.save(product);
 
@@ -116,9 +115,9 @@ public class ProductService {
         validateProductOwner(store, product);
 
         if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
+            ProductCategory productCategory = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
-            product.updateCategory(category);
+            product.updateCategory(productCategory);
         }
 
         product.update(
@@ -254,10 +253,10 @@ public class ProductService {
         return checkBusinessHours(store);
     }
 
-    private Product createProduct(PostProductRequest request, Store store, Category category) {
+    private Product createProduct(PostProductRequest request, Store store, ProductCategory productCategory) {
         return Product.builder()
                 .store(store)
-                .category(category)
+                .productCategory(productCategory)
                 .productName(request.getProductName())
                 .description(request.getDescription())
                 .price(request.getPrice())

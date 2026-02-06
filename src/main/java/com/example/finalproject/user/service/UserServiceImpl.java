@@ -20,12 +20,34 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
 
+    //비회원용 조회함수
+    @Override
+    public Slice<StoreNearbyResponse> getNearbyStoresByAddressForNotUser(
+            Double latitude,
+            Double longitude,
+            Long storeCategoryId,
+            String keyword,
+            Double lastDistance,
+            Long lastId,
+            Pageable pageable
+    ) {
+        return storeRepository.findNearbyStoresByCategory(
+                latitude,
+                longitude,
+                storeCategoryId,
+                keyword,
+                lastDistance,
+                lastId,
+                pageable
+        );
+    }
+
     //회원용 조회함수
     @Override
     public Slice<StoreNearbyResponse> getNearbyStoresByAddress(
             String userName,
             Long addressId,
-            Long categoryId,
+            Long storeCategoryId,
             String keyword,
             Double lastDistance,
             Long lastId,
@@ -43,7 +65,7 @@ public class UserServiceImpl implements UserService {
         return storeRepository.findNearbyStoresByCategory(
                 GeometryUtil.getLatitude(address.getLocation()),
                 GeometryUtil.getLongitude(address.getLocation()),
-                categoryId,
+                storeCategoryId,
                 keyword,
                 lastDistance,
                 lastId,

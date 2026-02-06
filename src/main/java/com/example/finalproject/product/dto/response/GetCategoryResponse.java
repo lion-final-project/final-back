@@ -1,6 +1,6 @@
 package com.example.finalproject.product.dto.response;
 
-import com.example.finalproject.product.domain.Category;
+import com.example.finalproject.product.domain.ProductCategory;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -12,11 +12,11 @@ public class GetCategoryResponse {
     private String categoryName;
     private String iconUrl;
 
-    public static GetCategoryResponse from(Category category) {
+    public static GetCategoryResponse from(ProductCategory productCategory) {
         return GetCategoryResponse.builder()
-                .id(category.getId())
-                .categoryName(category.getCategoryName())
-                .iconUrl(category.getIconUrl())
+                .id(productCategory.getId())
+                .categoryName(productCategory.getCategoryName())
+                .iconUrl(productCategory.getIconUrl())
                 .build();
     }
 }

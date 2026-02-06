@@ -1,9 +1,9 @@
 package com.example.finalproject.global.config;
 
+import com.example.finalproject.product.domain.ProductCategory;
 import com.example.finalproject.store.domain.StoreCategory;
 import com.example.finalproject.store.enums.StoreCategoryType;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
-import com.example.finalproject.product.domain.Category;
 import com.example.finalproject.product.repository.CategoryRepository;
 import com.example.finalproject.user.domain.Role;
 import com.example.finalproject.user.domain.User;
@@ -46,7 +46,7 @@ public class LocalDataInitializer implements CommandLineRunner {
             }
         }
 
-        // Product Category 초기 데이터
+        // Product ProductCategory 초기 데이터
         seedCategory("채소", "https://cdn.example.com/icons/vegetable.png");
         seedCategory("과일", "https://cdn.example.com/icons/fruit.png");
         seedCategory("정육", "https://cdn.example.com/icons/meat.png");
@@ -124,7 +124,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     private void seedCategory(String name, String iconUrl) {
         if (categoryRepository.findByCategoryName(name).isEmpty()) {
             categoryRepository.save(
-                    Category.builder()
+                    ProductCategory.builder()
                             .categoryName(name)
                             .iconUrl(iconUrl)
                             .build()
