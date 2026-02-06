@@ -1,5 +1,6 @@
 package com.example.finalproject.subscription.service;
 
+import com.example.finalproject.global.component.UserLoader;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.product.domain.Product;
@@ -37,9 +38,26 @@ public class SubscriptionProductService {
     private final SubscriptionProductRepository subscriptionProductRepository;
     private final SubscriptionProductItemRepository subscriptionProductItemRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final UserLoader userLoader;
 
     private static final Set<SubscriptionStatus> DELETION_BLOCKING_STATUSES =
             EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAUSED, SubscriptionStatus.CANCELLATION_PENDING);
+
+    /**
+     * 로그인한 사용자 식별자(이메일)로 해당 사용자가 소유한 마트 ID를 반환한다.
+     * 유저 조회는 UserLoader를 통해 수행한다.
+     *
+     * @param username 로그인한 사용자 식별자 (이메일)
+     * @return 마트 ID
+     * @throws BusinessException 마트를 찾을 수 없을 때 (STORE_NOT_FOUND)
+     */
+    @Transactional(readOnly = true)
+    public Long getStoreIdByUsername(String username) {
+        Long ownerId = userLoader.loadUserByUsername(username).getId();
+        Store store = storeRepository.findByOwnerId(ownerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        return store.getId();
+    }
 
     /**
      * 구독 상품을 등록한다(UC-S10).
