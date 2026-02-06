@@ -87,6 +87,20 @@ public class SubscriptionController {
     }
 
     /**
+     * API-SUB-006: 구독 해지 요청 취소.
+     * CANCELLATION_PENDING 상태의 구독에 대해 해지 요청을 취소하고 ACTIVE로 되돌린다.
+     *
+     * @param id 구독 ID (path)
+     * @return 200 OK
+     */
+    @PatchMapping("/{id}/cancellation/cancel")
+    public ResponseEntity<ApiResponse<Void>> cancelCancellation(@PathVariable Long id) {
+        String username = getCurrentUsername();
+        subscriptionService.cancelCancellation(id, username);
+        return ResponseEntity.ok(ApiResponse.success("구독 해지 요청이 취소되었습니다."));
+    }
+
+    /**
      * SecurityContext에서 현재 로그인한 사용자 식별자(이메일)를 반환한다.
      *
      * @return 사용자 식별자 (이메일)

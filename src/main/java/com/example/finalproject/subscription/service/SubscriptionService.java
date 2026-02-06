@@ -95,6 +95,21 @@ public class SubscriptionService {
         }
     }
 
+    /**
+     * 해지 예정(CANCELLATION_PENDING) 상태의 구독에 대해 해지 요청을 취소하고 ACTIVE로 되돌린다.
+     * 본인 구독이며 CANCELLATION_PENDING 상태일 때만 가능.
+     */
+    @Transactional
+    public void cancelCancellation(Long subscriptionId, String username) {
+        Long userId = userLoader.loadUserByUsername(username).getId();
+        Subscription subscription = getOwnSubscription(subscriptionId, userId);
+        try {
+            subscription.cancelCancellationRequest();
+        } catch (IllegalStateException e) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_INVALID_STATUS);
+        }
+    }
+
     @Transactional(readOnly = true)
     private List<GetSubscriptionResponse> findListByUserId(Long userId) {
         List<Subscription> list = subscriptionRepository.findByUserIdAndStatusInOrderByCreatedAtDesc(userId, LISTABLE_STATUSES);
