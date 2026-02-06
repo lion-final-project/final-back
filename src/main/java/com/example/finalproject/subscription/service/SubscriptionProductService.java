@@ -220,14 +220,14 @@ public class SubscriptionProductService {
     }
 
     /**
-     * 구독 상품 삭제 요청을 처리한다.
+     * 구독 상품 삭제 요청을 처리한다 (Soft Delete).
      * - 숨김(INACTIVE) 상태에서만 삭제 요청 가능.
      * - 구독자가 남아 있으면 삭제 예정(PENDING_DELETE)로 전환한다.
-     * - 구독자가 없으면 즉시 삭제한다.
+     * - 구독자가 없으면 INACTIVE로 전환한다 (Soft Delete).
      *
      * @param storeId              마트 ID
      * @param subscriptionProductId 구독 상품 ID
-     * @return 삭제 처리 결과 (삭제 예정 혹은 즉시 삭제)
+     * @return 삭제 처리 결과 (삭제 예정 혹은 INACTIVE 전환)
      */
     @Transactional
     public PatchSubscriptionProductDeletionResponse requestDeletion(Long storeId, Long subscriptionProductId) {
@@ -253,14 +253,16 @@ public class SubscriptionProductService {
                     toResponse(product, getOngoingSubscriberCount(product), items));
         }
 
-        subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
-        subscriptionProductRepository.delete(product);
-        return PatchSubscriptionProductDeletionResponse.deleted();
+        product.updateStatus(SubscriptionProductStatus.INACTIVE);
+        subscriptionProductRepository.flush();
+        List<SubscriptionProductItem> items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(product);
+        return PatchSubscriptionProductDeletionResponse.deleted(toResponse(product, 0, items));
     }
 
     /**
-     * API-SOP-010D2: 구독 상품 즉시 삭제.
+     * API-SOP-010D2: 구독 상품 즉시 삭제 (Soft Delete).
      * 구독자가 0명일 때만 호출 가능. 삭제 예정(PENDING_DELETE) 상태에서 구독자가 모두 없어진 후 사장님이 삭제할 때 사용한다.
+     * INACTIVE 상태로 전환한다 (Soft Delete).
      *
      * @param storeId              마트 ID
      * @param subscriptionProductId 구독 상품 ID
@@ -276,8 +278,8 @@ public class SubscriptionProductService {
             throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS);
         }
 
-        subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
-        subscriptionProductRepository.delete(product);
+        product.updateStatus(SubscriptionProductStatus.INACTIVE);
+        subscriptionProductRepository.flush();
     }
 
     /**
