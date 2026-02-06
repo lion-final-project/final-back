@@ -1,12 +1,12 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.5.9'
+    id 'org.springframework.boot' version '3.5.10'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'com.example'
 version = '0.0.1-SNAPSHOT'
-description = 'lionproject2-backend'
+description = 'Final-Project'
 
 java {
     toolchain {
@@ -42,20 +42,20 @@ dependencies {
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-
-    implementation 'org.hibernate.orm:hibernate-spatial:'
+    // PostGIS/JTS (??? Boot BOM ??)
+    implementation 'org.hibernate.orm:hibernate-spatial'
     implementation 'org.locationtech.jts:jts-core'
 
     testImplementation "org.testcontainers:junit-jupiter"
     testImplementation "org.testcontainers:postgresql"
-    
-    // AWS S3 (Spring Cloud AWS) ??? miniO ????? ??? ???
+
+    // AWS S3 (Spring Cloud AWS)
     implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.1.1'
 
-    // CoolSMS ??? ?? (????)
+    // CoolSMS
     implementation 'net.nurigo:sdk:4.3.2'
 
-    //querydsl ??
+    // querydsl ??
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.10.1'
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:6.10.1:jpa'
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
