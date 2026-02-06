@@ -1,5 +1,6 @@
 package com.example.finalproject.subscription.service;
 
+import com.example.finalproject.global.component.UserLoader;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.subscription.domain.Subscription;
@@ -23,28 +24,31 @@ public class SubscriptionService {
             EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAUSED, SubscriptionStatus.CANCELLATION_PENDING);
 
     private final SubscriptionRepository subscriptionRepository;
+    private final UserLoader userLoader;
 
     /**
      * 고객의 구독 목록을 조회한다 (API-SUB-002). 해지 완료(CANCELLED)는 제외.
+     * 유저 조회는 UserLoader를 통해 수행한다.
      *
-     * @param userId 로그인한 사용자 ID
+     * @param username 로그인한 사용자 식별자 (이메일)
      * @return 구독 목록 (구독 상품, 구독 상태, 다음 결제 예정일 등)
      */
     @Transactional(readOnly = true)
-    public List<GetSubscriptionResponse> findListByUserId(Long userId) {
-        List<Subscription> list = subscriptionRepository.findByUserIdAndStatusInOrderByCreatedAtDesc(userId, LISTABLE_STATUSES);
-        return list.stream().map(this::toResponse).collect(Collectors.toList());
+    public List<GetSubscriptionResponse> findListByUser(String username) {
+        Long userId = userLoader.loadUserByUsername(username).getId();
+        return findListByUserId(userId);
     }
 
     /**
      * 구독을 일시정지한다 (API-SUB-003). 본인 구독이며 ACTIVE 상태일 때만 가능.
      *
      * @param subscriptionId 구독 ID
-     * @param userId         로그인한 사용자 ID
+     * @param username        로그인한 사용자 식별자 (이메일)
      * @throws BusinessException 구독 없음(SUBSCRIPTION_NOT_FOUND), 본인 구독 아님(SUBSCRIPTION_FORBIDDEN), 상태 불가(SUBSCRIPTION_INVALID_STATUS)
      */
     @Transactional
-    public void pause(Long subscriptionId, Long userId) {
+    public void pause(Long subscriptionId, String username) {
+        Long userId = userLoader.loadUserByUsername(username).getId();
         Subscription subscription = getOwnSubscription(subscriptionId, userId);
         try {
             subscription.pause();
@@ -57,11 +61,12 @@ public class SubscriptionService {
      * 일시정지된 구독을 재개한다 (API-SUB-004). 본인 구독이며 PAUSED 상태일 때만 가능.
      *
      * @param subscriptionId 구독 ID
-     * @param userId         로그인한 사용자 ID
+     * @param username       로그인한 사용자 식별자 (이메일)
      * @throws BusinessException 구독 없음, 본인 구독 아님, 상태 불가
      */
     @Transactional
-    public void resume(Long subscriptionId, Long userId) {
+    public void resume(Long subscriptionId, String username) {
+        Long userId = userLoader.loadUserByUsername(username).getId();
         Subscription subscription = getOwnSubscription(subscriptionId, userId);
         try {
             subscription.resume();
@@ -75,18 +80,40 @@ public class SubscriptionService {
      * 본인 구독이며 ACTIVE 또는 PAUSED 상태일 때만 가능.
      *
      * @param subscriptionId 구독 ID
-     * @param userId         로그인한 사용자 ID
+     * @param username       로그인한 사용자 식별자 (이메일)
      * @param reason         해지 사유 (선택, null 가능)
      * @throws BusinessException 구독 없음, 본인 구독 아님, 상태 불가
      */
     @Transactional
-    public void cancel(Long subscriptionId, Long userId, String reason) {
+    public void cancel(Long subscriptionId, String username, String reason) {
+        Long userId = userLoader.loadUserByUsername(username).getId();
         Subscription subscription = getOwnSubscription(subscriptionId, userId);
         try {
             subscription.requestCancellation(reason);
         } catch (IllegalStateException e) {
             throw new BusinessException(ErrorCode.SUBSCRIPTION_INVALID_STATUS);
         }
+    }
+
+    /**
+     * 해지 예정(CANCELLATION_PENDING) 상태의 구독에 대해 해지 요청을 취소하고 ACTIVE로 되돌린다.
+     * 본인 구독이며 CANCELLATION_PENDING 상태일 때만 가능.
+     */
+    @Transactional
+    public void cancelCancellation(Long subscriptionId, String username) {
+        Long userId = userLoader.loadUserByUsername(username).getId();
+        Subscription subscription = getOwnSubscription(subscriptionId, userId);
+        try {
+            subscription.cancelCancellationRequest();
+        } catch (IllegalStateException e) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_INVALID_STATUS);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    private List<GetSubscriptionResponse> findListByUserId(Long userId) {
+        List<Subscription> list = subscriptionRepository.findByUserIdAndStatusInOrderByCreatedAtDesc(userId, LISTABLE_STATUSES);
+        return list.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
     /**

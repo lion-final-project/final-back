@@ -1,5 +1,6 @@
 package com.example.finalproject.subscription.service;
 
+import com.example.finalproject.global.component.UserLoader;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.product.domain.Product;
@@ -37,9 +38,26 @@ public class SubscriptionProductService {
     private final SubscriptionProductRepository subscriptionProductRepository;
     private final SubscriptionProductItemRepository subscriptionProductItemRepository;
     private final SubscriptionRepository subscriptionRepository;
+    private final UserLoader userLoader;
 
     private static final Set<SubscriptionStatus> DELETION_BLOCKING_STATUSES =
             EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAUSED, SubscriptionStatus.CANCELLATION_PENDING);
+
+    /**
+     * 로그인한 사용자 식별자(이메일)로 해당 사용자가 소유한 마트 ID를 반환한다.
+     * 유저 조회는 UserLoader를 통해 수행한다.
+     *
+     * @param username 로그인한 사용자 식별자 (이메일)
+     * @return 마트 ID
+     * @throws BusinessException 마트를 찾을 수 없을 때 (STORE_NOT_FOUND)
+     */
+    @Transactional(readOnly = true)
+    public Long getStoreIdByUsername(String username) {
+        Long ownerId = userLoader.loadUserByUsername(username).getId();
+        Store store = storeRepository.findByOwnerId(ownerId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        return store.getId();
+    }
 
     /**
      * 구독 상품을 등록한다(UC-S10).
@@ -136,6 +154,7 @@ public class SubscriptionProductService {
         subscriptionProductRepository.flush();
 
         subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
+        subscriptionProductItemRepository.flush();  // DELETE가 DB에 반영된 후 INSERT하도록 flush
 
         // 수정 시에도 동일 상품이 중복으로 들어오는 것을 방지하기 위해
         // productId 기준으로 수량을 합산하여 저장한다.
@@ -220,14 +239,14 @@ public class SubscriptionProductService {
     }
 
     /**
-     * 구독 상품 삭제 요청을 처리한다.
+     * 구독 상품 삭제 요청을 처리한다 (Soft Delete).
      * - 숨김(INACTIVE) 상태에서만 삭제 요청 가능.
      * - 구독자가 남아 있으면 삭제 예정(PENDING_DELETE)로 전환한다.
-     * - 구독자가 없으면 즉시 삭제한다.
+     * - 구독자가 없으면 INACTIVE로 전환한다 (Soft Delete).
      *
      * @param storeId              마트 ID
      * @param subscriptionProductId 구독 상품 ID
-     * @return 삭제 처리 결과 (삭제 예정 혹은 즉시 삭제)
+     * @return 삭제 처리 결과 (삭제 예정 혹은 INACTIVE 전환)
      */
     @Transactional
     public PatchSubscriptionProductDeletionResponse requestDeletion(Long storeId, Long subscriptionProductId) {
@@ -253,14 +272,16 @@ public class SubscriptionProductService {
                     toResponse(product, getOngoingSubscriberCount(product), items));
         }
 
-        subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
-        subscriptionProductRepository.delete(product);
-        return PatchSubscriptionProductDeletionResponse.deleted();
+        product.updateStatus(SubscriptionProductStatus.INACTIVE);
+        subscriptionProductRepository.flush();
+        List<SubscriptionProductItem> items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(product);
+        return PatchSubscriptionProductDeletionResponse.deleted(toResponse(product, 0, items));
     }
 
     /**
-     * API-SOP-010D2: 구독 상품 즉시 삭제.
+     * API-SOP-010D2: 구독 상품 즉시 삭제 (Soft Delete).
      * 구독자가 0명일 때만 호출 가능. 삭제 예정(PENDING_DELETE) 상태에서 구독자가 모두 없어진 후 사장님이 삭제할 때 사용한다.
+     * INACTIVE 상태로 전환한다 (Soft Delete).
      *
      * @param storeId              마트 ID
      * @param subscriptionProductId 구독 상품 ID
@@ -276,8 +297,8 @@ public class SubscriptionProductService {
             throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS);
         }
 
-        subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
-        subscriptionProductRepository.delete(product);
+        product.updateStatus(SubscriptionProductStatus.INACTIVE);
+        subscriptionProductRepository.flush();
     }
 
     /**
