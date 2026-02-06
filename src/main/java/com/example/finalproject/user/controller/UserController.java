@@ -17,10 +17,10 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/stores")
-    public ResponseEntity<Slice<StoreNearbyResponse>> findNearbyStores(
+    public ResponseEntity<ApiResponse<Slice<StoreNearbyResponse>>> findNearbyStores(
             @ModelAttribute @Valid GetStoreSearchRequest request
     ){
         Slice<StoreNearbyResponse> response = userService.getNearbyStores(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(ApiResponse.success("마켓 조회 성공", response));
     }
 }
