@@ -12,6 +12,7 @@ import com.example.finalproject.user.repository.AddressRepository;
 import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,12 +41,12 @@ public class AddressService {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        /**
-         * todo:
-         *  1. 최대 등록 개수 5개 확인
-         *  2. 배송지 주소 중복 불가
-         *  3. 배송지 이름 중복 불가
-         */
+        //최대 등록 개수 5개 검증
+        validateAddressLimit(user.getId());
+        //같은 이름의 배송지가 존재하는지 검증
+        validateDuplicateAddressName(user.getId(), request.getAddressName());
+        //같은 배송지가 존재하는지 검증
+        validateDuplicateAddress(user.getId(), request.getAddressLine1(), request.getAddressLine2());
 
         if (request.getIsDefault()) {
             addressRepository.clearDefaultByUser(user);
@@ -70,24 +71,14 @@ public class AddressService {
 
     // 수정 시 기존 데이터 출력을 위한 단건 조회 메서드
     public GetAddressResponse getAddress(Long addressId, String username) {
-        Address address = addressRepository.findByIdWithUser(addressId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
-
-        if (!address.getUser().getEmail().equals(username)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
+        Address address = getAddressWithOwnerCheck(addressId, username);
 
         return GetAddressResponse.from(address);
     }
 
     @Transactional
     public void updateAddress(Long addressId, PutAddressUpdateRequest request, String username) {
-        Address address = addressRepository.findByIdWithUser(addressId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
-
-        if (!address.getUser().getEmail().equals(username)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
+        Address address = getAddressWithOwnerCheck(addressId, username);
 
         if (request.getIsDefault()) {
             addressRepository.clearDefaultByUser(address.getUser());
@@ -108,12 +99,7 @@ public class AddressService {
 
     @Transactional
     public void setDefaultAddress(Long addressId, String username) {
-        Address address = addressRepository.findByIdWithUser(addressId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
-
-        if (!address.getUser().getEmail().equals(username)) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
+        Address address = getAddressWithOwnerCheck(addressId, username);
 
         addressRepository.clearDefaultByUser(address.getUser());
         address.changeDefault();
@@ -121,15 +107,38 @@ public class AddressService {
 
     @Transactional
     public void deleteAddress(Long addressId, String username) {
+        Address address = getAddressWithOwnerCheck(addressId, username);
+
+        addressRepository.delete(address);
+    }
+
+    @NotNull
+    private Address getAddressWithOwnerCheck(Long addressId, String username) {
         Address address = addressRepository.findByIdWithUser(addressId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
-
-        //todo: 1개 남았을때 삭제 불가
 
         if (!address.getUser().getEmail().equals(username)) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+        return address;
+    }
 
-        addressRepository.delete(address);
+    private void validateAddressLimit(Long userId) {
+        Long count = addressRepository.countByUserId(userId);
+        if (count >= 5) {
+            throw new BusinessException(ErrorCode.ADDRESS_LIMIT_EXCEEDED);
+        }
+    }
+
+    private void validateDuplicateAddressName(Long userId, String addressName) {
+        if (addressRepository.existsByUserIdAndAddressName(userId, addressName)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ADDRESS_NAME);
+        }
+    }
+
+    private void validateDuplicateAddress(Long userId, String addressLine1, String addressLine2) {
+        if (addressRepository.existsByUserIdAndAddressLine1AndAddressLine2(userId, addressLine1, addressLine2)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ADDRESS);
+        }
     }
 }

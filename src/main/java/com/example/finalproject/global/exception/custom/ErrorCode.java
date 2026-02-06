@@ -90,6 +90,9 @@ public enum ErrorCode {
 
     // ADDRESS
     ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "ADDRESS-001", "주소를 조회할 수 없습니다"),
+    ADDRESS_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "ADDRESS-002", "배송지는 최대 5개까지 등록할 수 있습니다."),
+    DUPLICATE_ADDRESS_NAME(HttpStatus.CONFLICT, "ADDRESS-003", "이미 존재하는 배송지 이름입니다."),
+    DUPLICATE_ADDRESS(HttpStatus.CONFLICT, "ADDRESS-004", "이미 등록된 배송지 주소입니다."),
 
     // DELIVERY
     DISTANCE_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELIVERY-001", "배달바 계산에 실패했습니다."),
