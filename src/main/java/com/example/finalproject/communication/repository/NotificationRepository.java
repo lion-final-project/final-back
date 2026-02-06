@@ -12,13 +12,13 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     int countByUserIdAndIsReadFalse(Long userId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update Notification n "
             + "set n.isRead = true, n.sentAt = current_timestamp "
             + "where n.user.email = :email and n.isRead = false")
     void markAllReadByUserEmail(String email);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("update Notification n "
             + "set n.isRead = true, n.sentAt = current_timestamp "
             + "where n.id = :notificationId and n.user.id = :userId")

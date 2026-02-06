@@ -3,24 +3,32 @@ package com.example.finalproject.communication.service;
 import com.example.finalproject.communication.domain.Notification;
 import com.example.finalproject.communication.dto.response.NotificationResponse;
 import com.example.finalproject.communication.enums.NotificationRefType;
+import com.example.finalproject.communication.event.UnreadCountChangedEvent;
 import com.example.finalproject.communication.repository.NotificationRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
+import com.example.finalproject.global.sse.Service.SseService;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.repository.UserRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final SseService sseService;
+    private final ApplicationEventPublisher eventPublisher;
+
 
     @Transactional
     public SseEmitter subscribe(String email) {
@@ -29,23 +37,14 @@ public class NotificationService {
         SseEmitter emitter = sseService.subscribe(user.getId());
 
         int unreadCount = notificationRepository.countByUserIdAndIsReadFalse(user.getId());
-
-        sseService.sendToUser(
-                user.getId(),
-                "UNREAD_COUNT",
-                unreadCount
-        );
+        eventPublisher.publishEvent(new UnreadCountChangedEvent(user.getId(), unreadCount));
 
         return emitter;
     }
 
-    private User getUser(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-    }
 
     @Transactional
-    public void notifyUser(
+    public void createNotification(
             Long userId,
             String title,
             String content,
@@ -63,15 +62,9 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         int unreadCount = notificationRepository.countByUserIdAndIsReadFalse(userId);
-
-        sseService.sendToUser(
-                userId,
-                "UNREAD_COUNT",
-                unreadCount
-        );
+        eventPublisher.publishEvent(new UnreadCountChangedEvent(userId, unreadCount));
     }
 
-    @Transactional(readOnly = true)
     public List<NotificationResponse> getUnreadNotifications(String email) {
         User user = getUser(email);
 
@@ -89,7 +82,7 @@ public class NotificationService {
         notificationRepository.markAllReadByUserEmail(email);
 
         int unreadCount = notificationRepository.countByUserIdAndIsReadFalse(user.getId());
-        sseService.sendToUser(user.getId(), "UNREAD_COUNT", unreadCount);
+        eventPublisher.publishEvent(new UnreadCountChangedEvent(user.getId(), unreadCount));
     }
 
     @Transactional
@@ -103,7 +96,12 @@ public class NotificationService {
         notificationRepository.markAsReadByNotificationIdAndUserId(notificationId, user.getId());
 
         int unreadCount = notificationRepository.countByUserIdAndIsReadFalse(user.getId());
-        sseService.sendToUser(user.getId(), "UNREAD_COUNT", unreadCount);
+        eventPublisher.publishEvent(new UnreadCountChangedEvent(user.getId(), unreadCount));
+    }
+
+    private User getUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 }
 
