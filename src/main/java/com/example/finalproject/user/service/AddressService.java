@@ -66,19 +66,22 @@ public class AddressService {
                 .build();
 
         addressRepository.save(address);
-        log.info("Address created: {}", address.toString());
+        log.info("Address created: id={}, userId={}", address.getId(), address.getUser().getId());
     }
 
     // 수정 시 기존 데이터 출력을 위한 단건 조회 메서드
     public GetAddressResponse getAddress(Long addressId, String username) {
         Address address = getAddressWithOwnerCheck(addressId, username);
-
         return GetAddressResponse.from(address);
     }
 
     @Transactional
     public void updateAddress(Long addressId, PutAddressUpdateRequest request, String username) {
         Address address = getAddressWithOwnerCheck(addressId, username);
+
+        // 중복 검증 (자기 자신 제외)
+        validateDuplicateAddressName(address.getUser().getId(), request.getAddressName(), addressId);
+        validateDuplicateAddress(address.getUser().getId(), request.getAddressLine1(), request.getAddressLine2(), addressId);
 
         if (request.getIsDefault()) {
             addressRepository.clearDefaultByUser(address.getUser());
@@ -109,7 +112,19 @@ public class AddressService {
     public void deleteAddress(Long addressId, String username) {
         Address address = getAddressWithOwnerCheck(addressId, username);
 
+        if (addressRepository.countByUserId(address.getUser().getId()) <= 1) {
+            throw new BusinessException(ErrorCode.ADDRESS_DELETE_MIN_REQUIRED);
+        }
+
+        boolean wasDefault = address.getIsDefault();
         addressRepository.delete(address);
+
+        // 기본 배송지 삭제 시 → 가장 최근 배송지를 기본으로
+        if (wasDefault) {
+            addressRepository.flush();
+            addressRepository.findFirstByUserIdOrderByCreatedAtDesc(address.getUser().getId())
+                    .ifPresent(Address::changeDefault);
+        }
     }
 
     @NotNull
@@ -124,7 +139,7 @@ public class AddressService {
     }
 
     private void validateAddressLimit(Long userId) {
-        Long count = addressRepository.countByUserId(userId);
+        long count = addressRepository.countByUserId(userId);
         if (count >= 5) {
             throw new BusinessException(ErrorCode.ADDRESS_LIMIT_EXCEEDED);
         }
@@ -136,8 +151,20 @@ public class AddressService {
         }
     }
 
+    private void validateDuplicateAddressName(Long userId, String addressName, Long excludeId) {
+        if (addressRepository.existsByUserIdAndAddressNameAndIdNot(userId, addressName, excludeId)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ADDRESS_NAME);
+        }
+    }
+
     private void validateDuplicateAddress(Long userId, String addressLine1, String addressLine2) {
         if (addressRepository.existsByUserIdAndAddressLine1AndAddressLine2(userId, addressLine1, addressLine2)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_ADDRESS);
+        }
+    }
+
+    private void validateDuplicateAddress(Long userId, String addressLine1, String addressLine2, Long excludeId) {
+        if (addressRepository.existsByUserIdAndAddressLine1AndAddressLine2AndIdNot(userId, addressLine1, addressLine2, excludeId)) {
             throw new BusinessException(ErrorCode.DUPLICATE_ADDRESS);
         }
     }
