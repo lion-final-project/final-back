@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
     private final UserService userService;
 
+    /**
+     * 유저는 주소에 저장된 위도 경도 가져옴
+     * 비회원은 카카오맵에서 핑찍은 뒤에 위도경도 가져옴
+     */
     @GetMapping("/stores")
     public ResponseEntity<ApiResponse<Slice<StoreNearbyResponse>>> findNearbyStores(
             @ModelAttribute @Valid GetStoreSearchRequest request

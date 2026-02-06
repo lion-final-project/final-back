@@ -19,7 +19,6 @@ import com.example.finalproject.global.util.GeometryUtil;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Point;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
@@ -45,6 +44,18 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
                 currentLocation
         );
 
+        NumberTemplate<Double> latitudeExpr = Expressions.numberTemplate(
+                Double.class,
+                "ST_Y(ST_GeometryFromText(ST_AsText({0})))",
+                store.address.location
+        );
+
+        NumberTemplate<Double> longitudeExpr = Expressions.numberTemplate(
+                Double.class,
+                "ST_X(ST_GeometryFromText(ST_AsText({0})))",
+                store.address.location
+        );
+
         List<StoreNearbyResponse> content = queryFactory
                 .select(new QStoreNearbyResponse(
                         store.id,
@@ -53,7 +64,10 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
                         store.reviewCount.coalesce(0),
                         store.storeImage,
                         store.isActive.eq(StoreActiveStatus.ACTIVE),
-                        store.address.addressLine1
+                        store.address.addressLine1,
+                        store.address.addressLine2,
+                        latitudeExpr,
+                        longitudeExpr
                 ))
                 .from(store)
                 .where(
