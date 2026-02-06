@@ -24,12 +24,14 @@ public class CheckoutController {
         this.checkoutService = checkoutService;
     }
 
+    // 주문서 미리보기 조회
     @GetMapping
     public ResponseEntity<ApiResponse<GetCheckoutResponse>> getCheckout(
             Authentication authentication,
             @RequestParam String cartItemIds,
             @RequestParam(required = false) Long addressId
     ) {
+        // 장바구니 상품 ID 목록 파싱
         List<Long> ids = Arrays.stream(cartItemIds.split(","))
                 .filter(s -> !s.isBlank())
                 .map(Long::parseLong)

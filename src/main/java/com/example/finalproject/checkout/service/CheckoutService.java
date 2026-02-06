@@ -44,31 +44,39 @@ public class CheckoutService {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
 
+        // 사용자 조회
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
+        // 장바구니 조회
         Cart cart = cartRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
 
+        // 장바구니 상품 조회
         List<CartProduct> cartProducts = cartProductRepository.findAllByIdIn(cartItemIds);
         if (cartProducts.size() != cartItemIds.size()) {
             throw new BusinessException(ErrorCode.CART_PRODUCT_NOT_FOUND);
         }
 
+        // 장바구니 상품 소유자 확인
         for (CartProduct cartProduct : cartProducts) {
             if (!cartProduct.getCart().getId().equals(cart.getId())) {
                 throw new BusinessException(ErrorCode.FORBIDDEN);
             }
         }
 
+        // 배송지 조회
         Address address = resolveAddress(user, addressId);
+        // 기본 결제 수단 조회
         PaymentMethod defaultPayment = paymentMethodRepository.findFirstByUserIdAndIsDefaultTrue(user.getId()).orElse(null);
 
+        // 장바구니 상품 그룹화
         Map<Long, List<CartProduct>> grouped = new LinkedHashMap<>();
         cartProducts.stream().sorted(Comparator.comparing(cp -> cp.getStore().getId())).forEach(cp ->
                 grouped.computeIfAbsent(cp.getStore().getId(), k -> new ArrayList<>()).add(cp)
         );
 
+        // 장바구니 상품 가격 계산
         List<PriceCalculator.CheckoutItem> calculatorItems = cartProducts.stream()
                 .map(cp -> new PriceCalculator.CheckoutItem(
                         cp.getProduct().getId(),
@@ -78,10 +86,12 @@ public class CheckoutService {
                 ))
                 .toList();
 
+        // 장바구니 상품 가격 계산
         PriceCalculationResult result = priceCalculator.calculate(calculatorItems, storeId -> DEFAULT_DELIVERY_FEE, 0, 0);
         Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = result.storeSummaries().stream()
                 .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s));
 
+        // 장바구니 상품 그룹화
         List<GetCheckoutResponse.StoreGroup> storeGroups = grouped.values().stream()
                 .map(group -> {
                     CartProduct first = group.getFirst();
@@ -98,6 +108,7 @@ public class CheckoutService {
                 })
                 .toList();
 
+        // 로그 출력
         log.debug("getCheckout success: userId={}, storeGroups={}", user.getId(), storeGroups.size());
         return GetCheckoutResponse.builder()
                 .address(GetCheckoutResponse.AddressInfo.builder()
@@ -121,6 +132,7 @@ public class CheckoutService {
                 .build();
     }
 
+    
     private GetCheckoutResponse.Item toItem(CartProduct cp) {
         int unitPrice = cp.getProduct().getEffectivePrice();
         GetCheckoutResponse.AvailabilityReason reason = null;
@@ -151,6 +163,7 @@ public class CheckoutService {
                 .build();
     }
 
+    // 배송지 조회
     private Address resolveAddress(User user, Long addressId) {
         if (addressId != null) {
             Address selected = addressRepository.findById(addressId)
@@ -161,6 +174,7 @@ public class CheckoutService {
             return selected;
         }
 
+        // 기본 배송지 조회
         return addressRepository.findByUserOrderByIsDefaultDesc(user).stream()
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));

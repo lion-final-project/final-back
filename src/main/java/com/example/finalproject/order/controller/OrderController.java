@@ -20,6 +20,7 @@ public class OrderController {
 
     private final OrderQueryService orderQueryService;
 
+    // 주문 상세 조회
     @GetMapping("/{orderId}")
     public ResponseEntity<ApiResponse<GetOrderDetailResponse>> getOrderDetail(
             Authentication authentication,

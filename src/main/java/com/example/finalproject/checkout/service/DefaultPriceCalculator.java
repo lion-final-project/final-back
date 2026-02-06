@@ -15,6 +15,7 @@ public class DefaultPriceCalculator implements PriceCalculator {
             storeProductTotal.merge(item.storeId(), item.unitPrice() * item.quantity(), Integer::sum);
         }
 
+        // 매장별 상품 가격 계산
         List<PriceCalculationResult.StorePriceSummary> summaries = storeProductTotal.entrySet().stream()
                 .map(entry -> {
                     int fee = deliveryPolicy.deliveryFee(entry.getKey());

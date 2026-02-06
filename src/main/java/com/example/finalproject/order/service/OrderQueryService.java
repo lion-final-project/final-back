@@ -33,25 +33,33 @@ public class OrderQueryService {
     private final OrderProductRepository orderProductRepository;
     private final PaymentRepository paymentRepository;
 
+    // 주문 상세 조회
     public GetOrderDetailResponse getOrderDetail(String email, Long orderId) {
+        // 사용자 조회
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
+        // 주문 조회
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
+        // 주문 소유자 확인
         if (!order.getUser().getId().equals(user.getId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
+        // 주문 상세 조회
         List<StoreOrder> storeOrders = storeOrderRepository.findAllByOrderId(orderId);
         List<OrderProduct> orderProducts = orderProductRepository.findAllByStoreOrderOrderId(orderId);
 
+        // 주문 상세 조회
         Map<Long, List<OrderProduct>> productsByStoreOrder = orderProducts.stream()
                 .collect(Collectors.groupingBy(op -> op.getStoreOrder().getId()));
 
+        // 주문 상세 조회
         List<GetOrderDetailResponse.StoreOrderInfo> storeOrderInfos = storeOrders.stream()
                 .map(storeOrder -> {
+                    // 주문 상세 조회
                     List<GetOrderDetailResponse.ProductInfo> products = productsByStoreOrder
                             .getOrDefault(storeOrder.getId(), List.of())
                             .stream()
@@ -63,6 +71,7 @@ public class OrderQueryService {
                                     .build())
                             .toList();
 
+                    // 주문 상세 조회
                     return GetOrderDetailResponse.StoreOrderInfo.builder()
                             .storeOrderId(storeOrder.getId())
                             .storeId(storeOrder.getStore().getId())
@@ -74,9 +83,11 @@ public class OrderQueryService {
                 })
                 .toList();
 
+        // 결제 조회
         Payment payment = paymentRepository.findByOrder_Id(orderId).orElse(null);
         log.debug("getOrderDetail success: orderId={}, userId={}", orderId, user.getId());
 
+        // 주문 상세 조회
         return GetOrderDetailResponse.builder()
                 .order(GetOrderDetailResponse.OrderInfo.builder()
                         .orderId(order.getId())

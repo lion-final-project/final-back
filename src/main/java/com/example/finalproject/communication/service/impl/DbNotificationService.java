@@ -1,14 +1,16 @@
 package com.example.finalproject.communication.service.impl;
 
 import com.example.finalproject.communication.enums.NotificationRefType;
+import com.example.finalproject.communication.service.NotificationService;
+import com.example.finalproject.communication.service.OrderPaidNotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class DbNotificationService implements com.example.finalproject.communication.service.interfaces.NotificationService {
+public class DbNotificationService implements OrderPaidNotificationService {
 
-    private final com.example.finalproject.communication.service.NotificationService notificationService;
+    private final NotificationService notificationService;
 
     @Override
     public void createOrderPaidNotification(Long userId, Long orderId, String orderNumber, Integer amount) {
