@@ -67,6 +67,16 @@ public class LocalDataInitializer implements CommandLineRunner {
                         .roleName("USER")
                         .build()));
 
+        roleRepository.findByRoleName("RIDER")
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .roleName("RIDER")
+                        .build()));
+
+        roleRepository.findByRoleName("STORE_OWNER")
+                .orElseGet(() -> roleRepository.save(Role.builder()
+                        .roleName("STORE_OWNER")
+                        .build()));
+
         // ADMIN 테스트 계정 생성 (없으면)
         String adminEmail = "admin@test.com";
         if (userRepository.findByEmail(adminEmail).isEmpty()) {

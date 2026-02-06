@@ -9,7 +9,7 @@ import com.example.finalproject.communication.dto.response.GetAdminIquiriesRespo
 import com.example.finalproject.communication.dto.response.GetInquiriesResponse;
 import com.example.finalproject.communication.dto.response.GetInquiryResponse;
 import com.example.finalproject.communication.enums.InquiryStatus;
-import com.example.finalproject.communication.enums.NotificationRefType;
+import com.example.finalproject.communication.event.InquiryAnsweredEvent;
 import com.example.finalproject.communication.repository.InquiryRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
@@ -17,6 +17,7 @@ import com.example.finalproject.global.storage.service.interfaces.StorageService
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class InquiryService {
     private final InquiryRepository inquiryRepository;
     private final UserRepository userRepository;
     private final StorageService s3StorageService;
-    private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public GetInquiryResponse create(String email, PostInquiryCreateRequest req, MultipartFile file) {
         User user = getUser(email);
@@ -124,12 +125,8 @@ public class InquiryService {
 
         inquiry.markAnswered(admin, request.getAnswer());
 
-        notificationService.notifyUser(
-                inquiry.getUser().getId(),
-                "문의 답변 등록",
-                "문의에 대한 답변이 등록되었습니다: " + inquiry.getTitle(),
-                NotificationRefType.CUSTOMER
-        );
+        eventPublisher.publishEvent(
+                new InquiryAnsweredEvent(inquiry.getId(), inquiry.getUser().getId()));
     }
 
     private User getUser(String email) {
