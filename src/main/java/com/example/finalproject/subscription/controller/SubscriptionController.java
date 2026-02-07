@@ -3,6 +3,7 @@ package com.example.finalproject.subscription.controller;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.response.ApiResponse;
+import com.example.finalproject.global.security.CustomUserDetails;
 import com.example.finalproject.subscription.dto.response.GetSubscriptionResponse;
 import com.example.finalproject.subscription.service.SubscriptionService;
 import lombok.RequiredArgsConstructor;
@@ -34,8 +35,8 @@ public class SubscriptionController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<GetSubscriptionResponse>>> list() {
-        Long userId = getCurrentUserId();
-        List<GetSubscriptionResponse> list = subscriptionService.findListByUserId(userId);
+        String username = getCurrentUsername();
+        List<GetSubscriptionResponse> list = subscriptionService.findListByUser(username);
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 
@@ -48,8 +49,8 @@ public class SubscriptionController {
      */
     @PatchMapping("/{id}/pause")
     public ResponseEntity<ApiResponse<Void>> pause(@PathVariable Long id) {
-        Long userId = getCurrentUserId();
-        subscriptionService.pause(id, userId);
+        String username = getCurrentUsername();
+        subscriptionService.pause(id, username);
         return ResponseEntity.ok(ApiResponse.success("구독이 일시정지되었습니다."));
     }
 
@@ -62,8 +63,8 @@ public class SubscriptionController {
      */
     @PatchMapping("/{id}/resume")
     public ResponseEntity<ApiResponse<Void>> resume(@PathVariable Long id) {
-        Long userId = getCurrentUserId();
-        subscriptionService.resume(id, userId);
+        String username = getCurrentUsername();
+        subscriptionService.resume(id, username);
         return ResponseEntity.ok(ApiResponse.success("구독이 재개되었습니다."));
     }
 
@@ -80,40 +81,44 @@ public class SubscriptionController {
     public ResponseEntity<ApiResponse<Void>> cancel(
             @PathVariable Long id,
             @RequestParam(required = false) String reason) {
-        Long userId = getCurrentUserId();
-        subscriptionService.cancel(id, userId, reason);
+        String username = getCurrentUsername();
+        subscriptionService.cancel(id, username, reason);
         return ResponseEntity.ok(ApiResponse.success("구독 해지가 요청되었습니다."));
     }
 
     /**
-     * SecurityContext에서 현재 로그인한 사용자 ID를 반환한다.
+     * API-SUB-006: 구독 해지 요청 취소.
+     * CANCELLATION_PENDING 상태의 구독에 대해 해지 요청을 취소하고 ACTIVE로 되돌린다.
      *
-     * @return 사용자 ID
-     * @throws BusinessException 인증되지 않은 경우 (UNAUTHORIZED 등)
+     * @param id 구독 ID (path)
+     * @return 200 OK
      */
-    private Long getCurrentUserId() {
+    @PatchMapping("/{id}/cancellation/cancel")
+    public ResponseEntity<ApiResponse<Void>> cancelCancellation(@PathVariable Long id) {
+        String username = getCurrentUsername();
+        subscriptionService.cancelCancellation(id, username);
+        return ResponseEntity.ok(ApiResponse.success("구독 해지 요청이 취소되었습니다."));
+    }
+
+    /**
+     * SecurityContext에서 현재 로그인한 사용자 식별자(이메일)를 반환한다.
+     *
+     * @return 사용자 식별자 (이메일)
+     * @throws BusinessException 인증되지 않은 경우 (SUBSCRIPTION_NOT_FOUND)
+     */
+    private String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth.getPrincipal() == null
                 || "anonymousUser".equals(auth.getPrincipal())) {
             throw new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND);
         }
         Object principal = auth.getPrincipal();
-        Long userId = null;
-        if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
-            try {
-                userId = Long.parseLong(
-                        ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername());
-            } catch (NumberFormatException ignored) {
-            }
-        } else if (principal instanceof String) {
-            try {
-                userId = Long.parseLong((String) principal);
-            } catch (NumberFormatException ignored) {
-            }
+        if (principal instanceof CustomUserDetails details) {
+            return details.getUser().getEmail();
         }
-        if (userId == null) {
-            throw new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND);
+        if (principal instanceof String) {
+            return (String) principal;
         }
-        return userId;
+        throw new BusinessException(ErrorCode.SUBSCRIPTION_NOT_FOUND);
     }
 }
