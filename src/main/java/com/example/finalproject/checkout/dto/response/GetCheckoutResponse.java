@@ -4,6 +4,7 @@ import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 
+//체크아웃 응답
 @Getter
 @Builder
 public class GetCheckoutResponse {
@@ -13,6 +14,7 @@ public class GetCheckoutResponse {
     private List<StoreGroup> storeGroups;
     private PriceSummary priceSummary;
 
+    //주소 조회
     @Getter
     @Builder
     public static class AddressInfo {
@@ -23,12 +25,14 @@ public class GetCheckoutResponse {
         private String recipientPhone;
     }
 
+    //결제 조회
     @Getter
     @Builder
     public static class PaymentInfo {
         private Long defaultPaymentMethodId;
     }
 
+    //마트별 상품 조회
     @Getter
     @Builder
     public static class StoreGroup {
@@ -40,6 +44,7 @@ public class GetCheckoutResponse {
         private List<Item> items;
     }
 
+    //상품 조회
     @Getter
     @Builder
     public static class Item {
@@ -52,6 +57,7 @@ public class GetCheckoutResponse {
         private Availability availability;
     }
 
+    //상품 가용성
     @Getter
     @Builder
     public static class Availability {
@@ -66,6 +72,7 @@ public class GetCheckoutResponse {
         EXCEEDS_STOCK
     }
 
+    //총 가격 요약
     @Getter
     @Builder
     public static class PriceSummary {

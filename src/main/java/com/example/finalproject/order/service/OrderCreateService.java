@@ -66,6 +66,7 @@ public class OrderCreateService {
     private final PaymentRepository paymentRepository;
     private final OrderPaidNotificationService orderPaidNotificationService;
 
+    //주문 생성
     @Transactional
     public PostOrderResponse createOrder(String email, PostOrderRequest request) {
         User user = userRepository.findByEmail(email)
@@ -77,6 +78,7 @@ public class OrderCreateService {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
+        //결제 수단 조회
         PaymentMethod paymentMethod = paymentMethodRepository
                 .findByIdAndUser_Id(request.getPaymentMethodId(), user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_METHOD_NOT_FOUND));
@@ -84,6 +86,7 @@ public class OrderCreateService {
         Cart cart = cartRepository.findByUser_Email(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
 
+        //장바구니 상품 조회
         List<CartProduct> cartProducts = cartProductRepository.findAllByIdIn(request.getCartItemIds());
         if (cartProducts.size() != request.getCartItemIds().size()) {
             throw new BusinessException(ErrorCode.CART_PRODUCT_NOT_FOUND);
@@ -106,6 +109,7 @@ public class OrderCreateService {
 
         int discount = 0;
         int points = request.getUsePointsOrZero();
+        //주문 생성 금액 계산
         List<PriceCalculator.CheckoutItem> items = cartProducts.stream()
                 .map(cp -> new PriceCalculator.CheckoutItem(
                         cp.getProduct().getId(),
@@ -125,6 +129,7 @@ public class OrderCreateService {
                 + (address.getAddressLine2() != null && !address.getAddressLine2().isBlank()
                 ? " " + address.getAddressLine2() : "");
 
+                //주문 생성
         Order order = Order.builder()
                 .orderNumber(orderNumber)
                 .user(user)
@@ -145,6 +150,7 @@ public class OrderCreateService {
                 if (attempt == MAX_ORDER_NUMBER_RETRY - 1) {
                     throw e;
                 }
+                //주문 번호 중복 시 재시도
                 order = Order.builder()
                         .orderNumber(generateOrderNumber())
                         .user(user)
@@ -160,20 +166,24 @@ public class OrderCreateService {
             }
         }
 
+        //마트별 상품 조회
         Map<Long, List<CartProduct>> byStore = new LinkedHashMap<>();
         cartProducts.stream()
                 .sorted(Comparator.comparing(cp -> cp.getStore().getId()))
                 .forEach(cp -> byStore.computeIfAbsent(cp.getStore().getId(), k -> new ArrayList<>()).add(cp));
 
+        //마트별 상품 가격 계산
         Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = priceResult.storeSummaries().stream()
                 .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s));
 
+        //마트별 상품 조회
         List<PostOrderResponse.StoreOrderSummary> storeOrderSummaries = new ArrayList<>();
         for (Map.Entry<Long, List<CartProduct>> entry : byStore.entrySet()) {
             List<CartProduct> group = entry.getValue();
             CartProduct first = group.get(0);
             PriceCalculationResult.StorePriceSummary storeSummary = summaryMap.get(first.getStore().getId());
 
+            //마트별 상품 주문 생성
             StoreOrder storeOrder = StoreOrder.builder()
                     .order(order)
                     .store(first.getStore())
@@ -184,6 +194,7 @@ public class OrderCreateService {
                     .build();
             storeOrder = storeOrderRepository.save(storeOrder);
 
+            //마트별 상품 주문 상품 조회
             List<PostOrderResponse.ProductSummary> productSummaries = new ArrayList<>();
             for (CartProduct cp : group) {
                 Product p = cp.getProduct();
@@ -207,6 +218,7 @@ public class OrderCreateService {
                         .subtotal(unitPrice * qty)
                         .build());
             }
+            //마트별 상품 주문 상품 조회
             storeOrderSummaries.add(PostOrderResponse.StoreOrderSummary.builder()
                     .storeOrderId(storeOrder.getId())
                     .storeId(first.getStore().getId())
@@ -225,7 +237,7 @@ public class OrderCreateService {
                 .build();
         payment = paymentRepository.save(payment);
 
-        // 결제 성공으로 주문 확정 시점에 알림 생성 트리거 (완료조건 5)
+        // 결제 성공으로 주문 확정 시점에 알림 생성 트리거 
         try {
             orderPaidNotificationService.createOrderPaidNotification(
                     user.getId(), order.getId(), order.getOrderNumber(), order.getFinalPrice());
@@ -257,6 +269,7 @@ public class OrderCreateService {
                 .build();
     }
 
+    //주문 번호 생성
     private String generateOrderNumber() {
         LocalDate today = LocalDate.now();
         LocalDateTime start = today.atStartOfDay();

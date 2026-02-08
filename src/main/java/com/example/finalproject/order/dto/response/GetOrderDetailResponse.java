@@ -17,6 +17,7 @@ public class GetOrderDetailResponse {
     private List<StoreOrderInfo> storeOrders;
     private PaymentInfo payment;
 
+    //주문 조회
     @Getter
     @Builder
     public static class OrderInfo {
@@ -28,7 +29,7 @@ public class GetOrderDetailResponse {
         private Integer finalPrice;
         private String deliveryAddress;
     }
-
+    //주문 상세 조회
     @Getter
     @Builder
     public static class StoreOrderInfo {
@@ -40,6 +41,7 @@ public class GetOrderDetailResponse {
         private List<ProductInfo> products;
     }
 
+    //마트별 상품 주문 상품 조회
     @Getter
     @Builder
     public static class ProductInfo {
@@ -49,6 +51,7 @@ public class GetOrderDetailResponse {
         private Integer subtotal;
     }
 
+    //결제 조회
     @Getter
     @Builder
     public static class PaymentInfo {

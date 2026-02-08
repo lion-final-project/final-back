@@ -25,7 +25,7 @@ public class PostOrderRequest {
     @NotNull(message = "결제수단 ID는 필수입니다.")
     private Long paymentMethodId;
 
-    /** 일반결제는 미전송(null) → 주문 즉시 배달. 구독결제에서만 사용. */
+    ///일반결제는 미전송(null) → 주문 즉시 배달 구독결제에서만 사용
     @Pattern(regexp = "08:00~11:00|11:00~14:00|14:00~17:00|17:00~20:00",
             message = "배달 시간대는 08:00~11:00, 11:00~14:00, 14:00~17:00, 17:00~20:00 중 하나여야 합니다.")
     private String deliveryTimeSlot;
