@@ -59,4 +59,12 @@ public class SubscriptionHistory extends BaseTimeEntity {
         this.cycleCount = cycleCount;
         this.scheduledDate = scheduledDate;
     }
+
+    /**
+     * 생성된 StoreOrder를 연결하고 상태를 ORDERED로 변경한다 (구독 주문 자동 생성 후 호출).
+     */
+    public void linkStoreOrder(StoreOrder storeOrder) {
+        this.storeOrder = storeOrder;
+        this.status = SubHistoryStatus.ORDERED;
+    }
 }
