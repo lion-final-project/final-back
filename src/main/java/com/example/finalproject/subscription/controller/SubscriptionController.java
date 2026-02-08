@@ -87,6 +87,20 @@ public class SubscriptionController {
     }
 
     /**
+     * 해지 예정 취소 (UC-C10 5-a). 해지 예정 상태를 유지(ACTIVE)로 되돌린다.
+     * 본인 구독이며 CANCELLATION_PENDING 상태일 때만 가능.
+     *
+     * @param id 구독 ID (path)
+     * @return 200 OK
+     */
+    @PatchMapping("/{id}/cancellation/cancel")
+    public ResponseEntity<ApiResponse<Void>> cancelCancellation(@PathVariable Long id) {
+        String username = getCurrentUsername();
+        subscriptionService.cancelCancellation(id, username);
+        return ResponseEntity.ok(ApiResponse.success("구독 해지가 취소되었습니다. 계속해서 혜택을 누리실 수 있습니다."));
+    }
+
+    /**
      * SecurityContext에서 현재 로그인한 사용자 식별자(이메일)를 반환한다.
      *
      * @return 사용자 식별자 (이메일)

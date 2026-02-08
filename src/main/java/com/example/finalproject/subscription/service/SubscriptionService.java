@@ -4,13 +4,19 @@ import com.example.finalproject.global.component.UserLoader;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.subscription.domain.Subscription;
+import com.example.finalproject.subscription.domain.SubscriptionStatusLog;
 import com.example.finalproject.subscription.dto.response.GetSubscriptionResponse;
+import com.example.finalproject.subscription.enums.SubHistoryStatus;
 import com.example.finalproject.subscription.enums.SubscriptionStatus;
+import com.example.finalproject.subscription.repository.SubscriptionHistoryRepository;
+import com.example.finalproject.subscription.repository.SubscriptionProductItemRepository;
 import com.example.finalproject.subscription.repository.SubscriptionRepository;
+import com.example.finalproject.subscription.repository.SubscriptionStatusLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +30,9 @@ public class SubscriptionService {
             EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAUSED, SubscriptionStatus.CANCELLATION_PENDING);
 
     private final SubscriptionRepository subscriptionRepository;
+    private final SubscriptionProductItemRepository subscriptionProductItemRepository;
+    private final SubscriptionHistoryRepository subscriptionHistoryRepository;
+    private final SubscriptionStatusLogRepository subscriptionStatusLogRepository;
     private final UserLoader userLoader;
 
     /**
@@ -50,8 +59,10 @@ public class SubscriptionService {
     public void pause(Long subscriptionId, String username) {
         Long userId = userLoader.loadUserByUsername(username).getId();
         Subscription subscription = getOwnSubscription(subscriptionId, userId);
+        SubscriptionStatus before = subscription.getStatus();
         try {
             subscription.pause();
+            saveStatusLog(subscription, before, SubscriptionStatus.PAUSED);
         } catch (IllegalStateException e) {
             throw new BusinessException(ErrorCode.SUBSCRIPTION_INVALID_STATUS);
         }
@@ -68,8 +79,10 @@ public class SubscriptionService {
     public void resume(Long subscriptionId, String username) {
         Long userId = userLoader.loadUserByUsername(username).getId();
         Subscription subscription = getOwnSubscription(subscriptionId, userId);
+        SubscriptionStatus before = subscription.getStatus();
         try {
             subscription.resume();
+            saveStatusLog(subscription, before, SubscriptionStatus.ACTIVE);
         } catch (IllegalStateException e) {
             throw new BusinessException(ErrorCode.SUBSCRIPTION_INVALID_STATUS);
         }
@@ -88,8 +101,27 @@ public class SubscriptionService {
     public void cancel(Long subscriptionId, String username, String reason) {
         Long userId = userLoader.loadUserByUsername(username).getId();
         Subscription subscription = getOwnSubscription(subscriptionId, userId);
+        SubscriptionStatus before = subscription.getStatus();
         try {
             subscription.requestCancellation(reason);
+            saveStatusLog(subscription, before, SubscriptionStatus.CANCELLATION_PENDING);
+        } catch (IllegalStateException e) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_INVALID_STATUS);
+        }
+    }
+
+    /**
+     * 해지 예정을 취소하고 구독을 유지한다 (UC-C10 5-a).
+     * 본인 구독이며 CANCELLATION_PENDING 상태일 때만 가능.
+     */
+    @Transactional
+    public void cancelCancellation(Long subscriptionId, String username) {
+        Long userId = userLoader.loadUserByUsername(username).getId();
+        Subscription subscription = getOwnSubscription(subscriptionId, userId);
+        SubscriptionStatus before = subscription.getStatus();
+        try {
+            subscription.cancelCancellation();
+            saveStatusLog(subscription, before, SubscriptionStatus.ACTIVE);
         } catch (IllegalStateException e) {
             throw new BusinessException(ErrorCode.SUBSCRIPTION_INVALID_STATUS);
         }
@@ -110,20 +142,46 @@ public class SubscriptionService {
     }
 
     private GetSubscriptionResponse toResponse(Subscription s) {
+        var product = s.getSubscriptionProduct();
+        var items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(product)
+                .stream()
+                .map(i -> GetSubscriptionResponse.SubscriptionItemDto.builder()
+                        .productName(i.getProduct().getProductName())
+                        .quantity(i.getQuantity())
+                        .build())
+                .collect(Collectors.toList());
+        int totalDeliveryCount = product.getTotalDeliveryCount() != null ? product.getTotalDeliveryCount() : 0;
+        int completedDeliveryCount = (int) subscriptionHistoryRepository.countBySubscriptionAndStatus(s, SubHistoryStatus.COMPLETED);
+
         return GetSubscriptionResponse.builder()
                 .subscriptionId(s.getId())
                 .storeId(s.getStore().getId())
                 .storeName(s.getStore().getStoreName())
-                .subscriptionProductId(s.getSubscriptionProduct().getId())
-                .subscriptionProductName(s.getSubscriptionProduct().getSubscriptionProductName())
+                .subscriptionProductId(product.getId())
+                .subscriptionProductName(product.getSubscriptionProductName())
                 .status(s.getStatus())
                 .totalAmount(s.getTotalAmount())
                 .deliveryTimeSlot(s.getDeliveryTimeSlot())
                 .nextPaymentDate(s.getNextPaymentDate())
+                .totalDeliveryCount(totalDeliveryCount)
+                .completedDeliveryCount(completedDeliveryCount)
+                .items(items)
                 .startedAt(s.getStartedAt())
                 .pausedAt(s.getPausedAt())
                 .cancelledAt(s.getCancelledAt())
                 .cancelReason(s.getCancelReason())
                 .build();
+    }
+
+    /** BR-C10-05: 구독 상태 변경 이력을 기록한다. */
+    private void saveStatusLog(Subscription subscription, SubscriptionStatus fromStatus, SubscriptionStatus toStatus) {
+        subscriptionStatusLogRepository.save(
+                SubscriptionStatusLog.builder()
+                        .subscription(subscription)
+                        .fromStatus(fromStatus)
+                        .toStatus(toStatus)
+                        .createdAt(LocalDateTime.now())
+                        .build()
+        );
     }
 }
