@@ -171,6 +171,7 @@ public class SubscriptionProductService {
         subscriptionProductRepository.flush();
 
         subscriptionProductItemRepository.deleteBySubscriptionProduct(product);
+        subscriptionProductItemRepository.flush();  // DELETE가 DB에 반영된 후 INSERT하도록 flush
 
         // 수정 시에도 동일 상품이 중복으로 들어오는 것을 방지하기 위해
         // productId 기준으로 수량을 합산하여 저장한다.
