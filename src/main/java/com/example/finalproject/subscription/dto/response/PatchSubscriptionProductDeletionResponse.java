@@ -35,4 +35,14 @@ public class PatchSubscriptionProductDeletionResponse {
                 .product(null)
                 .build();
     }
+
+    /**
+     * Soft delete 시 상품 정보(INACTIVE 상태)와 함께 삭제 결과를 반환한다.
+     */
+    public static PatchSubscriptionProductDeletionResponse deleted(GetSubscriptionProductResponse product) {
+        return PatchSubscriptionProductDeletionResponse.builder()
+                .action(Action.DELETED)
+                .product(product)
+                .build();
+    }
 }

@@ -110,6 +110,8 @@ public class SecurityLocalConfig {
                         .requestMatchers("/api/products/**").authenticated()
                         .requestMatchers("/api/stores/**").authenticated()
                         .requestMatchers("/api/storage/store/image").authenticated()
+                        .requestMatchers("/api/storage/product/image*").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/users/stores*").permitAll()
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth2 -> {

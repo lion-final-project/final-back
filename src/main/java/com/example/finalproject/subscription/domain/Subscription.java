@@ -136,4 +136,17 @@ public class Subscription extends BaseTimeEntity {
         this.cancelReason = reason;
         this.cancelledAt = LocalDateTime.now();
     }
+
+    /**
+     * 해지 예정(CANCELLATION_PENDING) 상태의 구독에 대해 해지 요청을 취소하고 다시 ACTIVE로 되돌린다.
+     * CANCELLATION_PENDING 상태에서만 호출 가능.
+     */
+    public void cancelCancellationRequest() {
+        if (this.status != SubscriptionStatus.CANCELLATION_PENDING) {
+            throw new IllegalStateException("CANCELLATION_PENDING 상태에서만 해지 요청을 취소할 수 있습니다.");
+        }
+        this.status = SubscriptionStatus.ACTIVE;
+        this.cancelReason = null;
+        this.cancelledAt = null;
+    }
 }

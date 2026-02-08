@@ -8,6 +8,7 @@ import com.example.finalproject.store.dto.response.StoreNearbyResponse;
 import com.example.finalproject.store.enums.StoreActiveStatus;
 import com.example.finalproject.store.enums.StoreStatus;
 
+import com.example.finalproject.user.dto.request.GetStoreSearchRequest;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberTemplate;
@@ -17,7 +18,7 @@ import java.util.List;
 import com.example.finalproject.global.util.GeometryUtil;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.Point;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Repository;
@@ -32,16 +33,8 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
     private static final double SEARCH_RADIUS = 3000.0;
 
     @Override
-    public Slice<StoreNearbyResponse> findNearbyStoresByCategory(
-            Double latitude,
-            Double longitude,
-            Long storeCategoryId, // 마트 카테고리 ID
-            String keyword,
-            Double lastDistance,
-            Long lastId,
-            Pageable pageable
-    ) {
-        Point currentLocation = GeometryUtil.createPoint(longitude, latitude);
+    public Slice<StoreNearbyResponse> findNearbyStoresByCategory(GetStoreSearchRequest request) {
+        Point currentLocation = GeometryUtil.createPoint(request.getLongitude(), request.getLatitude());
 
         // 1. 거리 계산 쿼리
         NumberTemplate<Double> distanceExpr = Expressions.numberTemplate(
@@ -49,6 +42,18 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
                 "ST_Distance({0}, {1})",
                 store.address.location,
                 currentLocation
+        );
+
+        NumberTemplate<Double> latitudeExpr = Expressions.numberTemplate(
+                Double.class,
+                "ST_Y(ST_GeometryFromText(ST_AsText({0})))",
+                store.address.location
+        );
+
+        NumberTemplate<Double> longitudeExpr = Expressions.numberTemplate(
+                Double.class,
+                "ST_X(ST_GeometryFromText(ST_AsText({0})))",
+                store.address.location
         );
 
         List<StoreNearbyResponse> content = queryFactory
@@ -59,21 +64,24 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
                         store.reviewCount.coalesce(0),
                         store.storeImage,
                         store.isActive.eq(StoreActiveStatus.ACTIVE),
-                        store.address.addressLine1
+                        store.address.addressLine1,
+                        store.address.addressLine2,
+                        latitudeExpr,
+                        longitudeExpr
                 ))
                 .from(store)
                 .where(
                         within3km(currentLocation),
                         isApprovedAndActive(),
-                        storeCategoryEq(storeCategoryId),    // 마트 카테고리 조건 (직접 필터링)
-                        productKeywordCond(keyword),         // 상품 키워드 조건 (EXISTS 서브쿼리)
-                        cursorCondition(lastDistance, lastId, distanceExpr)
+                        storeCategoryEq(request.getStoreCategoryId()),    // 마트 카테고리 조건 (직접 필터링)
+                        productKeywordCond(request.getKeyword()),         // 상품 키워드 조건 (EXISTS 서브쿼리)
+                        cursorCondition(request.getLastDistance(), request.getLastId(), distanceExpr)
                 )
                 .orderBy(distanceExpr.asc(), store.id.asc())
-                .limit(pageable.getPageSize() + 1)
+                .limit(request.getSize() + 1)
                 .fetch();
 
-        return checkLastPage(pageable, content);
+        return checkLastPage(request.getSize(), content);
     }
 
     /**
@@ -160,12 +168,12 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
     /**
      * 5. 다음 페이지 존재 여부 판단 및 Slice 생성
      */
-    private Slice<StoreNearbyResponse> checkLastPage(Pageable pageable, List<StoreNearbyResponse> content) {
+    private Slice<StoreNearbyResponse> checkLastPage(int size, List<StoreNearbyResponse> content) {
         boolean hasNext = false;
-        if (content.size() > pageable.getPageSize()) {
-            content.remove(pageable.getPageSize());
+        if (content.size() > size) {
+            content.remove(size);
             hasNext = true;
         }
-        return new SliceImpl<>(content, pageable, hasNext);
+        return new SliceImpl<>(content, PageRequest.of(0, size), hasNext);
     }
 }

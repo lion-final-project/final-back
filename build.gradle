@@ -31,36 +31,31 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-
     implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
-
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
     runtimeOnly 'org.postgresql:postgresql'
-
     annotationProcessor 'org.projectlombok:lombok'
-
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // PostGIS/JTS
+    // PostGIS/JTS (??? Boot BOM ??)
     implementation 'org.hibernate.orm:hibernate-spatial'
     implementation 'org.locationtech.jts:jts-core'
 
     testImplementation "org.testcontainers:junit-jupiter"
     testImplementation "org.testcontainers:postgresql"
 
-    // AWS S3 (Spring Cloud AWS) / MinIO
+    // AWS S3 (Spring Cloud AWS)
     implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.1.1'
 
     // CoolSMS
     implementation 'net.nurigo:sdk:4.3.2'
 
-    // QueryDSL
+    // querydsl ??
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.10.1'
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:6.10.1:jpa'
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"

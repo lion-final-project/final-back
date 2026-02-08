@@ -3,17 +3,13 @@ package com.example.finalproject.store.controller;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.response.ApiResponse;
-import com.example.finalproject.store.domain.Store;
-import com.example.finalproject.store.repository.StoreRepository;
+import com.example.finalproject.global.security.CustomUserDetails;
 import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductRequest;
 import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductStatusRequest;
 import com.example.finalproject.subscription.dto.request.PostSubscriptionProductRequest;
 import com.example.finalproject.subscription.dto.response.PatchSubscriptionProductDeletionResponse;
 import com.example.finalproject.subscription.dto.response.GetSubscriptionProductResponse;
 import com.example.finalproject.subscription.service.SubscriptionProductService;
-import com.example.finalproject.user.domain.User;
-import com.example.finalproject.user.repository.UserRepository;
-import com.example.finalproject.global.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -40,8 +36,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StoreSubscriptionProductController {
 
-    private final StoreRepository storeRepository;
-    private final UserRepository userRepository;
     private final SubscriptionProductService subscriptionProductService;
 
     /**
@@ -54,7 +48,7 @@ public class StoreSubscriptionProductController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<GetSubscriptionProductResponse>>> list() {
-        Long storeId = resolveStoreId();
+        Long storeId = subscriptionProductService.getStoreIdByUsername(getCurrentUsername());
         List<GetSubscriptionProductResponse> list = subscriptionProductService.findListByStoreId(storeId);
         return ResponseEntity.ok(ApiResponse.success(list));
     }
@@ -70,7 +64,7 @@ public class StoreSubscriptionProductController {
     @PostMapping
     public ResponseEntity<ApiResponse<GetSubscriptionProductResponse>> create(
             @Valid @RequestBody PostSubscriptionProductRequest request) {
-        Long storeId = resolveStoreId();
+        Long storeId = subscriptionProductService.getStoreIdByUsername(getCurrentUsername());
         GetSubscriptionProductResponse response = subscriptionProductService.create(storeId, request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -91,7 +85,7 @@ public class StoreSubscriptionProductController {
     public ResponseEntity<ApiResponse<GetSubscriptionProductResponse>> update(
             @PathVariable Long id,
             @Valid @RequestBody PatchSubscriptionProductRequest request) {
-        Long storeId = resolveStoreId();
+        Long storeId = subscriptionProductService.getStoreIdByUsername(getCurrentUsername());
         GetSubscriptionProductResponse response = subscriptionProductService.update(storeId, id, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -109,7 +103,7 @@ public class StoreSubscriptionProductController {
     public ResponseEntity<ApiResponse<GetSubscriptionProductResponse>> updateStatus(
             @PathVariable Long id,
             @Valid @RequestBody PatchSubscriptionProductStatusRequest request) {
-        Long storeId = resolveStoreId();
+        Long storeId = subscriptionProductService.getStoreIdByUsername(getCurrentUsername());
         GetSubscriptionProductResponse response = subscriptionProductService.updateStatus(storeId, id, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -128,7 +122,7 @@ public class StoreSubscriptionProductController {
     @PatchMapping("/{id}/deletion")
     public ResponseEntity<ApiResponse<GetSubscriptionProductResponse>> requestDeletion(
             @PathVariable Long id) {
-        Long storeId = resolveStoreId();
+        Long storeId = subscriptionProductService.getStoreIdByUsername(getCurrentUsername());
         PatchSubscriptionProductDeletionResponse result = subscriptionProductService.requestDeletion(storeId, id);
         if (result.getAction() == PatchSubscriptionProductDeletionResponse.Action.DELETED) {
             return ResponseEntity.ok(ApiResponse.success("구독 상품이 삭제되었습니다.", null));
@@ -147,39 +141,30 @@ public class StoreSubscriptionProductController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteImmediately(
             @PathVariable Long id) {
-        Long storeId = resolveStoreId();
+        Long storeId = subscriptionProductService.getStoreIdByUsername(getCurrentUsername());
         subscriptionProductService.deleteImmediately(storeId, id);
         return ResponseEntity.ok(ApiResponse.success("구독 상품이 삭제되었습니다."));
     }
 
     /**
-     * 인증된 사용자(owner)의 마트 ID를 반환한다.
-     * JWT/Spring Security 인증 정보에서 사용자 ID를 추출한 뒤, 해당 사용자가 소유한 Store를 조회한다.
+     * SecurityContext에서 현재 로그인한 사용자 식별자(이메일)를 반환한다.
      *
-     * @return 마트 ID
-     * @throws BusinessException 마트를 찾을 수 없을 때 (STORE_NOT_FOUND)
+     * @return 사용자 식별자 (이메일)
+     * @throws BusinessException 인증되지 않은 경우 (STORE_NOT_FOUND)
      */
-    private Long resolveStoreId() {
+    private String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth.getPrincipal() == null
                 || "anonymousUser".equals(auth.getPrincipal())) {
             throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
         }
         Object principal = auth.getPrincipal();
-        Long ownerId = null;
         if (principal instanceof CustomUserDetails details) {
-            ownerId = details.getUser().getId();
-        } else if (principal instanceof String) {
-            // JWT 인증 시 subject가 이메일로 설정되어 있음
-            User user = userRepository.findByEmail((String) principal)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-            ownerId = user.getId();
+            return details.getUser().getEmail();
         }
-        if (ownerId == null) {
-            throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
+        if (principal instanceof String) {
+            return (String) principal;
         }
-        Store store = storeRepository.findByOwnerId(ownerId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
-        return store.getId();
+        throw new BusinessException(ErrorCode.STORE_NOT_FOUND);
     }
 }

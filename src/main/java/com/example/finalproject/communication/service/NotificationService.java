@@ -30,7 +30,6 @@ public class NotificationService {
     private final ApplicationEventPublisher eventPublisher;
 
 
-    // 사용자 알림 구독
     @Transactional
     public SseEmitter subscribe(String email) {
         User user = getUser(email);
@@ -43,7 +42,7 @@ public class NotificationService {
         return emitter;
     }
 
-    // 사용자 알림 전송
+
     @Transactional
     public void createNotification(
             Long userId,
@@ -53,7 +52,6 @@ public class NotificationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        // 알림 저장
         Notification notification = Notification.builder()
                 .user(user)
                 .title(title)
@@ -67,7 +65,6 @@ public class NotificationService {
         eventPublisher.publishEvent(new UnreadCountChangedEvent(userId, unreadCount));
     }
 
-    // 읽지 않은 알림 조회
     public List<NotificationResponse> getUnreadNotifications(String email) {
         User user = getUser(email);
 
@@ -78,7 +75,6 @@ public class NotificationService {
                 .toList();
     }
 
-    // 모든 알림 읽음 처리
     @Transactional
     public void readAll(String email) {
         User user = getUser(email);
@@ -89,7 +85,6 @@ public class NotificationService {
         eventPublisher.publishEvent(new UnreadCountChangedEvent(user.getId(), unreadCount));
     }
 
-    //알림 읽음 처리   
     @Transactional
     public void readNotification(String email, Long notificationId) {
         User user = getUser(email);
