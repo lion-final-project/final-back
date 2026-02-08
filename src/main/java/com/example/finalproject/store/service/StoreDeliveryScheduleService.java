@@ -80,11 +80,24 @@ public class StoreDeliveryScheduleService {
     }
 
     private LocalDate getThisWeekMonday() {
-        LocalDate today = LocalDate.now();
-        DayOfWeek dow = today.getDayOfWeek();
+        return getMonday(LocalDate.now());
+    }
+
+    /** 주어진 날짜가 속한 주의 월요일을 반환한다. */
+    private LocalDate getMonday(LocalDate date) {
+        DayOfWeek dow = date.getDayOfWeek();
         int diff = dow.getValue() - DayOfWeek.MONDAY.getValue();
         if (diff < 0) diff += 7;
-        return today.minusDays(diff);
+        return date.minusDays(diff);
+    }
+
+    /**
+     * 구독 신청일 기준 첫 배송 주의 월요일을 반환한다.
+     * 규칙: 구독한 날이 포함된 주의 다음 주부터 배송 시작.
+     */
+    private LocalDate getFirstDeliveryWeekStart(Subscription sub) {
+        LocalDate started = sub.getStartedAt().toLocalDate();
+        return getMonday(started).plusWeeks(1);
     }
 
     /** Java DayOfWeek (MON=1, SUN=7) -> DB day_of_week (0=일, 1=월, ..., 6=토) */
@@ -134,8 +147,10 @@ public class StoreDeliveryScheduleService {
     private DateDeliveryInfo buildDateDeliveryInfo(LocalDate date, short dayOfWeek,
                                                    List<Subscription> allSubs,
                                                    Map<Long, Set<Short>> subDeliveryDays) {
+        // 배송 요일이 맞고, 첫 배송 주(구독일 다음 주) 이후인 구독만 포함
         List<Subscription> subsForDate = allSubs.stream()
                 .filter(s -> subDeliveryDays.getOrDefault(s.getId(), Set.of()).contains(dayOfWeek))
+                .filter(s -> !date.isBefore(getFirstDeliveryWeekStart(s)))
                 .toList();
 
         Map<String, List<Subscription>> bySlot = subsForDate.stream()
