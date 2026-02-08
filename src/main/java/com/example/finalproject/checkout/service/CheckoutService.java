@@ -86,8 +86,11 @@ public class CheckoutService {
                 ))
                 .toList();
 
-        // 장바구니 상품 가격 계산
+        // 장바구니 상품 가격 계산 (BR-O03 공용 로직)
         PriceCalculationResult result = priceCalculator.calculate(calculatorItems, storeId -> DEFAULT_DELIVERY_FEE, 0, 0);
+        log.info("[BR-O03] 주문서 금액 계산 완료. 상품총액={}, 배달비={}, 할인={}, 포인트={}, 최종결제={}",
+                result.priceSummary().productTotal(), result.priceSummary().deliveryTotal(),
+                result.priceSummary().discount(), result.priceSummary().points(), result.priceSummary().finalTotal());
         Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = result.storeSummaries().stream()
                 .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s));
 

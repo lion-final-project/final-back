@@ -106,8 +106,8 @@ public enum ErrorCode {
     ADMIN_AUTHORITY_REQUIRED(HttpStatus.FORBIDDEN, "ADMIN-001", "관리자만 접근 가능합니다."),
 
     // NOTIFICATION
-    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Notification-001", "알림을 조회할 수 없습니다."),
-    NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "Notification-002", "자신의 알림만 접근할 수 있습니다."),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "알림을 조회할 수 없습니다."),
+    NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "NOTIFICATION-002", "자신의 알림만 접근할 수 있습니다."),
 
     // ORDER (order-checkout)
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-001", "주문을 찾을 수 없습니다."),

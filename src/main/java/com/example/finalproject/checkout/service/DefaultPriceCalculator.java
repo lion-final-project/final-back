@@ -27,11 +27,13 @@ public class DefaultPriceCalculator implements PriceCalculator {
                     );
                 })
                 .toList();
-
+                
+        //마트별 상품 가격 계산
         int productTotal = summaries.stream().mapToInt(PriceCalculationResult.StorePriceSummary::storeProductPrice).sum();
         int deliveryTotal = summaries.stream().mapToInt(PriceCalculationResult.StorePriceSummary::deliveryFee).sum();
         int finalTotal = productTotal + deliveryTotal - (discount + points);
 
+        //총 가격 계산
         return new PriceCalculationResult(
                 new PriceCalculationResult.PriceSummary(productTotal, deliveryTotal, discount, points, finalTotal),
                 summaries

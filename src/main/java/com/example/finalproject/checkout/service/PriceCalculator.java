@@ -9,6 +9,7 @@ public interface PriceCalculator {
     record CheckoutItem(Long productId, Long storeId, Integer unitPrice, Integer quantity) {
     }
 
+    //배달비 정책
     @FunctionalInterface
     interface DeliveryPolicy {
         int deliveryFee(Long storeId);

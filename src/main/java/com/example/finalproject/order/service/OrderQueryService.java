@@ -85,6 +85,7 @@ public class OrderQueryService {
 
         // 결제 조회
         Payment payment = paymentRepository.findByOrder_Id(orderId).orElse(null);
+        log.info("[주문] 주문 상세 조회 완료. 사용자={}, 주문ID={} (결제 완료 화면/영수증용)", user.getEmail(), orderId);
         log.debug("getOrderDetail success: orderId={}, userId={}", orderId, user.getId());
 
         // 주문 상세 조회

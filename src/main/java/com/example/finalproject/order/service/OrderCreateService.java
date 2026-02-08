@@ -115,6 +115,10 @@ public class OrderCreateService {
                 .toList();
         PriceCalculationResult priceResult = priceCalculator.calculate(
                 items, storeId -> DEFAULT_DELIVERY_FEE, discount, points);
+        log.info("[BR-O03] 주문 생성 금액 계산 완료. 상품총액={}, 배달비={}, 할인={}, 포인트={}, 최종결제={}",
+                priceResult.priceSummary().productTotal(), priceResult.priceSummary().deliveryTotal(),
+                priceResult.priceSummary().discount(), priceResult.priceSummary().points(),
+                priceResult.priceSummary().finalTotal());
 
         String orderNumber = generateOrderNumber();
         String deliveryAddressStr = address.getAddressLine1()

@@ -38,6 +38,7 @@ public class CartController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(cartResponse));
     }
 
+    //장바구니 조회
     @GetMapping
     public ResponseEntity<ApiResponse<GetCartResponse>> getMyCart(Authentication authentication) {
         log.info("[장바구니] 장바구니 조회 요청. 사용자={}", authentication.getName());
@@ -45,6 +46,7 @@ public class CartController {
         return ResponseEntity.ok(ApiResponse.success(cartResponse));
     }
 
+    //장바구니 상품 수량 수정
     @PatchMapping("/items/{productId}")
     public ResponseEntity<ApiResponse<GetCartResponse>> updateQuantity(
             Authentication authentication,

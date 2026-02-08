@@ -7,6 +7,7 @@ public record PriceCalculationResult(
         List<StorePriceSummary> storeSummaries
 ) {
 
+    //총 가격 요약
     public record PriceSummary(
             Integer productTotal,
             Integer deliveryTotal,
@@ -16,6 +17,7 @@ public record PriceCalculationResult(
     ) {
     }
 
+    //마트별 가격 요약
     public record StorePriceSummary(
             Long storeId,
             Integer storeProductPrice,
