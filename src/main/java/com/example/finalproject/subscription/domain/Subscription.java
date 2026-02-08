@@ -90,7 +90,8 @@ public class Subscription extends BaseTimeEntity {
     @Builder
     public Subscription(User user, Store store, SubscriptionProduct subscriptionProduct,
                         Address address, PaymentMethod paymentMethod,
-                        Integer totalAmount, LocalDateTime startedAt) {
+                        Integer totalAmount, LocalDateTime startedAt,
+                        LocalDate nextPaymentDate, String deliveryTimeSlot) {
         this.user = user;
         this.store = store;
         this.subscriptionProduct = subscriptionProduct;
@@ -98,6 +99,8 @@ public class Subscription extends BaseTimeEntity {
         this.paymentMethod = paymentMethod;
         this.totalAmount = totalAmount;
         this.startedAt = startedAt;
+        this.nextPaymentDate = nextPaymentDate;
+        this.deliveryTimeSlot = deliveryTimeSlot;
     }
 
     /**

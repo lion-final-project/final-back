@@ -94,6 +94,18 @@ public class StoreDeliveryScheduleService {
     }
 
     /**
+     * 배송 시간대를 표준 형식으로 정규화한다.
+     * null이거나 TIME_SLOTS에 없으면 기본값 08:00~11:00을 반환한다.
+     * (DB에 '오전 9시~12시' 등 다양한 형식이 저장되어 있을 수 있음)
+     */
+    private String normalizeDeliveryTimeSlot(String deliveryTimeSlot) {
+        if (deliveryTimeSlot != null && TIME_SLOTS.contains(deliveryTimeSlot)) {
+            return deliveryTimeSlot;
+        }
+        return TIME_SLOTS.get(0);
+    }
+
+    /**
      * 구독별 배송 요일을 조회한다.
      * subscription_day_of_week(고객 선택)가 있으면 사용하고, 없으면 subscription_product_day_of_week(상품 설정)으로 대체한다.
      */
@@ -124,11 +136,10 @@ public class StoreDeliveryScheduleService {
                                                    Map<Long, Set<Short>> subDeliveryDays) {
         List<Subscription> subsForDate = allSubs.stream()
                 .filter(s -> subDeliveryDays.getOrDefault(s.getId(), Set.of()).contains(dayOfWeek))
-                .filter(s -> s.getDeliveryTimeSlot() != null && TIME_SLOTS.contains(s.getDeliveryTimeSlot()))
                 .toList();
 
         Map<String, List<Subscription>> bySlot = subsForDate.stream()
-                .collect(Collectors.groupingBy(Subscription::getDeliveryTimeSlot));
+                .collect(Collectors.groupingBy(s -> normalizeDeliveryTimeSlot(s.getDeliveryTimeSlot())));
 
         List<TimeSlotDeliveryInfo> timeSlots = new ArrayList<>();
         for (String slot : TIME_SLOTS) {
