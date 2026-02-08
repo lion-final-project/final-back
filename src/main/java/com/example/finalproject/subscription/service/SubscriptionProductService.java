@@ -8,6 +8,7 @@ import com.example.finalproject.product.repository.ProductRepository;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.subscription.domain.SubscriptionProduct;
+import com.example.finalproject.subscription.domain.SubscriptionProductDayOfWeek;
 import com.example.finalproject.subscription.domain.SubscriptionProductItem;
 import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductRequest;
 import com.example.finalproject.subscription.dto.request.PatchSubscriptionProductStatusRequest;
@@ -16,6 +17,7 @@ import com.example.finalproject.subscription.dto.response.PatchSubscriptionProdu
 import com.example.finalproject.subscription.dto.response.GetSubscriptionProductResponse;
 import com.example.finalproject.subscription.enums.SubscriptionProductStatus;
 import com.example.finalproject.subscription.enums.SubscriptionStatus;
+import com.example.finalproject.subscription.repository.SubscriptionProductDayOfWeekRepository;
 import com.example.finalproject.subscription.repository.SubscriptionProductItemRepository;
 import com.example.finalproject.subscription.repository.SubscriptionProductRepository;
 import com.example.finalproject.subscription.repository.SubscriptionRepository;
@@ -37,6 +39,7 @@ public class SubscriptionProductService {
     private final ProductRepository productRepository;
     private final SubscriptionProductRepository subscriptionProductRepository;
     private final SubscriptionProductItemRepository subscriptionProductItemRepository;
+    private final SubscriptionProductDayOfWeekRepository subscriptionProductDayOfWeekRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final UserLoader userLoader;
 
@@ -73,9 +76,12 @@ public class SubscriptionProductService {
         Store store = storeRepository.findById(storeId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
 
-        int deliveryCountOfWeek = request.getTotalDeliveryCount() != null && request.getTotalDeliveryCount() >= 4
-                ? Math.max(1, request.getTotalDeliveryCount() / 4)
-                : 1;
+        List<Short> daysOfWeek = normalizeDaysOfWeek(request.getDaysOfWeek());
+        int deliveryCountOfWeek = !daysOfWeek.isEmpty()
+                ? daysOfWeek.size()
+                : (request.getTotalDeliveryCount() != null && request.getTotalDeliveryCount() >= 4
+                        ? Math.max(1, request.getTotalDeliveryCount() / 4)
+                        : 1);
 
         SubscriptionProduct product = SubscriptionProduct.builder()
                 .store(store)
@@ -121,6 +127,8 @@ public class SubscriptionProductService {
             }
         }
 
+        saveDaysOfWeek(saved, daysOfWeek);
+
         return toResponse(saved, 0, items);
     }
 
@@ -140,9 +148,18 @@ public class SubscriptionProductService {
                                                  PatchSubscriptionProductRequest request) {
         SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
 
-        int deliveryCountOfWeek = request.getTotalDeliveryCount() != null && request.getTotalDeliveryCount() >= 4
-                ? Math.max(1, request.getTotalDeliveryCount() / 4)
-                : 1;
+        List<Short> daysOfWeek = normalizeDaysOfWeek(request.getDaysOfWeek());
+        int deliveryCountOfWeek;
+        if (daysOfWeek != null && !daysOfWeek.isEmpty()) {
+            deliveryCountOfWeek = daysOfWeek.size();
+        } else {
+            List<SubscriptionProductDayOfWeek> existing = subscriptionProductDayOfWeekRepository.findBySubscriptionProductOrderById_DayOfWeekAsc(product);
+            deliveryCountOfWeek = !existing.isEmpty()
+                    ? existing.size()
+                    : (request.getTotalDeliveryCount() != null && request.getTotalDeliveryCount() >= 4
+                            ? Math.max(1, request.getTotalDeliveryCount() / 4)
+                            : 1);
+        }
 
         product.updateDetails(
                 request.getName(),
@@ -184,6 +201,11 @@ public class SubscriptionProductService {
                         .build();
                 items.add(subscriptionProductItemRepository.save(item));
             }
+        }
+
+        if (daysOfWeek != null) {
+            subscriptionProductDayOfWeekRepository.deleteBySubscriptionProduct(product);
+            saveDaysOfWeek(product, daysOfWeek);
         }
 
         int subscriberCount = (int) subscriptionRepository.countBySubscriptionProductAndStatus(product, SubscriptionStatus.ACTIVE);
@@ -338,6 +360,11 @@ public class SubscriptionProductService {
                         .build())
                 .collect(Collectors.toList());
 
+        List<Short> daysOfWeek = subscriptionProductDayOfWeekRepository.findBySubscriptionProductOrderById_DayOfWeekAsc(sp)
+                .stream()
+                .map(d -> d.getId().getDayOfWeek())
+                .collect(Collectors.toList());
+
         return GetSubscriptionProductResponse.builder()
                 .subscriptionProductId(sp.getId())
                 .name(sp.getSubscriptionProductName())
@@ -347,9 +374,36 @@ public class SubscriptionProductService {
                 .status(sp.getStatus())
                 .subscriberCount(subscriberCount)
                 .imageUrl(sp.getSubscriptionUrl())
+                .daysOfWeek(daysOfWeek)
                 .createdAt(sp.getCreatedAt())
                 .items(itemResponses)
                 .build();
+    }
+
+    private List<Short> normalizeDaysOfWeek(List<Short> daysOfWeek) {
+        if (daysOfWeek == null || daysOfWeek.isEmpty()) {
+            return List.of();
+        }
+        return daysOfWeek.stream()
+                .filter(d -> d != null && d >= 0 && d <= 6)
+                .distinct()
+                .sorted()
+                .toList();
+    }
+
+    private void saveDaysOfWeek(SubscriptionProduct product, List<Short> daysOfWeek) {
+        if (daysOfWeek == null || daysOfWeek.isEmpty()) {
+            return;
+        }
+        for (Short day : daysOfWeek) {
+            if (day != null && day >= 0 && day <= 6) {
+                subscriptionProductDayOfWeekRepository.save(
+                        SubscriptionProductDayOfWeek.builder()
+                                .subscriptionProduct(product)
+                                .dayOfWeek(day)
+                                .build());
+            }
+        }
     }
 
     private SubscriptionProduct getOwnedProduct(Long storeId, Long subscriptionProductId) {
