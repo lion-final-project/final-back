@@ -37,6 +37,8 @@ public class GetSubscriptionResponse {
 
     /** 월 기준 총 배송 횟수 (구독 상품 설정) */
     private Integer totalDeliveryCount;
+    /** 배송 요일 (0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토) */
+    private List<Short> daysOfWeek;
     /** 완료된 배송 건수 (현재 주기 기준) */
     private Integer completedDeliveryCount;
 

@@ -245,6 +245,18 @@ public class SubscriptionService {
 
     private GetSubscriptionResponse toResponse(Subscription s) {
         var product = s.getSubscriptionProduct();
+        List<Short> daysOfWeek = subscriptionProductDayOfWeekRepository.findBySubscriptionProductOrderById_DayOfWeekAsc(product)
+                .stream()
+                .map(d -> d.getId().getDayOfWeek())
+                .collect(Collectors.toList());
+        if (daysOfWeek.isEmpty()) {
+            int count = (product.getDeliveryCountOfWeek() != null && product.getDeliveryCountOfWeek() > 0)
+                    ? Math.min(product.getDeliveryCountOfWeek(), 7)
+                    : 1;
+            daysOfWeek = java.util.stream.IntStream.range(0, count)
+                    .mapToObj(i -> (short) (i + 1))
+                    .collect(Collectors.toList());
+        }
         var items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(product)
                 .stream()
                 .map(i -> GetSubscriptionResponse.SubscriptionItemDto.builder()
@@ -267,6 +279,7 @@ public class SubscriptionService {
                 .nextPaymentDate(s.getNextPaymentDate())
                 .totalDeliveryCount(totalDeliveryCount)
                 .completedDeliveryCount(completedDeliveryCount)
+                .daysOfWeek(daysOfWeek)
                 .items(items)
                 .startedAt(s.getStartedAt())
                 .pausedAt(s.getPausedAt())
