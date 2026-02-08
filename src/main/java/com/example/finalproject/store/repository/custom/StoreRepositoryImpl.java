@@ -1,8 +1,5 @@
 package com.example.finalproject.store.repository.custom;
 
-
-
-
 import com.example.finalproject.store.dto.response.QStoreNearbyResponse;
 import com.example.finalproject.store.dto.response.StoreNearbyResponse;
 import com.example.finalproject.store.enums.StoreActiveStatus;
