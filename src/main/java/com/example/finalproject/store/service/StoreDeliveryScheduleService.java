@@ -2,6 +2,7 @@ package com.example.finalproject.store.service;
 
 import com.example.finalproject.subscription.domain.Subscription;
 import com.example.finalproject.subscription.domain.SubscriptionDayOfWeek;
+import com.example.finalproject.subscription.domain.SubscriptionProductDayOfWeek;
 import com.example.finalproject.subscription.domain.SubscriptionProductItem;
 import com.example.finalproject.subscription.dto.response.GetDeliveryScheduleResponse;
 import com.example.finalproject.subscription.dto.response.GetDeliveryScheduleResponse.DateDeliveryInfo;
@@ -9,6 +10,7 @@ import com.example.finalproject.subscription.dto.response.GetDeliveryScheduleRes
 import com.example.finalproject.subscription.dto.response.GetDeliveryScheduleResponse.TimeSlotDeliveryInfo;
 import com.example.finalproject.subscription.enums.SubscriptionStatus;
 import com.example.finalproject.subscription.repository.SubscriptionDayOfWeekRepository;
+import com.example.finalproject.subscription.repository.SubscriptionProductDayOfWeekRepository;
 import com.example.finalproject.subscription.repository.SubscriptionProductItemRepository;
 import com.example.finalproject.subscription.repository.SubscriptionRepository;
 import java.time.DayOfWeek;
@@ -42,6 +44,7 @@ public class StoreDeliveryScheduleService {
 
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionDayOfWeekRepository subscriptionDayOfWeekRepository;
+    private final SubscriptionProductDayOfWeekRepository subscriptionProductDayOfWeekRepository;
     private final SubscriptionProductItemRepository subscriptionProductItemRepository;
 
     /**
@@ -90,13 +93,27 @@ public class StoreDeliveryScheduleService {
         return (short) (v == 7 ? 0 : v);
     }
 
+    /**
+     * 구독별 배송 요일을 조회한다.
+     * subscription_day_of_week(고객 선택)가 있으면 사용하고, 없으면 subscription_product_day_of_week(상품 설정)으로 대체한다.
+     */
     private Map<Long, Set<Short>> loadSubscriptionDeliveryDays(List<Subscription> subs) {
         Map<Long, Set<Short>> map = new LinkedHashMap<>();
         for (Subscription sub : subs) {
-            List<SubscriptionDayOfWeek> days = subscriptionDayOfWeekRepository.findBySubscription(sub);
-            Set<Short> daySet = days.stream()
-                    .map(d -> d.getId().getDayOfWeek())
-                    .collect(Collectors.toSet());
+            List<SubscriptionDayOfWeek> subDays = subscriptionDayOfWeekRepository.findBySubscription(sub);
+            Set<Short> daySet;
+            if (!subDays.isEmpty()) {
+                daySet = subDays.stream()
+                        .map(d -> d.getId().getDayOfWeek())
+                        .collect(Collectors.toSet());
+            } else {
+                // 고객 선택 요일이 없으면 구독 상품의 배송 요일 사용 (월·목 배송 상품 등)
+                List<SubscriptionProductDayOfWeek> productDays =
+                        subscriptionProductDayOfWeekRepository.findBySubscriptionProductOrderById_DayOfWeekAsc(sub.getSubscriptionProduct());
+                daySet = productDays.stream()
+                        .map(d -> d.getId().getDayOfWeek())
+                        .collect(Collectors.toSet());
+            }
             map.put(sub.getId(), daySet);
         }
         return map;
