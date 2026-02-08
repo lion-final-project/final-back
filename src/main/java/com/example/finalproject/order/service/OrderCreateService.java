@@ -1,0 +1,264 @@
+package com.example.finalproject.order.service;
+
+import com.example.finalproject.communication.service.OrderPaidNotificationService;
+import com.example.finalproject.checkout.service.PriceCalculationResult;
+import com.example.finalproject.checkout.service.PriceCalculator;
+import com.example.finalproject.global.exception.custom.BusinessException;
+import com.example.finalproject.global.exception.custom.ErrorCode;
+import com.example.finalproject.order.domain.Cart;
+import com.example.finalproject.order.domain.CartProduct;
+import com.example.finalproject.order.domain.Order;
+import com.example.finalproject.order.domain.OrderProduct;
+import com.example.finalproject.order.domain.StoreOrder;
+import com.example.finalproject.order.dto.request.PostOrderRequest;
+import com.example.finalproject.order.dto.response.PostOrderResponse;
+import com.example.finalproject.order.enums.OrderType;
+import com.example.finalproject.order.repository.CartProductRepository;
+import com.example.finalproject.order.repository.CartRepository;
+import com.example.finalproject.order.repository.OrderProductRepository;
+import com.example.finalproject.order.repository.OrderRepository;
+import com.example.finalproject.order.repository.StoreOrderRepository;
+import com.example.finalproject.payment.domain.Payment;
+import com.example.finalproject.payment.domain.PaymentMethod;
+import com.example.finalproject.payment.repository.PaymentMethodRepository;
+import com.example.finalproject.payment.repository.PaymentRepository;
+import com.example.finalproject.product.domain.Product;
+import com.example.finalproject.user.domain.Address;
+import com.example.finalproject.user.domain.User;
+import com.example.finalproject.user.repository.AddressRepository;
+import com.example.finalproject.user.repository.UserRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * 주문 생성 서비스 (API-ORD-001).
+ * BR-O03: PriceCalculator 공용화로 최종 결제 금액 계산.
+ * 검증: 내 장바구니 소유, 수량>=1, 주소/결제수단 존재 및 본인 소유.
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class OrderCreateService {
+
+    private static final int DEFAULT_DELIVERY_FEE = 3000;
+    private static final int MAX_ORDER_NUMBER_RETRY = 3;
+
+    private final UserRepository userRepository;
+    private final CartRepository cartRepository;
+    private final CartProductRepository cartProductRepository;
+    private final AddressRepository addressRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final PriceCalculator priceCalculator;
+    private final OrderRepository orderRepository;
+    private final StoreOrderRepository storeOrderRepository;
+    private final OrderProductRepository orderProductRepository;
+    private final PaymentRepository paymentRepository;
+    private final OrderPaidNotificationService orderPaidNotificationService;
+
+    @Transactional
+    public PostOrderResponse createOrder(String email, PostOrderRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Address address = addressRepository.findById(request.getAddressId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
+        if (!address.getUser().getId().equals(user.getId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+
+        PaymentMethod paymentMethod = paymentMethodRepository
+                .findByIdAndUser_Id(request.getPaymentMethodId(), user.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_METHOD_NOT_FOUND));
+
+        Cart cart = cartRepository.findByUser_Email(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
+
+        List<CartProduct> cartProducts = cartProductRepository.findAllByIdIn(request.getCartItemIds());
+        if (cartProducts.size() != request.getCartItemIds().size()) {
+            throw new BusinessException(ErrorCode.CART_PRODUCT_NOT_FOUND);
+        }
+        for (CartProduct cp : cartProducts) {
+            if (!cp.getCart().getId().equals(cart.getId())) {
+                throw new BusinessException(ErrorCode.FORBIDDEN);
+            }
+            if (cp.getQuantity() < 1) {
+                throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+            }
+            Product p = cp.getProduct();
+            if (!Boolean.TRUE.equals(p.getIsActive())) {
+                throw new BusinessException(ErrorCode.PRODUCT_INACTIVE);
+            }
+            if (p.getStock() == null || p.getStock() < cp.getQuantity()) {
+                throw new BusinessException(ErrorCode.PRODUCT_STOCK_NOT_ENOUGH);
+            }
+        }
+
+        int discount = 0;
+        int points = request.getUsePointsOrZero();
+        List<PriceCalculator.CheckoutItem> items = cartProducts.stream()
+                .map(cp -> new PriceCalculator.CheckoutItem(
+                        cp.getProduct().getId(),
+                        cp.getStore().getId(),
+                        cp.getProduct().getEffectivePrice(),
+                        cp.getQuantity()))
+                .toList();
+        PriceCalculationResult priceResult = priceCalculator.calculate(
+                items, storeId -> DEFAULT_DELIVERY_FEE, discount, points);
+
+        String orderNumber = generateOrderNumber();
+        String deliveryAddressStr = address.getAddressLine1()
+                + (address.getAddressLine2() != null && !address.getAddressLine2().isBlank()
+                ? " " + address.getAddressLine2() : "");
+
+        Order order = Order.builder()
+                .orderNumber(orderNumber)
+                .user(user)
+                .orderType(OrderType.REGULAR)
+                .totalProductPrice(priceResult.priceSummary().productTotal())
+                .totalDeliveryFee(priceResult.priceSummary().deliveryTotal())
+                .finalPrice(priceResult.priceSummary().finalTotal())
+                .deliveryAddress(deliveryAddressStr)
+                .deliveryLocation(address.getLocation())
+                .deliveryRequest(request.getDeliveryRequestOrEmpty())
+                .orderedAt(LocalDateTime.now())
+                .build();
+        for (int attempt = 0; attempt < MAX_ORDER_NUMBER_RETRY; attempt++) {
+            try {
+                order = orderRepository.save(order);
+                break;
+            } catch (DataIntegrityViolationException e) {
+                if (attempt == MAX_ORDER_NUMBER_RETRY - 1) {
+                    throw e;
+                }
+                order = Order.builder()
+                        .orderNumber(generateOrderNumber())
+                        .user(user)
+                        .orderType(OrderType.REGULAR)
+                        .totalProductPrice(priceResult.priceSummary().productTotal())
+                        .totalDeliveryFee(priceResult.priceSummary().deliveryTotal())
+                        .finalPrice(priceResult.priceSummary().finalTotal())
+                        .deliveryAddress(deliveryAddressStr)
+                        .deliveryLocation(address.getLocation())
+                        .deliveryRequest(request.getDeliveryRequestOrEmpty())
+                        .orderedAt(LocalDateTime.now())
+                        .build();
+            }
+        }
+
+        Map<Long, List<CartProduct>> byStore = new LinkedHashMap<>();
+        cartProducts.stream()
+                .sorted(Comparator.comparing(cp -> cp.getStore().getId()))
+                .forEach(cp -> byStore.computeIfAbsent(cp.getStore().getId(), k -> new ArrayList<>()).add(cp));
+
+        Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = priceResult.storeSummaries().stream()
+                .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s));
+
+        List<PostOrderResponse.StoreOrderSummary> storeOrderSummaries = new ArrayList<>();
+        for (Map.Entry<Long, List<CartProduct>> entry : byStore.entrySet()) {
+            List<CartProduct> group = entry.getValue();
+            CartProduct first = group.get(0);
+            PriceCalculationResult.StorePriceSummary storeSummary = summaryMap.get(first.getStore().getId());
+
+            StoreOrder storeOrder = StoreOrder.builder()
+                    .order(order)
+                    .store(first.getStore())
+                    .orderType(OrderType.REGULAR)
+                    .storeProductPrice(storeSummary.storeProductPrice())
+                    .deliveryFee(storeSummary.deliveryFee())
+                    .finalPrice(storeSummary.storeFinalPrice())
+                    .build();
+            storeOrder = storeOrderRepository.save(storeOrder);
+
+            List<PostOrderResponse.ProductSummary> productSummaries = new ArrayList<>();
+            for (CartProduct cp : group) {
+                Product p = cp.getProduct();
+                int unitPrice = p.getEffectivePrice();
+                int qty = cp.getQuantity();
+                p.decreaseStock(qty);
+
+                OrderProduct op = OrderProduct.builder()
+                        .storeOrder(storeOrder)
+                        .product(p)
+                        .productNameSnapshot(p.getProductName())
+                        .priceSnapshot(unitPrice)
+                        .quantity(qty)
+                        .build();
+                orderProductRepository.save(op);
+                productSummaries.add(PostOrderResponse.ProductSummary.builder()
+                        .productId(p.getId())
+                        .productName(p.getProductName())
+                        .unitPrice(unitPrice)
+                        .quantity(qty)
+                        .subtotal(unitPrice * qty)
+                        .build());
+            }
+            storeOrderSummaries.add(PostOrderResponse.StoreOrderSummary.builder()
+                    .storeOrderId(storeOrder.getId())
+                    .storeId(first.getStore().getId())
+                    .storeName(first.getStore().getStoreName())
+                    .status(storeOrder.getStatus())
+                    .storeProductPrice(storeSummary.storeProductPrice())
+                    .deliveryFee(storeSummary.deliveryFee())
+                    .products(productSummaries)
+                    .build());
+        }
+
+        Payment payment = Payment.builder()
+                .order(order)
+                .paymentMethod(paymentMethod.getMethodType())
+                .amount(priceResult.priceSummary().finalTotal())
+                .build();
+        payment = paymentRepository.save(payment);
+
+        // 결제 성공으로 주문 확정 시점에 알림 생성 트리거 (완료조건 5)
+        try {
+            orderPaidNotificationService.createOrderPaidNotification(
+                    user.getId(), order.getId(), order.getOrderNumber(), order.getFinalPrice());
+            log.info("[주문] 결제 확정 알림 생성 완료. 사용자={}, 주문ID={}", user.getEmail(), order.getId());
+        } catch (Exception e) {
+            log.warn("[주문] 결제 확정 알림 생성 실패(주문은 정상 생성됨). orderId={}, error={}", order.getId(), e.getMessage());
+        }
+
+        log.info("[주문] 주문 생성 완료. 사용자={}, 주문번호={}, 주문ID={}", user.getEmail(), orderNumber, order.getId());
+        log.debug("createOrder success: orderId={}, userId={}, orderNumber={}", order.getId(), user.getId(), orderNumber);
+
+        return PostOrderResponse.builder()
+                .orderId(order.getId())
+                .orderNumber(order.getOrderNumber())
+                .orderType(order.getOrderType())
+                .status(order.getStatus())
+                .totalProductPrice(order.getTotalProductPrice())
+                .totalDeliveryFee(order.getTotalDeliveryFee())
+                .discountAmount(discount)
+                .finalPrice(order.getFinalPrice())
+                .storeOrders(storeOrderSummaries)
+                .payment(PostOrderResponse.PaymentSummary.builder()
+                        .paymentId(payment.getId())
+                        .paymentMethod(payment.getPaymentMethod())
+                        .amount(payment.getAmount())
+                        .status(payment.getPaymentStatus())
+                        .build())
+                .orderedAt(order.getOrderedAt())
+                .build();
+    }
+
+    private String generateOrderNumber() {
+        LocalDate today = LocalDate.now();
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = today.plusDays(1).atStartOfDay();
+        long count = orderRepository.countByOrderedAtBetween(start, end);
+        String seq = String.format("%06d", count + 1);
+        return "ORD-" + today.format(DateTimeFormatter.BASIC_ISO_DATE) + "-" + seq;
+    }
+}

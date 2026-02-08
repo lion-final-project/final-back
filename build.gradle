@@ -54,13 +54,13 @@ dependencies {
     testImplementation "org.testcontainers:junit-jupiter"
     testImplementation "org.testcontainers:postgresql"
 
-    // AWS S3 (Spring Cloud AWS)miniO
+    // AWS S3 (Spring Cloud AWS) / MinIO
     implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3:3.1.1'
 
     // CoolSMS
     implementation 'net.nurigo:sdk:4.3.2'
 
-    // QueryDsl
+    // QueryDSL
     implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.10.1'
     annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:6.10.1:jpa'
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"

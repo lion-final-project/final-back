@@ -1,7 +1,6 @@
 package com.example.finalproject.moderation.controller.admin.store;
 
 import com.example.finalproject.global.response.ApiResponse;
-import com.example.finalproject.moderation.dto.admin.store.AdminStoreApprovalApproveRequest;
 import com.example.finalproject.moderation.dto.admin.store.AdminStoreApprovalDetailResponse;
 import com.example.finalproject.moderation.dto.admin.store.AdminStoreApprovalHoldRequest;
 import com.example.finalproject.moderation.dto.admin.store.AdminStoreApprovalListResponse;
@@ -12,6 +11,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -43,22 +43,24 @@ public class AdminStoreApprovalController {
 
     @PostMapping("/{approvalId}/approve")
     public ResponseEntity<ApiResponse<Void>> approve(@PathVariable Long approvalId,
-                                     @Valid @RequestBody AdminStoreApprovalApproveRequest request) {
-        adminStoreApprovalService.approveStore(approvalId, request.getAdminUserId());
+                                                     Authentication authentication) {
+        adminStoreApprovalService.approveStore(approvalId, authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("Approved."));
     }
 
     @PostMapping("/{approvalId}/hold")
     public ResponseEntity<ApiResponse<Void>> hold(@PathVariable Long approvalId,
-                                  @Valid @RequestBody AdminStoreApprovalHoldRequest request) {
-        adminStoreApprovalService.holdStore(approvalId, request.getAdminUserId(), request.getReason());
+                                                  @Valid @RequestBody AdminStoreApprovalHoldRequest request,
+                                                  Authentication authentication) {
+        adminStoreApprovalService.holdStore(approvalId, authentication.getName(), request.getReason());
         return ResponseEntity.ok(ApiResponse.success("Held."));
     }
 
     @PostMapping("/{approvalId}/reject")
     public ResponseEntity<ApiResponse<Void>> reject(@PathVariable Long approvalId,
-                                    @Valid @RequestBody AdminStoreApprovalRejectRequest request) {
-        adminStoreApprovalService.rejectStore(approvalId, request.getAdminUserId(), request.getReason());
+                                                    @Valid @RequestBody AdminStoreApprovalRejectRequest request,
+                                                    Authentication authentication) {
+        adminStoreApprovalService.rejectStore(approvalId, authentication.getName(), request.getReason());
         return ResponseEntity.ok(ApiResponse.success("Rejected."));
     }
 }

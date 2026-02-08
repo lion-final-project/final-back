@@ -112,6 +112,16 @@ public class StoreService {
         return GetMyStoreResponse.from(store);
     }
 
+    /** 고객(상점 없음)인 경우 null 반환. 404 대신 200 + null 로 응답할 때 사용. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<GetMyStoreResponse> getMyStoreOptional(String userName) {
+        User user = userRepository.findByEmail(userName).orElse(null);
+        if (user == null) {
+            return java.util.Optional.empty();
+        }
+        return storeRepository.findByOwner(user).map(GetMyStoreResponse::from);
+    }
+
     @Transactional(readOnly = true)
     public List<GetStoreCategoryResponse> getAllCategories() {
         return GetStoreCategoryResponse.fromList(storeCategoryRepository.findAll());
@@ -161,6 +171,7 @@ public class StoreService {
         Point location = GeometryUtil.createPoint(request.getLongitude(), request.getLatitude());
 
         StoreAddress address = StoreAddress.builder()
+                .postalCode("00000")
                 .addressLine1(request.getAddressLine())
                 .location(location)
                 .build();

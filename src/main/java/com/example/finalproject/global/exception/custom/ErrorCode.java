@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 @AllArgsConstructor
 public enum ErrorCode {
 
-
     // COMMON
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON-000", "서버 내부 오류가 발생했습니다."),
     INVALID_INPUT_VALUE(HttpStatus.BAD_REQUEST, "COMMON-001", "입력값이 유효하지 않습니다."),
@@ -57,8 +56,8 @@ public enum ErrorCode {
     // NOTICE
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE-001", "공지사항을 찾을 수 없습니다."),
 
-    // Product
-    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT-001", "상품을 조회할 수 없습니다"),
+    // PRODUCT
+    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT-001", "상품을 찾을 수 없거나 해당 마트 소속이 아닙니다."),
     PRODUCT_INACTIVE(HttpStatus.BAD_REQUEST, "PRODUCT-002", "판매 중지된 상품입니다"),
     PRODUCT_OUT_OF_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-003", "품절된 상품입니다"),
     PRODUCT_STOCK_NOT_ENOUGH(HttpStatus.BAD_REQUEST, "PRODUCT-004", "재고가 부족합니다"),
@@ -74,29 +73,42 @@ public enum ErrorCode {
     INSUFFICIENT_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-014", "재고가 부족합니다."),
     INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "PRODUCT-015", "수량은 1 이상이어야 합니다."),
 
-    // Cart
+    // SUBSCRIPTION PRODUCT
+    SUBSCRIPTION_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBSCRIPTION-001", "구독 상품을 찾을 수 없거나 해당 마트 소속이 아닙니다."),
+    SUBSCRIPTION_PRODUCT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-002", "해당 구독 상품 상태로 전환할 수 없습니다."),
+    SUBSCRIPTION_PRODUCT_DELETION_REQUIRES_INACTIVE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-003", "구독 상품을 숨김 상태로 전환한 뒤 삭제를 요청할 수 있습니다."),
+    SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-004", "구독자가 있어 즉시 삭제할 수 없습니다. 구독자가 0명일 때만 삭제 가능합니다."),
+
+    // SUBSCRIPTION
+    SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBSCRIPTION-005", "구독을 찾을 수 없습니다."),
+    SUBSCRIPTION_FORBIDDEN(HttpStatus.FORBIDDEN, "SUBSCRIPTION-006", "본인의 구독에만 접근할 수 있습니다."),
+    SUBSCRIPTION_INVALID_STATUS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-007", "해당 상태에서는 요청한 작업을 수행할 수 없습니다."),
+
+    // CART
     CART_NOT_FOUND(HttpStatus.NOT_FOUND, "CART-001", "장바구니가 없습니다"),
     CART_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "CART-002", "장바구니에 해당 상품이 없습니다"),
 
-    // Order
+    // ORDER
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-001", "주문을 찾을 수 없습니다."),
 
-    // Address
+    // ADDRESS
     ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "ADDRESS-001", "주소를 조회할 수 없습니다"),
 
-    // Delivery
+    // PAYMENT (결제수단)
+    PAYMENT_METHOD_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-001", "결제수단을 찾을 수 없습니다."),
+
+    // DELIVERY
     DISTANCE_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELIVERY-001", "배달바 계산에 실패했습니다."),
     DELIVERY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "DELIVERY-002", "배달 가능한 지역이 아닙니다."),
 
-
-    // Inquiry
+    // INQUIRY
     INQUIRY_NOT_FOUND(HttpStatus.NOT_FOUND, "INQUIRY-001", "문의를 조회할 수 없습니다."),
     INQUIRY_ALREADY_ANSWERED(HttpStatus.BAD_REQUEST, "INQUIRY-002", "이미 답변된 문의입니다."),
 
-    // Admin
+    // ADMIN
     ADMIN_AUTHORITY_REQUIRED(HttpStatus.FORBIDDEN, "ADMIN-001", "관리자만 접근 가능합니다."),
 
-    // Notification
+    // NOTIFICATION
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Notification-001", "알림을 조회할 수 없습니다."),
     NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "Notification-002", "자신의 알림만 접근할 수 있습니다."),
     ;

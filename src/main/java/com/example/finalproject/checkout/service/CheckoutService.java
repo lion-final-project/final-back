@@ -109,6 +109,7 @@ public class CheckoutService {
                 .toList();
 
         // 로그 출력
+        log.info("[결제창] 주문서 미리보기(결제창) 조회 완료. 사용자={}, 상품 수={}건, 마트 수={}곳", user.getEmail(), cartProducts.size(), storeGroups.size());
         log.debug("getCheckout success: userId={}, storeGroups={}", user.getId(), storeGroups.size());
         return GetCheckoutResponse.builder()
                 .address(GetCheckoutResponse.AddressInfo.builder()

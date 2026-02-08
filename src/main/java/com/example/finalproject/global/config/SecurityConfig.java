@@ -6,6 +6,7 @@ import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
 import com.example.finalproject.auth.service.KakaoService;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -100,6 +101,11 @@ public class SecurityConfig {
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .sessionManagement(
                         session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))  // OAuth는 세션 사용
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                        })
+                )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.GET, "/api/auth/check-email", "/api/auth/check-phone").permitAll()
                         .requestMatchers("/oauth2/authorization/**", "/login/oauth2/code/**").permitAll()
@@ -116,13 +122,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/{productId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
+                        .requestMatchers("/api/store/subscription-products", "/api/store/subscription-products/**").hasRole("STORE_OWNER")
                         .anyRequest().authenticated()
                 )
-                .oauth2Login(oauth2 -> oauth2
-                        .authorizationEndpoint(auth -> auth
-                                .authorizationRequestResolver(kakaoAuthorizationRequestResolver()))
-                        .successHandler(new OAuth2LoginSuccessHandler(kakaoService, kakaoProperties))
-                )
+                .oauth2Login(oauth2 -> {
+                    oauth2.authorizationEndpoint(auth -> auth
+                            .authorizationRequestResolver(kakaoAuthorizationRequestResolver()));
+                    oauth2.successHandler(new OAuth2LoginSuccessHandler(kakaoService, kakaoProperties));
+                })
                 .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(),
                         OAuth2AuthorizationRequestRedirectFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

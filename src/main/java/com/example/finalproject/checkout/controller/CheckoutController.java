@@ -36,6 +36,7 @@ public class CheckoutController {
                 .filter(s -> !s.isBlank())
                 .map(Long::parseLong)
                 .toList();
+        log.info("[결제창] 장바구니 상품 결제창으로 이동. 사용자={}, 선택 상품 수={}건", authentication.getName(), ids.size());
         log.debug("getCheckout request: email={}, cartItemIds={}, addressId={}", authentication.getName(), ids, addressId);
         GetCheckoutResponse response = checkoutService.getCheckout(authentication.getName(), ids, addressId);
         return ResponseEntity.ok(ApiResponse.success("주문서 미리보기 조회가 완료되었습니다.", response));

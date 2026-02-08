@@ -1,4 +1,4 @@
-package com.example.finalproject.communication.repository;
+package com.example.finalproject.global.sse.repository;
 
 import java.util.Map;
 import java.util.Set;
@@ -9,10 +9,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @Component
 public class SseEmitterRepository {
 
-    // emitterId -> 실제 SSE 연결 객체
     private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
-
-    // userId -> 해당 유저가 열어둔 모든 SSE emitterId
     private final Map<Long, Set<String>> userEmitters = new ConcurrentHashMap<>();
 
     public void save(Long userId, String emitterId, SseEmitter emitter) {
@@ -26,7 +23,7 @@ public class SseEmitterRepository {
         return emitters.get(emitterId);
     }
 
-    public Set<String> getEmitterIdsByUser(Long userId) {
+    public Set<String> getEmitterIds(Long userId) {
         return userEmitters.getOrDefault(userId, Set.of());
     }
 
@@ -39,17 +36,6 @@ public class SseEmitterRepository {
             if (ids.isEmpty()) {
                 userEmitters.remove(userId);
             }
-        }
-    }
-
-    public void removeAllByUserId(Long userId) {
-        Set<String> emitterIds = userEmitters.remove(userId);
-        if (emitterIds == null) {
-            return;
-        }
-
-        for (String emitterId : emitterIds) {
-            emitters.remove(emitterId);
         }
     }
 }
