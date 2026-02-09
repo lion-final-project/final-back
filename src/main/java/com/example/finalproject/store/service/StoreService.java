@@ -19,6 +19,7 @@ import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
 import com.example.finalproject.store.dto.response.GetStoreRegistrationStatusResponse;
 import com.example.finalproject.store.dto.response.PostStoreRegistrationResponse;
 import com.example.finalproject.store.dto.response.GetMyStoreResponse;
+import com.example.finalproject.store.dto.response.StoreListItemResponse;
 import com.example.finalproject.store.domain.StoreCategory;
 import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
@@ -28,6 +29,7 @@ import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Point;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -112,9 +114,29 @@ public class StoreService {
         return GetMyStoreResponse.from(store);
     }
 
+    /** 고객(상점 없음)인 경우 null 반환. 404 대신 200 + null 로 응답할 때 사용. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<GetMyStoreResponse> getMyStoreOptional(String userName) {
+        User user = userRepository.findByEmail(userName).orElse(null);
+        if (user == null) {
+            return java.util.Optional.empty();
+        }
+        return storeRepository.findByOwner(user).map(GetMyStoreResponse::from);
+    }
+
     @Transactional(readOnly = true)
     public List<GetStoreCategoryResponse> getAllCategories() {
         return GetStoreCategoryResponse.fromList(storeCategoryRepository.findAll());
+    }
+
+    /**
+     * 임시: DB에 저장된 전체 상점 목록 (상태 무관). 고객이 상점 구경/구독 테스트용.
+     */
+    @Transactional(readOnly = true)
+    public List<StoreListItemResponse> getAllStoresForCustomer() {
+        return storeRepository.findAll(Sort.by(Sort.Direction.ASC, "id")).stream()
+                .map(StoreListItemResponse::from)
+                .toList();
     }
 
     private void validateRegistration(User user, PostStoreRegistrationRequest request) {
@@ -161,6 +183,7 @@ public class StoreService {
         Point location = GeometryUtil.createPoint(request.getLongitude(), request.getLatitude());
 
         StoreAddress address = StoreAddress.builder()
+                .postalCode("00000")
                 .addressLine1(request.getAddressLine())
                 .location(location)
                 .build();

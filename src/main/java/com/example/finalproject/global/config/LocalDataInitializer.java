@@ -1,12 +1,38 @@
 package com.example.finalproject.global.config;
 
-import com.example.finalproject.store.domain.StoreCategory;
-import com.example.finalproject.store.repository.StoreCategoryRepository;
+import com.example.finalproject.delivery.domain.Rider;
+import com.example.finalproject.delivery.repository.RiderRepository;
+import com.example.finalproject.global.util.GeometryUtil;
+import com.example.finalproject.moderation.domain.Approval;
+import com.example.finalproject.moderation.enums.ApplicantType;
+import com.example.finalproject.moderation.enums.ApprovalStatus;
+import com.example.finalproject.moderation.repository.ApprovalRepository;
+import com.example.finalproject.coupon.domain.Coupon;
+import com.example.finalproject.coupon.repository.CouponRepository;
+import com.example.finalproject.order.domain.Cart;
+import com.example.finalproject.order.domain.CartProduct;
+import com.example.finalproject.order.repository.CartProductRepository;
+import com.example.finalproject.order.repository.CartRepository;
+import com.example.finalproject.product.domain.Product;
 import com.example.finalproject.product.domain.ProductCategory;
 import com.example.finalproject.product.repository.ProductCategoryRepository;
+import com.example.finalproject.product.repository.ProductRepository;
+import com.example.finalproject.store.domain.Store;
+import com.example.finalproject.store.domain.StoreCategory;
+import com.example.finalproject.store.domain.embedded.SettlementAccount;
+import com.example.finalproject.store.domain.embedded.StoreAddress;
+import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
+import com.example.finalproject.store.enums.StoreActiveStatus;
+import com.example.finalproject.store.repository.StoreCategoryRepository;
+import com.example.finalproject.store.repository.StoreRepository;
+import com.example.finalproject.payment.domain.PaymentMethod;
+import com.example.finalproject.payment.enums.PaymentMethodType;
+import com.example.finalproject.payment.repository.PaymentMethodRepository;
+import com.example.finalproject.user.domain.Address;
 import com.example.finalproject.user.domain.Role;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.domain.UserRole;
+import com.example.finalproject.user.repository.AddressRepository;
 import com.example.finalproject.user.repository.RoleRepository;
 import com.example.finalproject.user.repository.UserRepository;
 import com.example.finalproject.user.repository.UserRoleRepository;
@@ -20,6 +46,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -33,6 +61,15 @@ public class LocalDataInitializer implements CommandLineRunner {
     private final ProductCategoryRepository productCategoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final StoreCategoryRepository storeCategoryRepository;
+    private final StoreRepository storeRepository;
+    private final ProductRepository productRepository;
+    private final CartRepository cartRepository;
+    private final CartProductRepository cartProductRepository;
+    private final AddressRepository addressRepository;
+    private final PaymentMethodRepository paymentMethodRepository;
+    private final CouponRepository couponRepository;
+    private final ApprovalRepository approvalRepository;
+    private final RiderRepository riderRepository;
 
     @Override
     @Transactional
@@ -129,6 +166,268 @@ public class LocalDataInitializer implements CommandLineRunner {
             log.info("Email: {}", userEmail);
             log.info("Password: user1234");
             log.info("==============================================");
+        }
+
+        // 결제 더미데이터 (장바구니·주문서·결제 플로우 확인용)
+        seedCheckoutDummyData(userRole);
+
+        // 신청 목록 더미데이터 (상점 2건 + 라이더 2건 PENDING)
+        seedApprovalListDummyData(userRole);
+    }
+
+    // 결제 더미데이터
+    //스토어, 상품, 테스트 유저 장바구니에 상품 담기 (장바구니·주문서·결제 플로우 확인용)
+    private void seedCheckoutDummyData(Role userRole) {
+        String storeOwnerEmail = "storeowner@test.com";
+        User storeOwner = userRepository.findByEmail(storeOwnerEmail).orElseGet(() -> {
+            User owner = User.builder()
+                    .email(storeOwnerEmail)
+                    .password(passwordEncoder.encode("owner1234"))
+                    .name("스토어오너")
+                    .phone("01022222222")
+                    .termsAgreed(true)
+                    .privacyAgreed(true)
+                    .termsAgreedAt(LocalDateTime.now())
+                    .privacyAgreedAt(LocalDateTime.now())
+                    .build();
+            userRepository.save(owner);
+            userRoleRepository.save(UserRole.builder().user(owner).role(userRole).build());
+            log.info("결제 더미데이터: 스토어 오너 계정 생성 - {}", storeOwnerEmail);
+            return owner;
+        });
+
+        Store store = storeRepository.findByOwner(storeOwner).orElseGet(() -> {
+            StoreCategory martCategory = storeCategoryRepository.findByCategoryName("마트/슈퍼")
+                    .orElseThrow();
+            StoreAddress address = StoreAddress.builder()
+                    .postalCode("06134")
+                    .addressLine1("서울시 강남구 테스트로 123")
+                    .addressLine2("1층")
+                    .location(GeometryUtil.createPoint(127.0276, 37.4979))
+                    .build();
+            SettlementAccount settlement = SettlementAccount.builder()
+                    .bankName("테스트은행")
+                    .bankAccount("110-123-456789")
+                    .accountHolder("스토어오너")
+                    .build();
+            SubmittedDocumentInfo doc = SubmittedDocumentInfo.builder()
+                    .businessOwnerName("스토어오너")
+                    .businessNumber("123456789012")
+                    .telecomSalesReportNumber("제2024-서울강남-00001")
+                    .build();
+            Store newStore = Store.builder()
+                    .owner(storeOwner)
+                    .storeCategory(martCategory)
+                    .storeName("동네마켓 테스트마트")
+                    .phone("02-1234-5678")
+                    .description("결제/장바구니 확인용 더미 스토어")
+                    .representativeName("스토어오너")
+                    .representativePhone("01022222222")
+                    .submittedDocumentInfo(doc)
+                    .address(address)
+                    .settlementAccount(settlement)
+                    .build();
+            newStore = storeRepository.save(newStore);
+            newStore.approve();
+            log.info("결제 더미데이터: 스토어 생성 - {}", newStore.getStoreName());
+            return newStore;
+        });
+
+        ProductCategory vegCategory = productCategoryRepository.findByCategoryName("채소")
+                .orElseThrow();
+        Set<String> dummyProductNames = Set.of(
+                "대파 1kg", "양파 2kg", "당근 500g",
+                "배추 1통", "깻잎 1단", "청경채 200g", "감자 1kg", "고구마 500g"
+        );
+        List<String[]> productRows = List.of(
+                new String[]{"대파 1kg", "신선한 국내산 대파", "3000", "10", "0"},
+                new String[]{"양파 2kg", "노란 양파", "4500", "20", "10"},
+                new String[]{"당근 500g", "당근", "2500", "15", "0"},
+                new String[]{"배추 1통", "국내산 배추", "4500", "12", "5"},
+                new String[]{"깻잎 1단", "찬밤 깻잎", "2000", "30", "0"},
+                new String[]{"청경채 200g", "청경채", "1800", "18", "0"},
+                new String[]{"감자 1kg", "국내 감자", "3500", "25", "10"},
+                new String[]{"고구마 500g", "호박고구마", "3200", "15", "0"}
+        );
+        for (String[] row : productRows) {
+            String name = row[0];
+            boolean exists = productRepository.existsByStoreAndProductNameAndDeletedAtIsNull(store, name);
+            if (exists) continue;
+            Product p = Product.builder()
+                    .store(store)
+                    .productCategory(vegCategory)
+                    .productName(name)
+                    .description(row[1])
+                    .price(Integer.parseInt(row[2]))
+                    .stock(Integer.parseInt(row[3]))
+                    .discountRate(row[4].isEmpty() ? null : Integer.parseInt(row[4]))
+                    .build();
+            p = productRepository.save(p);
+            p.updateStatus(true);
+            log.info("결제 더미데이터: 상품 생성 - {}", name);
+        }
+
+        // 이 스토어의 더미 상품 조회 (방금 생성했거나 기존 DB에 있든 모두 포함)
+        List<Product> productsForCart = productRepository.findByStoreAndDeletedAtIsNull(store, org.springframework.data.domain.Pageable.unpaged())
+                .stream()
+                .filter(p -> dummyProductNames.contains(p.getProductName()))
+                .collect(Collectors.toList());
+
+        User testUser = userRepository.findByEmail("user@test.com").orElse(null);
+        if (testUser != null && !productsForCart.isEmpty()) {
+            Cart cart = cartRepository.findByUserId(testUser.getId())
+                    .orElseGet(() -> cartRepository.save(Cart.create(testUser)));
+            int added = 0;
+            for (Product product : productsForCart) {
+                if (cartProductRepository.findByCartIdAndProductId(cart.getId(), product.getId()).isEmpty()) {
+                    // 수량은 상품마다 1~3개로 다양하게
+                    int qty = (product.getProductName().length() % 3) + 1;
+                    if (qty < 1) qty = 1;
+                    cartProductRepository.save(CartProduct.builder()
+                            .cart(cart)
+                            .product(product)
+                            .store(store)
+                            .quantity(qty)
+                            .build());
+                    added++;
+                }
+            }
+            if (added > 0) {
+                log.info("결제 더미데이터: user@test.com 장바구니에 상품 {}건 담김", added);
+            }
+
+            // 결제 더미데이터 user@test.com 배송지·결제수단 1건씩 (주문 생성 API POST /api/orders 호출 시 사용)
+            if (addressRepository.findByUserOrderByIsDefaultDesc(testUser).isEmpty()) {
+                Address addr = Address.builder()
+                        .user(testUser)
+                        .contact("01011111111")
+                        .addressName("우리 집")
+                        .postalCode("06134")
+                        .addressLine1("서울시 강남구 테헤란로 123")
+                        .addressLine2("1층")
+                        .location(GeometryUtil.createPoint(127.0276, 37.4979))
+                        .isDefault(true)
+                        .build();
+                addressRepository.save(addr);
+                log.info("결제 더미데이터: user@test.com 배송지 1건 생성");
+            }
+            // 시드 더미 결제 테스트: 주문/결제 창에서 "결제하기" 시 다음 단계로 진행 가능하도록 결제수단 1건 생성
+            if (paymentMethodRepository.findFirstByUserIdAndIsDefaultTrue(testUser.getId()).isEmpty()) {
+                PaymentMethod pm = PaymentMethod.builder()
+                        .user(testUser)
+                        .methodType(PaymentMethodType.CARD)
+                        .billingKey("dummy-billing-key-test")
+                        .isDefault(true)
+                        .build();
+                paymentMethodRepository.save(pm);
+                log.info("결제 더미데이터: user@test.com 결제수단 1건 생성");
+            }
+            // 테스트용 쿠폰 더미: 결제창 쿠폰 드롭다운용
+            if (couponRepository.findByUserIdOrderByIdAsc(testUser.getId()).isEmpty()) {
+                couponRepository.save(Coupon.builder()
+                        .name("테스트용 쿠폰")
+                        .discountAmount(1000)
+                        .user(testUser)
+                        .build());
+                log.info("결제 더미데이터: user@test.com 쿠폰 [테스트용 쿠폰] 1건 생성");
+            }
+            // 보유 포인트 더미: 결제창 "현재 보유 포인트" 표시용 (추가 기능 확장 시 적립/차감 연동)
+            if (testUser.getPoints() == null || testUser.getPoints() == 0) {
+                testUser.setPoints(5000);
+                userRepository.save(testUser);
+                log.info("결제 더미데이터: user@test.com 보유 포인트 5000원 설정");
+            }
+        }
+    }
+
+    //신청 목록 더미: 상점 2건 + 라이더 2건 PENDING
+    private void seedApprovalListDummyData(Role userRole) {
+        String pw = passwordEncoder.encode("password123");
+        LocalDateTime now = LocalDateTime.now();
+
+        User storeApp1 = userRepository.findByEmail("storeapp1@dongnae.com").orElseGet(() -> {
+            User u = userRepository.save(User.builder().email("storeapp1@dongnae.com").password(pw).name("신청상점1").phone("01080000001")
+                    .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
+            userRoleRepository.save(UserRole.builder().user(u).role(userRole).build());
+            return u;
+        });
+        User storeApp2 = userRepository.findByEmail("storeapp2@dongnae.com").orElseGet(() -> {
+            User u = userRepository.save(User.builder().email("storeapp2@dongnae.com").password(pw).name("신청상점2").phone("01080000002")
+                    .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
+            userRoleRepository.save(UserRole.builder().user(u).role(userRole).build());
+            return u;
+        });
+        User riderApp1 = userRepository.findByEmail("riderapp1@dongnae.com").orElseGet(() -> {
+            User u = userRepository.save(User.builder().email("riderapp1@dongnae.com").password(pw).name("신청라이더1").phone("01080000003")
+                    .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
+            userRoleRepository.save(UserRole.builder().user(u).role(userRole).build());
+            return u;
+        });
+        User riderApp2 = userRepository.findByEmail("riderapp2@dongnae.com").orElseGet(() -> {
+            User u = userRepository.save(User.builder().email("riderapp2@dongnae.com").password(pw).name("신청라이더2").phone("01080000004")
+                    .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
+            userRoleRepository.save(UserRole.builder().user(u).role(userRole).build());
+            return u;
+        });
+
+        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(storeApp1, ApplicantType.STORE, ApprovalStatus.PENDING).isEmpty()) {
+            approvalRepository.save(Approval.builder().user(storeApp1).applicantType(ApplicantType.STORE).build());
+        }
+        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(storeApp2, ApplicantType.STORE, ApprovalStatus.PENDING).isEmpty()) {
+            approvalRepository.save(Approval.builder().user(storeApp2).applicantType(ApplicantType.STORE).build());
+        }
+        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp1, ApplicantType.RIDER, ApprovalStatus.PENDING).isEmpty()) {
+            approvalRepository.save(Approval.builder().user(riderApp1).applicantType(ApplicantType.RIDER).build());
+        }
+        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp2, ApplicantType.RIDER, ApprovalStatus.PENDING).isEmpty()) {
+            approvalRepository.save(Approval.builder().user(riderApp2).applicantType(ApplicantType.RIDER).build());
+        }
+
+        StoreCategory martCat = storeCategoryRepository.findByCategoryName("마트/슈퍼").orElseThrow();
+        StoreCategory meatCat = storeCategoryRepository.findByCategoryName("정육점").orElseThrow();
+
+        if (storeRepository.findByOwner(storeApp1).isEmpty()) {
+            Store s = Store.builder()
+                    .owner(storeApp1)
+                    .storeCategory(martCat)
+                    .storeName("테스트마트1")
+                    .phone("01090000001")
+                    .description("신청 상점 설명1")
+                    .representativeName("홍길동")
+                    .representativePhone("01090000001")
+                    .submittedDocumentInfo(SubmittedDocumentInfo.builder().businessOwnerName("홍길동").businessNumber("111222333444").telecomSalesReportNumber("TSR-0001").build())
+                    .address(StoreAddress.builder().postalCode("06236").addressLine1("서울시 강남구 테헤란로 1").addressLine2("1층").location(GeometryUtil.createPoint(127.0276, 37.4979)).build())
+                    .settlementAccount(SettlementAccount.builder().bankName("신한은행").bankAccount("110-123-456789").accountHolder("홍길동").build())
+                    .build();
+            s = storeRepository.save(s);
+            s.setActiveStatus(StoreActiveStatus.INACTIVE);
+            log.info("신청 목록 더미: 상점 신청 1건 생성 - 테스트마트1");
+        }
+        if (storeRepository.findByOwner(storeApp2).isEmpty()) {
+            Store s = Store.builder()
+                    .owner(storeApp2)
+                    .storeCategory(meatCat)
+                    .storeName("테스트마트2")
+                    .phone("01090000002")
+                    .description("신청 상점 설명2")
+                    .representativeName("김철수")
+                    .representativePhone("01090000002")
+                    .submittedDocumentInfo(SubmittedDocumentInfo.builder().businessOwnerName("김철수").businessNumber("555666777888").telecomSalesReportNumber("TSR-0002").build())
+                    .address(StoreAddress.builder().postalCode("06611").addressLine1("서울시 서초구 강남대로 2").addressLine2("2층").location(GeometryUtil.createPoint(127.0280, 37.4980)).build())
+                    .settlementAccount(SettlementAccount.builder().bankName("국민은행").bankAccount("120-987-654321").accountHolder("김철수").build())
+                    .build();
+            s = storeRepository.save(s);
+            s.setActiveStatus(StoreActiveStatus.INACTIVE);
+            log.info("신청 목록 더미: 상점 신청 1건 생성 - 테스트마트2");
+        }
+
+        if (riderRepository.findByUserId(riderApp1.getId()).isEmpty()) {
+            riderRepository.save(Rider.builder().user(riderApp1).bankName("우리은행").bankAccount("333-444-555555").accountHolder("박라이더").build());
+            log.info("신청 목록 더미: 라이더 신청 1건 생성 - 신청라이더1");
+        }
+        if (riderRepository.findByUserId(riderApp2.getId()).isEmpty()) {
+            riderRepository.save(Rider.builder().user(riderApp2).bankName("하나은행").bankAccount("777-888-999999").accountHolder("최라이더").build());
+            log.info("신청 목록 더미: 라이더 신청 1건 생성 - 신청라이더2");
         }
     }
 

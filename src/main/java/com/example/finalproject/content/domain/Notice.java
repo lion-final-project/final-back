@@ -45,11 +45,15 @@ public class Notice extends BaseTimeEntity {
     @Column(nullable = false)
     private ContentStatus status = ContentStatus.ACTIVE;
 
+    @Column(name = "is_pinned", nullable = false)
+    private Boolean isPinned = false;
+
     @Builder
-    public Notice(String title, String content, User author) {
+    public Notice(String title, String content, User author, Boolean isPinned) {
         this.title = title;
         this.content = content;
         this.author = author;
+        this.isPinned = isPinned != null ? isPinned : false;
     }
 
     public void update(String title, String content) {

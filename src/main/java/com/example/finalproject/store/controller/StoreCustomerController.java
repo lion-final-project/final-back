@@ -1,6 +1,8 @@
 package com.example.finalproject.store.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
+import com.example.finalproject.store.dto.response.StoreListItemResponse;
+import com.example.finalproject.store.service.StoreService;
 import com.example.finalproject.subscription.dto.response.GetSubscriptionProductResponse;
 import com.example.finalproject.subscription.service.SubscriptionProductService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,16 @@ import java.util.List;
 public class StoreCustomerController {
 
     private final SubscriptionProductService subscriptionProductService;
+    private final StoreService storeService;
+
+    /**
+     * 임시: DB에 저장된 전체 상점 목록 조회. (상점 리스트 구현 전 구독 테스트용)
+     */
+    @GetMapping("/list")
+    public ResponseEntity<ApiResponse<List<StoreListItemResponse>>> listAllStores() {
+        List<StoreListItemResponse> list = storeService.getAllStoresForCustomer();
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
 
     /**
      * API-STO-005: 마트 구독 상품 목록 조회.

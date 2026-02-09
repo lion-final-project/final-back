@@ -6,6 +6,7 @@ import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
 import com.example.finalproject.auth.service.KakaoService;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -100,6 +101,10 @@ public class SecurityConfig {
                                 .sessionManagement(
                                                 session -> session.sessionCreationPolicy(
                                                                 SessionCreationPolicy.IF_REQUIRED)) // OAuth는 세션 사용
+                                .exceptionHandling(ex -> ex
+                                                .authenticationEntryPoint((request, response, authException) -> {
+                                                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                                                }))
                                 .authorizeHttpRequests(authorize -> authorize
                                                 .requestMatchers(HttpMethod.GET, "/api/auth/check-email",
                                                                 "/api/auth/check-phone")
@@ -118,8 +123,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/admin/notices/**").hasRole("ADMIN")
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                                                 .requestMatchers("/api/notices").permitAll()
-                                                .requestMatchers("/api/riders", "api/riders/register",
-                                                                "api/riders/approvals/*")
+                                                .requestMatchers("/api/riders", "/api/riders/register",
+                                                                "/api/riders/approvals/*")
                                                 .hasRole("CUSTOMER")
                                                 .requestMatchers("/api/riders/status").hasRole("RIDER")
                                                 .requestMatchers(HttpMethod.GET, "/api/products/categories").permitAll()

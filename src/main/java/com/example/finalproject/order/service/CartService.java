@@ -19,9 +19,11 @@ import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.repository.UserRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -49,6 +51,7 @@ public class CartService {
 
         addOrUpdateCartProduct(cart, product, request.getQuantity());
 
+        log.info("[장바구니] 장바구니에 상품을 추가합니다. 사용자={}, 상품ID={}, 수량={}", username, product.getId(), request.getQuantity());
         return getMyCart(username);
     }
 
@@ -58,9 +61,10 @@ public class CartService {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        Cart cart = cartRepository.findByUserEmail(username).orElse(null);
+        Cart cart = cartRepository.findByUser_Email(username).orElse(null);
 
         if (cart == null) {
+            log.info("[장바구니] 장바구니 상품 조회 완료. 사용자={}, 장바구니 비어 있음", username);
             return GetCartResponse.empty();
         }
 
@@ -88,6 +92,8 @@ public class CartService {
                 .mapToInt(GetCartStoreGroupResponse::getStoreProductPrice)
                 .sum();
 
+        int itemCount = cartProducts.size();
+        log.info("[장바구니] 장바구니 상품 조회 완료. 사용자={}, 상품 수={}건, 마트 수={}곳", username, itemCount, stores.size());
         return GetCartResponse.of(
                 cart.getId(),
                 stores,
@@ -97,7 +103,7 @@ public class CartService {
 
     @Transactional
     public GetCartResponse updateQuantity(String username, Long productId, PatchCartUpdateRequest request) {
-        Cart cart = cartRepository.findByUserEmail(username)
+        Cart cart = cartRepository.findByUser_Email(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
 
         CartProduct cp = cartProductRepository.findByCartIdAndProductId(cart.getId(), productId)
@@ -111,25 +117,28 @@ public class CartService {
         validateStock(product, requestQuantity);
         cp.changeQuantity(requestQuantity);
 
+        log.info("[장바구니] 장바구니 상품 수량을 변경합니다. 사용자={}, 상품ID={}, 수량={}", username, productId, requestQuantity);
         return getMyCart(username);
     }
 
+    
     @Transactional
     public GetCartResponse removeItem(String username, Long productId) {
-        Cart cart = cartRepository.findByUserEmail(username)
+        Cart cart = cartRepository.findByUser_Email(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
 
         CartProduct cp = cartProductRepository.findByCartIdAndProductId(cart.getId(), productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_PRODUCT_NOT_FOUND));
 
         cartProductRepository.delete(cp);
+        log.info("[장바구니] 장바구니에서 상품을 제거합니다. 사용자={}, 상품ID={}", username, productId);
         return getMyCart(username);
     }
 
 
     @Transactional
     public GetCartResponse clearCart(String username) {
-        Cart cart = cartRepository.findByUserEmail(username)
+        Cart cart = cartRepository.findByUser_Email(username)
                 .orElse(null);
 
         if (cart == null) {
@@ -137,6 +146,7 @@ public class CartService {
         }
 
         cartProductRepository.deleteAllByCartId(cart.getId());
+        log.info("[장바구니] 장바구니를 비웁니다. 사용자={}", username);
         return getMyCart(username);
     }
 

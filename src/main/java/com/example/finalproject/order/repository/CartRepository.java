@@ -5,7 +5,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CartRepository extends JpaRepository<Cart, Long> {
-    Optional<Cart> findByUserEmail(String username);
+    /** User 엔티티의 email로 조회 (user.email) */
+    Optional<Cart> findByUser_Email(String email);
 
     Optional<Cart> findByUserId(Long userId);
 }

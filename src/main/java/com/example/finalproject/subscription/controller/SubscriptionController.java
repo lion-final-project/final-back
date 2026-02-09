@@ -4,9 +4,12 @@ import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.global.security.CustomUserDetails;
+import com.example.finalproject.subscription.dto.request.PostSubscriptionRequest;
 import com.example.finalproject.subscription.dto.response.GetSubscriptionResponse;
 import com.example.finalproject.subscription.service.SubscriptionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -26,6 +31,21 @@ import java.util.List;
 public class SubscriptionController {
 
     private final SubscriptionService subscriptionService;
+
+    /**
+     * API-SUB-001: 구독 신청.
+     * 구독 상품을 신청한다. 배송 시간대(deliveryTimeSlot)를 지정할 수 있다.
+     *
+     * @param request 구독 신청 요청 (subscriptionProductId, addressId, paymentMethodId, deliveryDays, deliveryTimeSlot)
+     * @return 201 Created, 생성된 구독 응답
+     */
+    @PostMapping
+    public ResponseEntity<ApiResponse<GetSubscriptionResponse>> create(
+            @Valid @RequestBody PostSubscriptionRequest request) {
+        String username = getCurrentUsername();
+        GetSubscriptionResponse response = subscriptionService.create(username, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
 
     /**
      * API-SUB-002: 고객 구독 목록 조회.
@@ -87,8 +107,8 @@ public class SubscriptionController {
     }
 
     /**
-     * API-SUB-006: 구독 해지 요청 취소.
-     * CANCELLATION_PENDING 상태의 구독에 대해 해지 요청을 취소하고 ACTIVE로 되돌린다.
+     * 해지 예정 취소 (UC-C10 5-a). 해지 예정 상태를 유지(ACTIVE)로 되돌린다.
+     * 본인 구독이며 CANCELLATION_PENDING 상태일 때만 가능.
      *
      * @param id 구독 ID (path)
      * @return 200 OK
@@ -97,7 +117,7 @@ public class SubscriptionController {
     public ResponseEntity<ApiResponse<Void>> cancelCancellation(@PathVariable Long id) {
         String username = getCurrentUsername();
         subscriptionService.cancelCancellation(id, username);
-        return ResponseEntity.ok(ApiResponse.success("구독 해지 요청이 취소되었습니다."));
+        return ResponseEntity.ok(ApiResponse.success("구독 해지가 취소되었습니다. 계속해서 혜택을 누리실 수 있습니다."));
     }
 
     /**

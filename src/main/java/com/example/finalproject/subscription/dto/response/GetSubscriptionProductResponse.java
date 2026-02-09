@@ -12,6 +12,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
+ * daysOfWeek: 0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토
+ */
+
+/**
  * 구독 상품 응답 DTO.
  * API-SOP-010 (등록 201), API-SOP-009 (마트 목록), API-STO-005 (고객용 마트별 조회) 응답에 공통 사용.
  * null 필드는 JSON 응답에서 제외된다.
@@ -31,6 +35,9 @@ public class GetSubscriptionProductResponse {
     private SubscriptionProductStatus status;
     private Integer subscriberCount;
     private String imageUrl;
+
+    /** 배송 요일 (0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토) */
+    private List<Short> daysOfWeek;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime createdAt;

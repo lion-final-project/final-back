@@ -12,6 +12,15 @@ import java.util.Optional;
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
     /**
+     * 마트(store)별로 특정 상태 집합에 속하는 구독 목록을 조회한다.
+     *
+     * @param storeId  마트 ID
+     * @param statuses 조회할 상태 집합 (예: ACTIVE)
+     * @return 구독 목록
+     */
+    List<Subscription> findByStoreIdAndStatusIn(Long storeId, Collection<SubscriptionStatus> statuses);
+
+    /**
      * 고객(사용자)의 구독 목록을 조회한다. 해지 완료(CANCELLED)는 제외하고, 최신순 정렬 (UC-C10).
      *
      * @param userId  사용자 ID

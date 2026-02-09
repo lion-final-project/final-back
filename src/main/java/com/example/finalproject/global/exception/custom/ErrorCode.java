@@ -83,19 +83,25 @@ public enum ErrorCode {
             "구독 상품을 숨김 상태로 전환한 뒤 삭제를 요청할 수 있습니다."),
     SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-004",
             "구독자가 있어 즉시 삭제할 수 없습니다. 구독자가 0명일 때만 삭제 가능합니다."),
+    SUBSCRIPTION_PRODUCT_HAS_NO_ITEMS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-009", "구독 상품에 구성 품목이 없습니다."),
 
     // SUBSCRIPTION
     SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBSCRIPTION-005", "구독을 찾을 수 없습니다."),
     SUBSCRIPTION_FORBIDDEN(HttpStatus.FORBIDDEN, "SUBSCRIPTION-006", "본인의 구독에만 접근할 수 있습니다."),
     SUBSCRIPTION_INVALID_STATUS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-007", "해당 상태에서는 요청한 작업을 수행할 수 없습니다."),
+    SUBSCRIPTION_INVALID_DELIVERY_TIME_SLOT(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-008",
+            "배송 시간대는 08:00~11:00, 11:00~14:00, 14:00~17:00, 17:00~20:00 중 하나여야 합니다."),
 
     // CART
     CART_NOT_FOUND(HttpStatus.NOT_FOUND, "CART-001", "장바구니가 없습니다"),
     CART_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "CART-002", "장바구니에 해당 상품이 없습니다"),
 
     // ADDRESS
-    ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "ADDRESS-001", "주소를 조회할 수 없습니다"),
-
+    ADDRESS_NOT_FOUND(HttpStatus.NOT_FOUND, "ADDRESS-001", "주소를 조회할 수 없습니다."),
+    ADDRESS_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "ADDRESS-002", "배송지는 최대 5개까지 등록할 수 있습니다."),
+    DUPLICATE_ADDRESS_NAME(HttpStatus.CONFLICT, "ADDRESS-003", "이미 존재하는 배송지 이름입니다."),
+    DUPLICATE_ADDRESS(HttpStatus.CONFLICT, "ADDRESS-004", "이미 등록된 배송지 주소입니다."),
+    ADDRESS_DELETE_MIN_REQUIRED(HttpStatus.BAD_REQUEST, "ADDRESS-005", "배송지는 최소 1개 이상 등록되어 있어야 합니다."),
     // DELIVERY
     DISTANCE_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELIVERY-001", "배달바 계산에 실패했습니다."),
     DELIVERY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "DELIVERY-002", "배달 가능한 지역이 아닙니다."),
@@ -111,14 +117,21 @@ public enum ErrorCode {
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "알림을 조회할 수 없습니다."),
     NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "NOTIFICATION-002", "자신의 알림만 접근할 수 있습니다."),
 
-    // ORDER
-    INVALID_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "ORDER-001", "최종금액은 0 이상입니다."),
-    INVALID_ORDER_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "ORDER-002", "존재하지 않는 주문 방식입니다."),
-
     // PAYMENT
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-001", "결제를 조회할 수 없습니다."),
-    ALREADY_PROCESSED_PAYMENT(HttpStatus.BAD_REQUEST, "PAYMENT-002", "이미 처리된 결제입니다.");
+    ALREADY_PROCESSED_PAYMENT(HttpStatus.BAD_REQUEST, "PAYMENT-002", "이미 처리된 결제입니다."),
+    PAYMENT_METHOD_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-003", "결제 수단을 찾을 수 없습니다."),
 
+    // ORDER (order-checkout)
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-001", "주문을 찾을 수 없습니다."),
+    POINTS_MUST_BE_NON_NEGATIVE(HttpStatus.BAD_REQUEST, "ORDER-002", "사용 포인트는 0 이상이어야 합니다."),
+    POINTS_EXCEED_ORDER_TOTAL(HttpStatus.BAD_REQUEST, "ORDER-003", "사용 포인트는 상품금액+배송비를 초과할 수 없습니다."),
+    DISCOUNT_EXCEEDS_PRODUCT_TOTAL(HttpStatus.BAD_REQUEST, "ORDER-005", "쿠폰 할인 금액이 상품 금액을 초과할 수 없습니다."),
+    COUPON_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-006", "쿠폰을 찾을 수 없거나 사용할 수 없습니다."),
+    INVALID_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "ORDER-007", "최종금액은 0 이상입니다."),
+    INVALID_ORDER_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "ORDER-008", "존재하지 않는 주문 방식입니다."),
+
+    ;
 
     private final HttpStatus status;
     private final String code;
