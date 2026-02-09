@@ -13,6 +13,9 @@ import org.locationtech.jts.geom.Point;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class StoreAddress {
 
+    @Column(name = "postal_code", nullable = false, length = 10)
+    private String postalCode;
+
     @Column(name = "address_line1", nullable = false, length = 255)
     private String addressLine1;
 
@@ -23,7 +26,8 @@ public class StoreAddress {
     private Point location;
 
     @Builder
-    public StoreAddress(String addressLine1, String addressLine2, Point location) {
+    public StoreAddress(String postalCode, String addressLine1, String addressLine2, Point location) {
+        this.postalCode = postalCode != null ? postalCode : "";
         this.addressLine1 = addressLine1;
         this.addressLine2 = addressLine2;
         this.location = location;

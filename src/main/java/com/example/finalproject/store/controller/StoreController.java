@@ -84,8 +84,9 @@ public class StoreController {
         if (userName == null || userName.isBlank()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        GetMyStoreResponse response = storeService.getMyStore(userName);
-        return ResponseEntity.ok(ApiResponse.success("내 상점 정보 조회가 완료되었습니다.", response));
+        return storeService.getMyStoreOptional(userName)
+                .map(response -> ResponseEntity.ok(ApiResponse.success("내 상점 정보 조회가 완료되었습니다.", response)))
+                .orElseGet(() -> ResponseEntity.ok(ApiResponse.success("내 상점 정보 조회가 완료되었습니다.", null)));
     }
 
 }

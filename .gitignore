@@ -59,6 +59,7 @@ src/main/generated/*
 .DS_Store
 
 myMd/
+docs/
 
 
 

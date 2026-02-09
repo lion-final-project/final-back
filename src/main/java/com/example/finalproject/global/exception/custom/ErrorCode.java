@@ -108,8 +108,16 @@ public enum ErrorCode {
     ADMIN_AUTHORITY_REQUIRED(HttpStatus.FORBIDDEN, "ADMIN-001", "관리자만 접근 가능합니다."),
 
     // NOTIFICATION
-    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Notification-001", "알림을 조회할 수 없습니다."),
-    NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "Notification-002", "자신의 알림만 접근할 수 있습니다."),
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "알림을 조회할 수 없습니다."),
+    NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "NOTIFICATION-002", "자신의 알림만 접근할 수 있습니다."),
+
+    // ORDER (order-checkout)
+    ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-001", "주문을 찾을 수 없습니다."),
+    PAYMENT_METHOD_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-001", "결제 수단을 찾을 수 없습니다."),
+    POINTS_MUST_BE_NON_NEGATIVE(HttpStatus.BAD_REQUEST, "ORDER-002", "사용 포인트는 0 이상이어야 합니다."),
+    POINTS_EXCEED_ORDER_TOTAL(HttpStatus.BAD_REQUEST, "ORDER-003", "사용 포인트는 상품금액+배송비를 초과할 수 없습니다."),
+    DISCOUNT_EXCEEDS_PRODUCT_TOTAL(HttpStatus.BAD_REQUEST, "ORDER-005", "쿠폰 할인 금액이 상품 금액을 초과할 수 없습니다."),
+    COUPON_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-006", "쿠폰을 찾을 수 없거나 사용할 수 없습니다."),
     ;
 
     private final HttpStatus status;
