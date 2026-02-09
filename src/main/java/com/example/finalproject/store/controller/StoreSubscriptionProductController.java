@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 import java.util.List;
 
 /**
@@ -128,6 +130,20 @@ public class StoreSubscriptionProductController {
             return ResponseEntity.ok(ApiResponse.success("구독 상품이 삭제되었습니다.", null));
         }
         return ResponseEntity.ok(ApiResponse.success(result.getProduct()));
+    }
+
+    /**
+     * 구독 상품이 삭제 예정 상태일 때, 해당 상품을 구독 중인 사용자들에게 알림(SSE)을 발송한다.
+     * 삭제 예정(PENDING_DELETE) 상태인 경우에만 호출 가능.
+     *
+     * @param id 구독 상품 ID
+     * @return 200 OK, 발송된 알림 수 (notifiedCount)
+     */
+    @PostMapping("/{id}/notify-subscribers")
+    public ResponseEntity<ApiResponse<Map<String, Integer>>> notifySubscribers(@PathVariable Long id) {
+        Long storeId = subscriptionProductService.getStoreIdByUsername(getCurrentUsername());
+        int count = subscriptionProductService.notifySubscribersOfDeletion(storeId, id);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("notifiedCount", count)));
     }
 
     /**

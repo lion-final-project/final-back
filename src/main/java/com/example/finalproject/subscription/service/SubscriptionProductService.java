@@ -1,5 +1,7 @@
 package com.example.finalproject.subscription.service;
 
+import com.example.finalproject.communication.enums.NotificationRefType;
+import com.example.finalproject.communication.service.NotificationService;
 import com.example.finalproject.global.component.UserLoader;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
@@ -7,6 +9,7 @@ import com.example.finalproject.product.domain.Product;
 import com.example.finalproject.product.repository.ProductRepository;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.repository.StoreRepository;
+import com.example.finalproject.subscription.domain.Subscription;
 import com.example.finalproject.subscription.domain.SubscriptionProduct;
 import com.example.finalproject.subscription.domain.SubscriptionProductDayOfWeek;
 import com.example.finalproject.subscription.domain.SubscriptionProductItem;
@@ -22,6 +25,7 @@ import com.example.finalproject.subscription.repository.SubscriptionProductItemR
 import com.example.finalproject.subscription.repository.SubscriptionProductRepository;
 import com.example.finalproject.subscription.repository.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,11 +35,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SubscriptionProductService {
 
     private final StoreRepository storeRepository;
+    private final NotificationService notificationService;
     private final ProductRepository productRepository;
     private final SubscriptionProductRepository subscriptionProductRepository;
     private final SubscriptionProductItemRepository subscriptionProductItemRepository;
@@ -289,6 +295,7 @@ public class SubscriptionProductService {
         if (hasOngoingSubscribers) {
             product.updateStatus(SubscriptionProductStatus.PENDING_DELETE);
             subscriptionProductRepository.flush();
+            notifySubscribersOfDeletion(storeId, subscriptionProductId);
             List<SubscriptionProductItem> items = subscriptionProductItemRepository.findBySubscriptionProductOrderById(product);
             return PatchSubscriptionProductDeletionResponse.scheduled(
                     toResponse(product, getOngoingSubscriberCount(product), items));
@@ -418,5 +425,40 @@ public class SubscriptionProductService {
 
     private int getOngoingSubscriberCount(SubscriptionProduct product) {
         return (int) subscriptionRepository.countBySubscriptionProductAndStatusIn(product, DELETION_BLOCKING_STATUSES);
+    }
+
+    /**
+     * 구독 상품이 삭제 예정(PENDING_DELETE)일 때, 해당 상품을 구독 중인 사용자들에게
+     * 알림을 생성한다. createNotification 시 UnreadCountChangedEvent가 발생하여 SSE로 실시간 전달된다.
+     *
+     * @param storeId              마트 ID (소유 검증)
+     * @param subscriptionProductId 구독 상품 ID
+     * @return 발송된 알림 수 (구독자 수)
+     */
+    @Transactional
+    public int notifySubscribersOfDeletion(Long storeId, Long subscriptionProductId) {
+        SubscriptionProduct product = getOwnedProduct(storeId, subscriptionProductId);
+        if (product.getStatus() != SubscriptionProductStatus.PENDING_DELETE) {
+            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOTIFY_REQUIRES_PENDING_DELETE);
+        }
+        String productName = product.getSubscriptionProductName();
+        String title = "구독 상품 삭제 예정 안내";
+        String content = String.format("구독 중이신 상품 [%s]이(가) 삭제 예정입니다. 자세한 내용은 마트에 문의해 주세요.", productName);
+
+        List<Subscription> subscriptions =
+                subscriptionRepository.findBySubscriptionProductAndStatusIn(product, DELETION_BLOCKING_STATUSES);
+
+        for (Subscription sub : subscriptions) {
+            // 구독 상품 삭제 예정 알림은 고객에게 전달되는 알림이므로 CUSTOMER 참조 유형을 사용한다.
+            notificationService.createNotification(
+                    sub.getUser().getId(),
+                    title,
+                    content,
+                    NotificationRefType.CUSTOMER
+            );
+        }
+        int count = subscriptions.size();
+        log.info("[구독 알림] 구독 상품 삭제 예정 알림 발송. productId={}, productName={}, 수신자={}명", subscriptionProductId, productName, count);
+        return count;
     }
 }
