@@ -37,6 +37,11 @@ public class PatchSubscriptionProductRequest {
     @Min(value = 1, message = "총 배송 횟수는 1 이상이어야 합니다.")
     private Integer totalDeliveryCount;
 
+    /**
+     * 배송 요일 (0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토). null이면 기존 유지.
+     */
+    private List<Short> daysOfWeek;
+
     @NotEmpty(message = "구성 품목은 1개 이상이어야 합니다.")
     @Valid
     private List<PatchSubscriptionProductItemRequest> items;

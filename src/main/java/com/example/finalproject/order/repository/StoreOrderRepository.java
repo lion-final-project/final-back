@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long> {
 
     List<StoreOrder> findAllByOrderId(Long orderId);
+
+    List<StoreOrder> findByIdIn(List<Long> ids);
 }

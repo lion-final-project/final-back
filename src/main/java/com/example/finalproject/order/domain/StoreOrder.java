@@ -82,4 +82,12 @@ public class StoreOrder extends BaseTimeEntity {
         this.deliveryFee = deliveryFee;
         this.finalPrice = finalPrice;
     }
+
+    /**
+     * 주문 접수 처리. 상태를 ACCEPTED로 변경하고 접수 시각을 기록한다 (배달 배차 가능).
+     */
+    public void accept() {
+        this.status = StoreOrderStatus.ACCEPTED;
+        this.acceptedAt = LocalDateTime.now();
+    }
 }

@@ -78,11 +78,13 @@ public enum ErrorCode {
     SUBSCRIPTION_PRODUCT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-002", "해당 구독 상품 상태로 전환할 수 없습니다."),
     SUBSCRIPTION_PRODUCT_DELETION_REQUIRES_INACTIVE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-003", "구독 상품을 숨김 상태로 전환한 뒤 삭제를 요청할 수 있습니다."),
     SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-004", "구독자가 있어 즉시 삭제할 수 없습니다. 구독자가 0명일 때만 삭제 가능합니다."),
-
+    SUBSCRIPTION_PRODUCT_HAS_NO_ITEMS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-009", "구독 상품에 구성 품목이 없습니다."),
+    
     // SUBSCRIPTION
     SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBSCRIPTION-005", "구독을 찾을 수 없습니다."),
     SUBSCRIPTION_FORBIDDEN(HttpStatus.FORBIDDEN, "SUBSCRIPTION-006", "본인의 구독에만 접근할 수 있습니다."),
     SUBSCRIPTION_INVALID_STATUS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-007", "해당 상태에서는 요청한 작업을 수행할 수 없습니다."),
+    SUBSCRIPTION_INVALID_DELIVERY_TIME_SLOT(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-008", "배송 시간대는 08:00~11:00, 11:00~14:00, 14:00~17:00, 17:00~20:00 중 하나여야 합니다."),
 
     // CART
     CART_NOT_FOUND(HttpStatus.NOT_FOUND, "CART-001", "장바구니가 없습니다"),
