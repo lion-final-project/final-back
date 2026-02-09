@@ -117,6 +117,11 @@ public class Store extends BaseTimeEntity {
         this.isDeliveryAvailable = deliveryAvailable;
     }
 
+    /** 활성 상태 설정 (시드/테스트 데이터용) */
+    public void setActiveStatus(StoreActiveStatus activeStatus) {
+        this.isActive = activeStatus;
+    }
+
     @Builder
     public Store(User owner, StoreCategory storeCategory, String storeName,
                  String phone, String description,

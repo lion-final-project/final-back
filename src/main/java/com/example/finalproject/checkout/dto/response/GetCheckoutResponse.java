@@ -13,6 +13,8 @@ public class GetCheckoutResponse {
     private PaymentInfo payment;
     private List<StoreGroup> storeGroups;
     private PriceSummary priceSummary;
+    //현재 보유 포인트(원) 결제창 표시용
+    private Integer availablePoints;
 
     //주소 조회
     @Getter

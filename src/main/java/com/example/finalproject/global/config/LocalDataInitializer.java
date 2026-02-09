@@ -7,6 +7,8 @@ import com.example.finalproject.moderation.domain.Approval;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.ApprovalStatus;
 import com.example.finalproject.moderation.repository.ApprovalRepository;
+import com.example.finalproject.coupon.domain.Coupon;
+import com.example.finalproject.coupon.repository.CouponRepository;
 import com.example.finalproject.order.domain.Cart;
 import com.example.finalproject.order.domain.CartProduct;
 import com.example.finalproject.order.repository.CartProductRepository;
@@ -65,6 +67,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     private final CartProductRepository cartProductRepository;
     private final AddressRepository addressRepository;
     private final PaymentMethodRepository paymentMethodRepository;
+    private final CouponRepository couponRepository;
     private final ApprovalRepository approvalRepository;
     private final RiderRepository riderRepository;
 
@@ -173,7 +176,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     }
 
     // 결제 더미데이터
-    /** 스토어, 상품, 테스트 유저 장바구니에 상품 담기 (장바구니·주문서·결제 플로우 확인용) */
+    //스토어, 상품, 테스트 유저 장바구니에 상품 담기 (장바구니·주문서·결제 플로우 확인용)
     private void seedCheckoutDummyData(Role userRole) {
         String storeOwnerEmail = "storeowner@test.com";
         User storeOwner = userRepository.findByEmail(storeOwnerEmail).orElseGet(() -> {
@@ -293,7 +296,7 @@ public class LocalDataInitializer implements CommandLineRunner {
                 log.info("결제 더미데이터: user@test.com 장바구니에 상품 {}건 담김", added);
             }
 
-            // 결제 더미데이터: user@test.com 배송지·결제수단 1건씩 (주문 생성 API POST /api/orders 호출 시 사용)
+            // 결제 더미데이터 user@test.com 배송지·결제수단 1건씩 (주문 생성 API POST /api/orders 호출 시 사용)
             if (addressRepository.findByUserOrderByIsDefaultDesc(testUser).isEmpty()) {
                 Address addr = Address.builder()
                         .user(testUser)
@@ -308,6 +311,7 @@ public class LocalDataInitializer implements CommandLineRunner {
                 addressRepository.save(addr);
                 log.info("결제 더미데이터: user@test.com 배송지 1건 생성");
             }
+            // 시드 더미 결제 테스트: 주문/결제 창에서 "결제하기" 시 다음 단계로 진행 가능하도록 결제수단 1건 생성
             if (paymentMethodRepository.findFirstByUserIdAndIsDefaultTrue(testUser.getId()).isEmpty()) {
                 PaymentMethod pm = PaymentMethod.builder()
                         .user(testUser)
@@ -318,10 +322,25 @@ public class LocalDataInitializer implements CommandLineRunner {
                 paymentMethodRepository.save(pm);
                 log.info("결제 더미데이터: user@test.com 결제수단 1건 생성");
             }
+            // 테스트용 쿠폰 더미: 결제창 쿠폰 드롭다운용
+            if (couponRepository.findByUserIdOrderByIdAsc(testUser.getId()).isEmpty()) {
+                couponRepository.save(Coupon.builder()
+                        .name("테스트용 쿠폰")
+                        .discountAmount(1000)
+                        .user(testUser)
+                        .build());
+                log.info("결제 더미데이터: user@test.com 쿠폰 [테스트용 쿠폰] 1건 생성");
+            }
+            // 보유 포인트 더미: 결제창 "현재 보유 포인트" 표시용 (추가 기능 확장 시 적립/차감 연동)
+            if (testUser.getPoints() == null || testUser.getPoints() == 0) {
+                testUser.setPoints(5000);
+                userRepository.save(testUser);
+                log.info("결제 더미데이터: user@test.com 보유 포인트 5000원 설정");
+            }
         }
     }
 
-    /** 신청 목록 더미: 상점 2건 + 라이더 2건 PENDING */
+    //신청 목록 더미: 상점 2건 + 라이더 2건 PENDING
     private void seedApprovalListDummyData(Role userRole) {
         String pw = passwordEncoder.encode("password123");
         LocalDateTime now = LocalDateTime.now();

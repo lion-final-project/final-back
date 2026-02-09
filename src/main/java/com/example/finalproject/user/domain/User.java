@@ -58,6 +58,8 @@ public class User extends BaseTimeEntity {
 
     private LocalDateTime deletedAt;
 
+    @Column(nullable = false, columnDefinition = "integer not null default 0")
+    private Integer points = 0;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserRole> userRoles = new ArrayList<>();
@@ -83,5 +85,10 @@ public class User extends BaseTimeEntity {
     public boolean isAdmin() {
         return userRoles.stream()
                 .anyMatch(ur -> ur.getRole().getRoleName().equals("ADMIN"));
+    }
+
+    //보유 포인트 설정 시드/추가 기능(적립,차감) 확장용
+    public void setPoints(int points) {
+        this.points = points >= 0 ? points : 0;
     }
 }

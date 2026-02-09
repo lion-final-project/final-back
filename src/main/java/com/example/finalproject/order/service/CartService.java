@@ -121,6 +121,7 @@ public class CartService {
         return getMyCart(username);
     }
 
+    
     @Transactional
     public GetCartResponse removeItem(String username, Long productId) {
         Cart cart = cartRepository.findByUser_Email(username)

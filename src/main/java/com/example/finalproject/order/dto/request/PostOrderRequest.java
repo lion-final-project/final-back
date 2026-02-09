@@ -36,14 +36,17 @@ public class PostOrderRequest {
     @NotEmpty(message = "주문할 장바구니 상품이 없습니다.")
     private List<Long> cartItemIds;
 
+    // 쿠폰 ID 미사용 시 null
     private Long couponId;
 
+    //사용 포인트 미사용 시 null 또는 0
     private Integer usePoints;
 
     public String getDeliveryRequestOrEmpty() {
         return deliveryRequest != null ? deliveryRequest : "";
     }
 
+    //사용 포인트 null 또는 음수면 0으로 간주
     public int getUsePointsOrZero() {
         return usePoints != null && usePoints >= 0 ? usePoints : 0;
     }

@@ -28,13 +28,15 @@ public class OrderController {
     private final OrderQueryService orderQueryService;
     private final OrderCreateService orderCreateService;
 
-    // 주문 생성 (API-ORD-001)
+    // 주문 생성 
     @PostMapping
     public ResponseEntity<ApiResponse<PostOrderResponse>> createOrder(
             Authentication authentication,
             @RequestBody @Valid PostOrderRequest request) {
-        log.info("[주문] 주문 생성 요청. 사용자={}, 선택 상품 수={}건", authentication.getName(), request.getCartItemIds() != null ? request.getCartItemIds().size() : 0);
-        log.debug("createOrder request: email={}, cartItemIds={}", authentication.getName(), request.getCartItemIds());
+        log.info("[주문] 주문 생성 요청. 사용자={}, 상품={}건, 배송지ID={}, 결제수단ID={}, 쿠폰ID={}, 사용포인트={}원",
+                authentication.getName(), request.getCartItemIds() != null ? request.getCartItemIds().size() : 0,
+                request.getAddressId(), request.getPaymentMethodId(), request.getCouponId(),
+                request.getUsePoints() != null ? request.getUsePoints() : 0);
         PostOrderResponse response = orderCreateService.createOrder(authentication.getName(), request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("주문이 생성되었습니다.", response));

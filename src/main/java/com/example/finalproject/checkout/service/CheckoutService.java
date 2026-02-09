@@ -1,6 +1,8 @@
 package com.example.finalproject.checkout.service;
 
 import com.example.finalproject.checkout.dto.response.GetCheckoutResponse;
+import com.example.finalproject.coupon.domain.Coupon;
+import com.example.finalproject.coupon.repository.CouponRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.Cart;
@@ -36,9 +38,11 @@ public class CheckoutService {
     private final CartProductRepository cartProductRepository;
     private final AddressRepository addressRepository;
     private final PaymentMethodRepository paymentMethodRepository;
+    private final CouponRepository couponRepository;
     private final PriceCalculator priceCalculator;
 
-    public GetCheckoutResponse getCheckout(String email, List<Long> cartItemIds, Long addressId) {
+    public GetCheckoutResponse getCheckout(String email, List<Long> cartItemIds, Long addressId,
+            Long couponId, Integer usePoints) {
         if (cartItemIds == null || cartItemIds.isEmpty()) {
             log.warn("getCheckout: cartItemIds empty or null");
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
@@ -86,9 +90,15 @@ public class CheckoutService {
                 ))
                 .toList();
 
+        // 쿠폰 
+        int discount = resolveCouponDiscount(user.getId(), couponId);
+        int points = usePoints != null && usePoints >= 0 ? usePoints : 0;
+        int availablePoints = user.getPoints() != null ? user.getPoints() : 0;
+        log.info("[결제창] 쿠폰·포인트 적용. 쿠폰ID={}, 쿠폰할인={}원, 사용포인트={}원, 보유포인트={}원",
+                couponId, discount, points, availablePoints);
         // 장바구니 상품 가격 계산 (BR-O03 공용 로직)
-        PriceCalculationResult result = priceCalculator.calculate(calculatorItems, storeId -> DEFAULT_DELIVERY_FEE, 0, 0);
-        log.info("[BR-O03] 주문서 금액 계산 완료. 상품총액={}, 배달비={}, 할인={}, 포인트={}, 최종결제={}",
+        PriceCalculationResult result = priceCalculator.calculate(calculatorItems, storeId -> DEFAULT_DELIVERY_FEE, discount, points);
+        log.info("[결제창] 금액 계산. 상품총액={}원, 배달비={}원, 할인={}원, 포인트={}원, 최종결제={}원",
                 result.priceSummary().productTotal(), result.priceSummary().deliveryTotal(),
                 result.priceSummary().discount(), result.priceSummary().points(), result.priceSummary().finalTotal());
         Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = result.storeSummaries().stream()
@@ -111,9 +121,9 @@ public class CheckoutService {
                 })
                 .toList();
 
-        // 로그 출력
-        log.info("[결제창] 주문서 미리보기(결제창) 조회 완료. 사용자={}, 상품 수={}건, 마트 수={}곳", user.getEmail(), cartProducts.size(), storeGroups.size());
-        log.debug("getCheckout success: userId={}, storeGroups={}", user.getId(), storeGroups.size());
+        log.info("[결제창] 주문서 미리보기 조회 완료. 사용자={}, 상품={}건, 마트={}곳, 기본결제수단ID={}, 보유포인트={}원",
+                user.getEmail(), cartProducts.size(), storeGroups.size(),
+                defaultPayment != null ? defaultPayment.getId() : null, availablePoints);
         return GetCheckoutResponse.builder()
                 .address(GetCheckoutResponse.AddressInfo.builder()
                         .addressId(address.getId())
@@ -133,7 +143,19 @@ public class CheckoutService {
                         .points(result.priceSummary().points())
                         .finalTotal(result.priceSummary().finalTotal())
                         .build())
+                .availablePoints(availablePoints)
                 .build();
+    }
+
+    //couponId가 있으면 해당 사용자 쿠폰의 할인 금액 반환, 없거나 없으면 0
+    private int resolveCouponDiscount(Long userId, Long couponId) {
+        if (couponId == null) {
+            return 0;
+        }
+        return couponRepository.findById(couponId)
+                .filter(c -> c.getUser().getId().equals(userId))
+                .map(Coupon::getDiscountAmount)
+                .orElse(0);
     }
 
     

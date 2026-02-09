@@ -24,21 +24,24 @@ public class CheckoutController {
         this.checkoutService = checkoutService;
     }
 
-    // 주문서 미리보기 조회
+    // 주문서 미리보기 조회 쿠폰/할인/포인트 반영, null/0 허용
     @GetMapping
     public ResponseEntity<ApiResponse<GetCheckoutResponse>> getCheckout(
             Authentication authentication,
             @RequestParam String cartItemIds,
-            @RequestParam(required = false) Long addressId
+            @RequestParam(required = false) Long addressId,
+            @RequestParam(required = false) Long couponId,
+            @RequestParam(required = false) Integer usePoints
     ) {
         // 장바구니 상품 ID 목록 파싱
         List<Long> ids = Arrays.stream(cartItemIds.split(","))
                 .filter(s -> !s.isBlank())
                 .map(Long::parseLong)
                 .toList();
-        log.info("[결제창] 장바구니 상품 결제창으로 이동. 사용자={}, 선택 상품 수={}건", authentication.getName(), ids.size());
-        log.debug("getCheckout request: email={}, cartItemIds={}, addressId={}", authentication.getName(), ids, addressId);
-        GetCheckoutResponse response = checkoutService.getCheckout(authentication.getName(), ids, addressId);
+        log.info("[결제창] 주문서 미리보기 요청. 사용자={}, 장바구니 상품={}건, 배송지ID={}, 쿠폰ID={}, 사용포인트={}원",
+                authentication.getName(), ids.size(), addressId, couponId, usePoints != null ? usePoints : 0);
+        GetCheckoutResponse response = checkoutService.getCheckout(
+                authentication.getName(), ids, addressId, couponId, usePoints);
         return ResponseEntity.ok(ApiResponse.success("주문서 미리보기 조회가 완료되었습니다.", response));
     }
 }

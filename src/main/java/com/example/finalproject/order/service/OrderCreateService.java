@@ -3,6 +3,8 @@ package com.example.finalproject.order.service;
 import com.example.finalproject.communication.service.OrderPaidNotificationService;
 import com.example.finalproject.checkout.service.PriceCalculationResult;
 import com.example.finalproject.checkout.service.PriceCalculator;
+import com.example.finalproject.coupon.domain.Coupon;
+import com.example.finalproject.coupon.repository.CouponRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.Cart;
@@ -64,6 +66,7 @@ public class OrderCreateService {
     private final StoreOrderRepository storeOrderRepository;
     private final OrderProductRepository orderProductRepository;
     private final PaymentRepository paymentRepository;
+    private final CouponRepository couponRepository;
     private final OrderPaidNotificationService orderPaidNotificationService;
 
     //주문 생성
@@ -107,8 +110,12 @@ public class OrderCreateService {
             }
         }
 
-        int discount = 0;
+        // 쿠폰 couponId가 있으면 해당 쿠폰 할인 적용, 없으면 0. 포인트 null 또는 0 허용
+        int discount = resolveCouponDiscount(user.getId(), request.getCouponId());
         int points = request.getUsePointsOrZero();
+        if (points < 0) {
+            throw new BusinessException(ErrorCode.POINTS_MUST_BE_NON_NEGATIVE);
+        }
         //주문 생성 금액 계산
         List<PriceCalculator.CheckoutItem> items = cartProducts.stream()
                 .map(cp -> new PriceCalculator.CheckoutItem(
@@ -119,9 +126,16 @@ public class OrderCreateService {
                 .toList();
         PriceCalculationResult priceResult = priceCalculator.calculate(
                 items, storeId -> DEFAULT_DELIVERY_FEE, discount, points);
+        int productTotal = priceResult.priceSummary().productTotal();
+        int deliveryTotal = priceResult.priceSummary().deliveryTotal();
+        if (discount > productTotal) {
+            throw new BusinessException(ErrorCode.DISCOUNT_EXCEEDS_PRODUCT_TOTAL);
+        }
+        if (points > productTotal + deliveryTotal - discount) {
+            throw new BusinessException(ErrorCode.POINTS_EXCEED_ORDER_TOTAL);
+        }
         log.info("[BR-O03] 주문 생성 금액 계산 완료. 상품총액={}, 배달비={}, 할인={}, 포인트={}, 최종결제={}",
-                priceResult.priceSummary().productTotal(), priceResult.priceSummary().deliveryTotal(),
-                priceResult.priceSummary().discount(), priceResult.priceSummary().points(),
+                productTotal, deliveryTotal, priceResult.priceSummary().discount(), priceResult.priceSummary().points(),
                 priceResult.priceSummary().finalTotal());
 
         String orderNumber = generateOrderNumber();
@@ -246,8 +260,8 @@ public class OrderCreateService {
             log.warn("[주문] 결제 확정 알림 생성 실패(주문은 정상 생성됨). orderId={}, error={}", order.getId(), e.getMessage());
         }
 
-        log.info("[주문] 주문 생성 완료. 사용자={}, 주문번호={}, 주문ID={}", user.getEmail(), orderNumber, order.getId());
-        log.debug("createOrder success: orderId={}, userId={}, orderNumber={}", order.getId(), user.getId(), orderNumber);
+        log.info("[주문] 주문 생성 완료. 사용자={}, 주문번호={}, 주문ID={}, 쿠폰할인={}원, 사용포인트={}원, 최종결제={}원",
+                user.getEmail(), orderNumber, order.getId(), discount, points, order.getFinalPrice());
 
         return PostOrderResponse.builder()
                 .orderId(order.getId())
@@ -267,6 +281,19 @@ public class OrderCreateService {
                         .build())
                 .orderedAt(order.getOrderedAt())
                 .build();
+    }
+
+    //couponId가 있으면 해당 사용자 쿠폰의 할인 금액 반환 없으면 0
+    private int resolveCouponDiscount(Long userId, Long couponId) {
+        if (couponId == null) {
+            return 0;
+        }
+        Coupon coupon = couponRepository.findById(couponId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
+        if (!coupon.getUser().getId().equals(userId)) {
+            throw new BusinessException(ErrorCode.COUPON_NOT_FOUND);
+        }
+        return coupon.getDiscountAmount() != null ? coupon.getDiscountAmount() : 0;
     }
 
     //주문 번호 생성
