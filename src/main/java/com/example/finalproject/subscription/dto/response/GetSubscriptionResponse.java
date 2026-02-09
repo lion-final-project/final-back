@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 고객 구독 조회 응답 DTO (UC-C10 구독관리).
@@ -34,6 +35,16 @@ public class GetSubscriptionResponse {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate nextPaymentDate;
 
+    /** 월 기준 총 배송 횟수 (구독 상품 설정) */
+    private Integer totalDeliveryCount;
+    /** 배송 요일 (0=일, 1=월, 2=화, 3=수, 4=목, 5=금, 6=토) */
+    private List<Short> daysOfWeek;
+    /** 완료된 배송 건수 (현재 주기 기준) */
+    private Integer completedDeliveryCount;
+
+    /** 구독 구성 품목 (상품명, 수량) */
+    private List<SubscriptionItemDto> items;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startedAt;
 
@@ -44,4 +55,13 @@ public class GetSubscriptionResponse {
     private LocalDateTime cancelledAt;
 
     private String cancelReason;
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class SubscriptionItemDto {
+        private String productName;
+        private Integer quantity;
+    }
 }

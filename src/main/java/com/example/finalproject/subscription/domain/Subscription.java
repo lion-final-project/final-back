@@ -90,7 +90,8 @@ public class Subscription extends BaseTimeEntity {
     @Builder
     public Subscription(User user, Store store, SubscriptionProduct subscriptionProduct,
                         Address address, PaymentMethod paymentMethod,
-                        Integer totalAmount, LocalDateTime startedAt) {
+                        Integer totalAmount, LocalDateTime startedAt,
+                        LocalDate nextPaymentDate, String deliveryTimeSlot) {
         this.user = user;
         this.store = store;
         this.subscriptionProduct = subscriptionProduct;
@@ -98,6 +99,8 @@ public class Subscription extends BaseTimeEntity {
         this.paymentMethod = paymentMethod;
         this.totalAmount = totalAmount;
         this.startedAt = startedAt;
+        this.nextPaymentDate = nextPaymentDate;
+        this.deliveryTimeSlot = deliveryTimeSlot;
     }
 
     /**
@@ -138,12 +141,11 @@ public class Subscription extends BaseTimeEntity {
     }
 
     /**
-     * 해지 예정(CANCELLATION_PENDING) 상태의 구독에 대해 해지 요청을 취소하고 다시 ACTIVE로 되돌린다.
-     * CANCELLATION_PENDING 상태에서만 호출 가능.
+     * 해지 예정을 취소하고 구독을 유지한다 (UC-C10 5-a). CANCELLATION_PENDING 상태에서만 호출 가능.
      */
-    public void cancelCancellationRequest() {
+    public void cancelCancellation() {
         if (this.status != SubscriptionStatus.CANCELLATION_PENDING) {
-            throw new IllegalStateException("CANCELLATION_PENDING 상태에서만 해지 요청을 취소할 수 있습니다.");
+            throw new IllegalStateException("해지 예정 상태에서만 해지 취소할 수 있습니다.");
         }
         this.status = SubscriptionStatus.ACTIVE;
         this.cancelReason = null;
