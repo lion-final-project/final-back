@@ -69,15 +69,20 @@ public enum ErrorCode {
     INVALID_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-010", "재고는 0개 이상이어야 합니다."),
     INVALID_ORIGIN(HttpStatus.BAD_REQUEST, "PRODUCT-011", "원산지는 100자를 초과할 수 없습니다."),
     INVALID_PRODUCT_IMAGE_URL(HttpStatus.BAD_REQUEST, "PRODUCT-012", "상품 이미지 URL은 500자를 초과할 수 없습니다."),
-    PRODUCT_CHANGE_NOT_ALLOWED_DURING_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "PRODUCT-013", "운영 시간에는 상품 정보를 수정, 삭제 할 수 없습니다."),
+    PRODUCT_CHANGE_NOT_ALLOWED_DURING_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "PRODUCT-013",
+            "운영 시간에는 상품 정보를 수정, 삭제 할 수 없습니다."),
     INSUFFICIENT_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-014", "재고가 부족합니다."),
     INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "PRODUCT-015", "수량은 1 이상이어야 합니다."),
+    PRODUCT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "PRODUCT-016", "현재 상품을 주문할 수 없습니다."),
+
 
     // SUBSCRIPTION PRODUCT
     SUBSCRIPTION_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBSCRIPTION-001", "구독 상품을 찾을 수 없거나 해당 마트 소속이 아닙니다."),
     SUBSCRIPTION_PRODUCT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-002", "해당 구독 상품 상태로 전환할 수 없습니다."),
-    SUBSCRIPTION_PRODUCT_DELETION_REQUIRES_INACTIVE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-003", "구독 상품을 숨김 상태로 전환한 뒤 삭제를 요청할 수 있습니다."),
-    SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-004", "구독자가 있어 즉시 삭제할 수 없습니다. 구독자가 0명일 때만 삭제 가능합니다."),
+    SUBSCRIPTION_PRODUCT_DELETION_REQUIRES_INACTIVE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-003",
+            "구독 상품을 숨김 상태로 전환한 뒤 삭제를 요청할 수 있습니다."),
+    SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-004",
+            "구독자가 있어 즉시 삭제할 수 없습니다. 구독자가 0명일 때만 삭제 가능합니다."),
 
     // SUBSCRIPTION
     SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBSCRIPTION-005", "구독을 찾을 수 없습니다."),
@@ -103,9 +108,17 @@ public enum ErrorCode {
     ADMIN_AUTHORITY_REQUIRED(HttpStatus.FORBIDDEN, "ADMIN-001", "관리자만 접근 가능합니다."),
 
     // NOTIFICATION
-    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "Notification-001", "알림을 조회할 수 없습니다."),
-    NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "Notification-002", "자신의 알림만 접근할 수 있습니다."),
-    ;
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "알림을 조회할 수 없습니다."),
+    NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "NOTIFICATION-002", "자신의 알림만 접근할 수 있습니다."),
+
+    // ORDER
+    INVALID_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "ORDER-001", "최종금액은 0 이상입니다."),
+    INVALID_ORDER_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "ORDER-002", "존재하지 않는 주문 방식입니다."),
+
+    // PAYMENT
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-001", "결제를 조회할 수 없습니다."),
+    ALREADY_PROCESSED_PAYMENT(HttpStatus.BAD_REQUEST, "PAYMENT-002", "이미 처리된 결제입니다.");
+
 
     private final HttpStatus status;
     private final String code;

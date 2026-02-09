@@ -39,14 +39,14 @@ public class Payment extends BaseTimeEntity {
     private Order order;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "payment_method", nullable = false)
+    @Column(name = "payment_method")
     private PaymentMethodType paymentMethod;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status", nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
-    @Column(nullable = false, precision = 12, scale = 2)
+    @Column(nullable = false)
     private Integer amount;
 
     @Column(name = "pg_provider", length = 50)
@@ -54,6 +54,12 @@ public class Payment extends BaseTimeEntity {
 
     @Column(name = "pg_transaction_id", length = 100)
     private String pgTransactionId;
+
+    @Column(name = "payment_key", unique = true, length = 200)
+    private String paymentKey;
+
+    @Column(name = "pg_order_id", nullable = false, unique = true, length = 50)
+    private String pgOrderId;
 
     @Column(name = "card_company", length = 50)
     private String cardCompany;
@@ -67,9 +73,29 @@ public class Payment extends BaseTimeEntity {
     private LocalDateTime paidAt;
 
     @Builder
-    public Payment(Order order, PaymentMethodType paymentMethod, Integer amount) {
+    public Payment(Order order, PaymentStatus paymentStatus, PaymentMethodType paymentMethod, Integer amount,
+                   String pgOrderId, String pgProvider) {
         this.order = order;
+        this.paymentStatus = paymentStatus;
         this.paymentMethod = paymentMethod;
         this.amount = amount;
+        this.pgOrderId = pgOrderId;
+        this.pgProvider = pgProvider;
     }
+
+    public void approve(String paymentKey,
+                        String pgTransactionId,
+                        String receiptUrl) {
+
+        this.paymentKey = paymentKey;
+        this.pgTransactionId = pgTransactionId;
+        this.receiptUrl = receiptUrl;
+        this.paymentStatus = PaymentStatus.APPROVED;
+        this.paidAt = LocalDateTime.now();
+    }
+
+    public void fail(String reason) {
+        this.paymentStatus = PaymentStatus.FAILED;
+    }
+
 }
