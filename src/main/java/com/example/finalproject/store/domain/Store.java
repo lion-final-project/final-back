@@ -89,9 +89,6 @@ public class Store extends BaseTimeEntity {
     @Column(name = "is_active", nullable = false)
     private StoreActiveStatus isActive = StoreActiveStatus.ACTIVE;
 
-    @Column(name = "status_reason", columnDefinition = "TEXT")
-    private String statusReason;
-
     @Column(name = "commission_rate", nullable = false, precision = 5, scale = 2)
     private BigDecimal commissionRate = new BigDecimal("5.00");
 
@@ -123,10 +120,6 @@ public class Store extends BaseTimeEntity {
     /** 활성 상태 설정 (시드/테스트 데이터용) */
     public void setActiveStatus(StoreActiveStatus activeStatus) {
         this.isActive = activeStatus;
-    }
-
-    public void setStatusReason(String statusReason) {
-        this.statusReason = statusReason;
     }
 
     @Builder
