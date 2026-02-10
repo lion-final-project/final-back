@@ -100,6 +100,7 @@ public enum ErrorCode {
     // DELIVERY
     DISTANCE_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELIVERY-001", "배달바 계산에 실패했습니다."),
     DELIVERY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "DELIVERY-002", "배달 가능한 지역이 아닙니다."),
+    RIDER_NOT_FOUND(HttpStatus.NOT_FOUND, "DELIVERY-003", "라이더를 찾을 수 없습니다."),
 
     // INQUIRY
     INQUIRY_NOT_FOUND(HttpStatus.NOT_FOUND, "INQUIRY-001", "문의를 조회할 수 없습니다."),

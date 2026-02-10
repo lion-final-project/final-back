@@ -21,6 +21,8 @@ public interface ApprovalRepository extends JpaRepository<Approval, Long> {
     List<Approval> findByApplicantTypeAndStatusIn(ApplicantType applicantType,
                                                   List<ApprovalStatus> statuses);
 
+    long countByApplicantTypeAndStatus(ApplicantType applicantType, ApprovalStatus status);
+
     Optional<Approval> findByIdAndApplicantType(Long id, ApplicantType applicantType);
 
     boolean existsByUserAndStatus(User user, ApprovalStatus status);

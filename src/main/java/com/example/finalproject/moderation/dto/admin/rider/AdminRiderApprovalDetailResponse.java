@@ -39,8 +39,6 @@ public class AdminRiderApprovalDetailResponse {
         private String userName;
         // 사용자 연락처
         private String userPhone;
-        // 신분증 인증 여부
-        private Boolean idCardVerified;
         // 은행명
         private String bankName;
         // 계좌번호
