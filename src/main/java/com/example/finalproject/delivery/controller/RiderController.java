@@ -102,7 +102,7 @@ public class RiderController {
 
     /**
      * 특정 라이더 위치 조회
-     * @param riderId 라이더 식별자
+     * @param riderId 레디스 라이더 식별자
      */
     @GetMapping("/locations/{riderId}")
     public ResponseEntity<ApiResponse<GetRiderLocationResponse>> getRiderLocation(
@@ -113,7 +113,7 @@ public class RiderController {
 
     /**
      * 라이더 위치 삭제
-     * @param riderId 라이더 식별자
+     * @param riderId 레디스 라이더 식별자
      */
     @DeleteMapping("/locations/{riderId}")
     public ResponseEntity<ApiResponse<Void>> removeRiderLocation(
