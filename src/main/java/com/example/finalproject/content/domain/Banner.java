@@ -38,7 +38,7 @@ public class Banner extends BaseTimeEntity {
     @Column(name = "link_url", length = 500)
     private String linkUrl;
 
-    @Column(name = "background_color", length = 50)
+    @Column(name = "background_color", length = 255)
     private String backgroundColor;
 
     @Column(name = "display_order", nullable = false)
