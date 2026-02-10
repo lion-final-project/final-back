@@ -56,6 +56,9 @@ public enum ErrorCode {
     // NOTICE
     NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE-001", "공지사항을 찾을 수 없습니다."),
 
+    // BANNER
+    BANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "BANNER-001", "배너를 찾을 수 없습니다."),
+
     // PRODUCT
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT-001", "상품을 찾을 수 없거나 해당 마트 소속이 아닙니다."),
     PRODUCT_INACTIVE(HttpStatus.BAD_REQUEST, "PRODUCT-002", "판매 중지된 상품입니다"),

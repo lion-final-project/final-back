@@ -55,11 +55,31 @@ public class Banner extends BaseTimeEntity {
     private LocalDateTime endedAt;
 
     @Builder
-    public Banner(String title, String imageUrl, LocalDateTime startedAt,
-                  LocalDateTime endedAt) {
+    public Banner(String title, String content, String imageUrl, String linkUrl,
+                  String backgroundColor, Integer displayOrder, ContentStatus status,
+                  LocalDateTime startedAt, LocalDateTime endedAt) {
         this.title = title;
+        this.content = content;
         this.imageUrl = imageUrl;
+        this.linkUrl = linkUrl;
+        this.backgroundColor = backgroundColor;
+        this.displayOrder = displayOrder != null ? displayOrder : 0;
+        this.status = status != null ? status : ContentStatus.ACTIVE;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
+    }
+
+    public void update(String title, String content, String imageUrl, String linkUrl,
+                       String backgroundColor, Integer displayOrder, ContentStatus status,
+                       LocalDateTime startedAt, LocalDateTime endedAt) {
+        if (title != null) this.title = title;
+        if (content != null) this.content = content;
+        if (imageUrl != null) this.imageUrl = imageUrl;
+        if (linkUrl != null) this.linkUrl = linkUrl;
+        if (backgroundColor != null) this.backgroundColor = backgroundColor;
+        if (displayOrder != null) this.displayOrder = displayOrder;
+        if (status != null) this.status = status;
+        if (startedAt != null) this.startedAt = startedAt;
+        if (endedAt != null) this.endedAt = endedAt;
     }
 }
