@@ -24,7 +24,7 @@ public class PostSubscriptionRequest {
     @NotNull(message = "배송지 ID는 필수입니다.")
     private Long addressId;
 
-    @NotNull(message = "결제수단 ID는 필수입니다.")
+    /** 결제 수단 ID. null이면 해당 사용자의 기본 결제 수단 사용 */
     private Long paymentMethodId;
 
     /** 배송 요일 (0=일, 1=월, …, 6=토). 비어있으면 구독 상품의 배송 요일 사용 */

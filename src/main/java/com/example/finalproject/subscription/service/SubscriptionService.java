@@ -174,8 +174,14 @@ public class SubscriptionService {
             throw new BusinessException(ErrorCode.ADDRESS_NOT_FOUND);
         }
 
-        PaymentMethod paymentMethod = paymentMethodRepository.findByIdAndUser_Id(request.getPaymentMethodId(), userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
+        PaymentMethod paymentMethod;
+        if (request.getPaymentMethodId() != null) {
+            paymentMethod = paymentMethodRepository.findByIdAndUser_Id(request.getPaymentMethodId(), userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_METHOD_NOT_FOUND));
+        } else {
+            paymentMethod = paymentMethodRepository.findFirstByUserIdAndIsDefaultTrue(userId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_METHOD_NOT_FOUND));
+        }
 
         String deliveryTimeSlot = request.getDeliveryTimeSlot();
         if (deliveryTimeSlot == null || deliveryTimeSlot.isBlank()) {

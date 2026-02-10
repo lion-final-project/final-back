@@ -78,6 +78,7 @@ public enum ErrorCode {
     SUBSCRIPTION_PRODUCT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-002", "해당 구독 상품 상태로 전환할 수 없습니다."),
     SUBSCRIPTION_PRODUCT_DELETION_REQUIRES_INACTIVE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-003", "구독 상품을 숨김 상태로 전환한 뒤 삭제를 요청할 수 있습니다."),
     SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-004", "구독자가 있어 즉시 삭제할 수 없습니다. 구독자가 0명일 때만 삭제 가능합니다."),
+    SUBSCRIPTION_PRODUCT_NOTIFY_REQUIRES_PENDING_DELETE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-010", "삭제 예정 상태인 구독 상품에만 구독자 알림을 발송할 수 있습니다."),
     SUBSCRIPTION_PRODUCT_HAS_NO_ITEMS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-009", "구독 상품에 구성 품목이 없습니다."),
     
     // SUBSCRIPTION
