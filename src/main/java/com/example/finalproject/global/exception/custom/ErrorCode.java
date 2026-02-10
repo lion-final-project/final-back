@@ -28,6 +28,8 @@ public enum ErrorCode {
     STORE_ALREADY_APPROVED(HttpStatus.BAD_REQUEST, "STORE-009", "이미 승인된 상점은 취소할 수 없습니다."),
     STORE_NOT_APPROVED(HttpStatus.FORBIDDEN, "STORE-010", "승인된 마트만 상품을 등록할 수 있습니다."),
     DUPLICATE_PRODUCT_NAME(HttpStatus.CONFLICT, "STORE-011", "이미 마트에 등록된 상품명입니다."),
+    STORE_NOT_ACTIVE(HttpStatus.BAD_REQUEST, "STORE-012", "현재 영업 중인 마트가 아닙니다."),
+    STORE_OUTSIDE_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "STORE-013", "영업시간이 아닙니다."),
 
     // AUTH
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH-001", "인증이 필요합니다."),
@@ -132,7 +134,15 @@ public enum ErrorCode {
     COUPON_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-006", "쿠폰을 찾을 수 없거나 사용할 수 없습니다."),
     INVALID_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "ORDER-007", "최종금액은 0 이상입니다."),
     INVALID_ORDER_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "ORDER-008", "존재하지 않는 주문 방식입니다."),
+    ORDER_NOT_PAID(HttpStatus.BAD_REQUEST, "ORDER-00", "결제 완료된 주문만 주문접수가 가능합니다."),
 
+    // STORE ORDER
+    STORE_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE-ORDER-001", "마트 주문을 찾을 수 없습니다."),
+    STORE_ORDER_FORBIDDEN(HttpStatus.FORBIDDEN, "STORE-ORDER-002", "해당 마트의 주문이 아닙니다."),
+    STORE_ORDER_NOT_PENDING(HttpStatus.BAD_REQUEST, "STORE-ORDER-003", "대기 중인 주문만 처리할 수 있습니다."),
+    STORE_ORDER_NOT_ACCEPTED(HttpStatus.BAD_REQUEST, "STORE-ORDER-004", "접수된 주문만 준비완료 처리할 수 있습니다."),
+    STORE_ORDER_NOT_READY(HttpStatus.BAD_REQUEST, "STORE-ORDER-005", "준비완료된 주문만 픽업 처리할 수 있습니다."),
+    STORE_ORDER_ALREADY_PROCESSED(HttpStatus.CONFLICT, "STORE-ORDER-006", "이미 처리된 주문입니다."),
     ;
 
     private final HttpStatus status;
