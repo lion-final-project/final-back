@@ -2,6 +2,7 @@ package com.example.finalproject.content.service;
 
 import com.example.finalproject.content.domain.Banner;
 import com.example.finalproject.content.dto.request.PatchBannerUpdateRequest;
+import com.example.finalproject.content.dto.request.PatchBannerOrderRequest;
 import com.example.finalproject.content.dto.request.PostBannerCreateRequest;
 import com.example.finalproject.content.dto.response.GetBannerResponse;
 import com.example.finalproject.content.dto.response.PatchBannerUpdateResponse;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -101,5 +103,36 @@ public class BannerService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.BANNER_NOT_FOUND));
 
         bannerRepository.delete(banner);
+    }
+
+    /**
+     * 배너 노출 순서 업데이트
+     */
+    @Transactional
+    public void updateBannerOrder(List<Long> bannerIds, String email) {
+        userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        List<Banner> banners = bannerRepository.findAllById(bannerIds);
+        Map<Long, Banner> bannerMap = banners.stream()
+                .collect(Collectors.toMap(Banner::getId, b -> b));
+
+        for (int i = 0; i < bannerIds.size(); i++) {
+            Long id = bannerIds.get(i);
+            Banner banner = bannerMap.get(id);
+            if (banner != null) {
+                banner.update(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        i, // displayOrder를 인덱스로 설정 (0부터 시작)
+                        null,
+                        null,
+                        null
+                );
+            }
+        }
     }
 }

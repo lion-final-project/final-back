@@ -1,6 +1,7 @@
 package com.example.finalproject.content.controller;
 
 import com.example.finalproject.content.dto.request.PatchBannerUpdateRequest;
+import com.example.finalproject.content.dto.request.PatchBannerOrderRequest;
 import com.example.finalproject.content.dto.request.PostBannerCreateRequest;
 import com.example.finalproject.content.dto.response.GetBannerResponse;
 import com.example.finalproject.content.dto.response.PatchBannerUpdateResponse;
@@ -76,5 +77,17 @@ public class BannerController {
         String email = authentication.getName();
         bannerService.deleteBanner(bannerId, email);
         return ResponseEntity.ok(ApiResponse.success(Map.of("message", "배너가 삭제되었습니다.")));
+    }
+
+    /**
+     * 배너 노출 순서 변경
+     */
+    @PatchMapping("/order")
+    public ResponseEntity<ApiResponse<Object>> updateBannerOrder(
+            @Valid @RequestBody PatchBannerOrderRequest request,
+            Authentication authentication) {
+        String email = authentication.getName();
+        bannerService.updateBannerOrder(request.getBannerIds(), email);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("message", "배너 순서가 변경되었습니다.")));
     }
 }
