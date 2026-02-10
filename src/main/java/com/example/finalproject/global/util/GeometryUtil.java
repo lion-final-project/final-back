@@ -28,6 +28,14 @@ public class GeometryUtil {
         return GEOMETRY_FACTORY.createPoint(new Coordinate(longitude, latitude));
     }
 
+    public static org.springframework.data.geo.Point createPointForRedis(Double longitude, Double latitude){
+        if (longitude == null || latitude == null) {
+            return null;
+        }
+        validateCoordinates(longitude, latitude);
+        return new org.springframework.data.geo.Point(longitude, latitude);
+    }
+
     /**
      * 좌표에서 경도(X)를 추출합니다.
      * @param point 좌표
@@ -41,6 +49,14 @@ public class GeometryUtil {
      * @param point 좌표
      */
     public static Double getLatitude(Point point) {
+        return point != null ? point.getY() : null;
+    }
+
+    public static Double getLongitudeInRedis(org.springframework.data.geo.Point point){
+        return point != null ? point.getX() : null;
+    }
+
+    public static Double getLatitudeInRedis(org.springframework.data.geo.Point point){
         return point != null ? point.getY() : null;
     }
 
