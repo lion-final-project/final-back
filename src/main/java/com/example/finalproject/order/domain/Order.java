@@ -74,6 +74,7 @@ public class Order extends BaseTimeEntity {
                  Integer totalProductPrice, Integer totalDeliveryFee,
                  Integer finalPrice, String deliveryAddress,
                  Point deliveryLocation, String deliveryRequest, LocalDateTime orderedAt) {
+
         this.orderNumber = orderNumber;
         this.user = user;
         this.orderType = orderType != null ? orderType : OrderType.REGULAR;
@@ -84,5 +85,9 @@ public class Order extends BaseTimeEntity {
         this.deliveryLocation = deliveryLocation;
         this.deliveryRequest = deliveryRequest;
         this.orderedAt = orderedAt;
+    }
+
+    public void markPaid() {
+        this.status = OrderStatus.PAID;
     }
 }

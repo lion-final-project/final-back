@@ -69,23 +69,30 @@ public enum ErrorCode {
     INVALID_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-010", "재고는 0개 이상이어야 합니다."),
     INVALID_ORIGIN(HttpStatus.BAD_REQUEST, "PRODUCT-011", "원산지는 100자를 초과할 수 없습니다."),
     INVALID_PRODUCT_IMAGE_URL(HttpStatus.BAD_REQUEST, "PRODUCT-012", "상품 이미지 URL은 500자를 초과할 수 없습니다."),
-    PRODUCT_CHANGE_NOT_ALLOWED_DURING_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "PRODUCT-013", "운영 시간에는 상품 정보를 수정, 삭제 할 수 없습니다."),
+    PRODUCT_CHANGE_NOT_ALLOWED_DURING_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "PRODUCT-013",
+            "운영 시간에는 상품 정보를 수정, 삭제 할 수 없습니다."),
     INSUFFICIENT_STOCK(HttpStatus.BAD_REQUEST, "PRODUCT-014", "재고가 부족합니다."),
     INVALID_STOCK_QUANTITY(HttpStatus.BAD_REQUEST, "PRODUCT-015", "수량은 1 이상이어야 합니다."),
+    PRODUCT_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "PRODUCT-016", "현재 상품을 주문할 수 없습니다."),
+
 
     // SUBSCRIPTION PRODUCT
     SUBSCRIPTION_PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBSCRIPTION-001", "구독 상품을 찾을 수 없거나 해당 마트 소속이 아닙니다."),
     SUBSCRIPTION_PRODUCT_INVALID_STATUS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-002", "해당 구독 상품 상태로 전환할 수 없습니다."),
-    SUBSCRIPTION_PRODUCT_DELETION_REQUIRES_INACTIVE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-003", "구독 상품을 숨김 상태로 전환한 뒤 삭제를 요청할 수 있습니다."),
-    SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-004", "구독자가 있어 즉시 삭제할 수 없습니다. 구독자가 0명일 때만 삭제 가능합니다."),
-    SUBSCRIPTION_PRODUCT_NOTIFY_REQUIRES_PENDING_DELETE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-010", "삭제 예정 상태인 구독 상품에만 구독자 알림을 발송할 수 있습니다."),
+    SUBSCRIPTION_PRODUCT_DELETION_REQUIRES_INACTIVE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-003",
+            "구독 상품을 숨김 상태로 전환한 뒤 삭제를 요청할 수 있습니다."),
+    SUBSCRIPTION_PRODUCT_HAS_SUBSCRIBERS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-004",
+            "구독자가 있어 즉시 삭제할 수 없습니다. 구독자가 0명일 때만 삭제 가능합니다."),
+    SUBSCRIPTION_PRODUCT_NOTIFY_REQUIRES_PENDING_DELETE(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-010",
+            "삭제 예정 상태인 구독 상품에만 구독자 알림을 발송할 수 있습니다."),
     SUBSCRIPTION_PRODUCT_HAS_NO_ITEMS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-009", "구독 상품에 구성 품목이 없습니다."),
-    
+
     // SUBSCRIPTION
     SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "SUBSCRIPTION-005", "구독을 찾을 수 없습니다."),
     SUBSCRIPTION_FORBIDDEN(HttpStatus.FORBIDDEN, "SUBSCRIPTION-006", "본인의 구독에만 접근할 수 있습니다."),
     SUBSCRIPTION_INVALID_STATUS(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-007", "해당 상태에서는 요청한 작업을 수행할 수 없습니다."),
-    SUBSCRIPTION_INVALID_DELIVERY_TIME_SLOT(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-008", "배송 시간대는 08:00~11:00, 11:00~14:00, 14:00~17:00, 17:00~20:00 중 하나여야 합니다."),
+    SUBSCRIPTION_INVALID_DELIVERY_TIME_SLOT(HttpStatus.BAD_REQUEST, "SUBSCRIPTION-008",
+            "배송 시간대는 08:00~11:00, 11:00~14:00, 14:00~17:00, 17:00~20:00 중 하나여야 합니다."),
 
     // CART
     CART_NOT_FOUND(HttpStatus.NOT_FOUND, "CART-001", "장바구니가 없습니다"),
@@ -112,13 +119,20 @@ public enum ErrorCode {
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "알림을 조회할 수 없습니다."),
     NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "NOTIFICATION-002", "자신의 알림만 접근할 수 있습니다."),
 
+    // PAYMENT
+    PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-001", "결제를 조회할 수 없습니다."),
+    ALREADY_PROCESSED_PAYMENT(HttpStatus.BAD_REQUEST, "PAYMENT-002", "이미 처리된 결제입니다."),
+    PAYMENT_METHOD_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-003", "결제 수단을 찾을 수 없습니다."),
+
     // ORDER (order-checkout)
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-001", "주문을 찾을 수 없습니다."),
-    PAYMENT_METHOD_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-001", "결제 수단을 찾을 수 없습니다."),
     POINTS_MUST_BE_NON_NEGATIVE(HttpStatus.BAD_REQUEST, "ORDER-002", "사용 포인트는 0 이상이어야 합니다."),
     POINTS_EXCEED_ORDER_TOTAL(HttpStatus.BAD_REQUEST, "ORDER-003", "사용 포인트는 상품금액+배송비를 초과할 수 없습니다."),
     DISCOUNT_EXCEEDS_PRODUCT_TOTAL(HttpStatus.BAD_REQUEST, "ORDER-005", "쿠폰 할인 금액이 상품 금액을 초과할 수 없습니다."),
     COUPON_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-006", "쿠폰을 찾을 수 없거나 사용할 수 없습니다."),
+    INVALID_ORDER_AMOUNT(HttpStatus.BAD_REQUEST, "ORDER-007", "최종금액은 0 이상입니다."),
+    INVALID_ORDER_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "ORDER-008", "존재하지 않는 주문 방식입니다."),
+
     ;
 
     private final HttpStatus status;

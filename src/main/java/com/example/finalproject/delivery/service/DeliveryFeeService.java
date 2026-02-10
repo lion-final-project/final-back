@@ -3,6 +3,8 @@ package com.example.finalproject.delivery.service;
 import com.example.finalproject.delivery.repository.DeliveryDistanceRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
+import com.example.finalproject.product.domain.Product;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +23,14 @@ public class DeliveryFeeService {
         double distanceKm = distanceMeter / 1000.0;
 
         return determineFeeByDistance(distanceKm);
+    }
+
+    public int calculateTotalDeliveryFee(Long userId, List<Product> products) {
+        return products.stream()
+                .map(Product::getStore)
+                .distinct()
+                .mapToInt(store -> calculateDeliveryFee(userId, store.getId()))
+                .sum();
     }
 
     private int determineFeeByDistance(double km) {
