@@ -18,7 +18,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
@@ -34,7 +34,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Profile(value = "local")
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
+@EnableConfigurationProperties({ JwtProperties.class, KakaoProperties.class })
 public class SecurityLocalConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -43,9 +43,9 @@ public class SecurityLocalConfig {
     private final ClientRegistrationRepository clientRegistrationRepository;
 
     public SecurityLocalConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                               @Lazy KakaoService kakaoService,
-                               @Lazy KakaoProperties kakaoProperties,
-                               ClientRegistrationRepository clientRegistrationRepository) {
+            @Lazy KakaoService kakaoService,
+            @Lazy KakaoProperties kakaoProperties,
+            ClientRegistrationRepository clientRegistrationRepository) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.kakaoService = kakaoService;
         this.kakaoProperties = kakaoProperties;
@@ -53,8 +53,8 @@ public class SecurityLocalConfig {
     }
 
     private OAuth2AuthorizationRequestResolver kakaoAuthorizationRequestResolver() {
-        DefaultOAuth2AuthorizationRequestResolver resolver =
-                new DefaultOAuth2AuthorizationRequestResolver(clientRegistrationRepository, "/oauth2/authorization");
+        DefaultOAuth2AuthorizationRequestResolver resolver = new DefaultOAuth2AuthorizationRequestResolver(
+                clientRegistrationRepository, "/oauth2/authorization");
         resolver.setAuthorizationRequestCustomizer(kakaoPromptLoginCustomizer());
         return resolver;
     }
@@ -66,7 +66,7 @@ public class SecurityLocalConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 
     @Bean
@@ -76,8 +76,7 @@ public class SecurityLocalConfig {
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "http://127.0.0.1:5173",
-                "http://127.0.0.1:3000"
-        ));
+                "http://127.0.0.1:3000"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true); // 쿠키 포함 여부
@@ -97,8 +96,7 @@ public class SecurityLocalConfig {
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
-                        })
-                )
+                        }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/admin/**").authenticated()
                         .requestMatchers("/api/cart", "/api/cart/**").authenticated()
@@ -111,9 +109,8 @@ public class SecurityLocalConfig {
                         .requestMatchers("/api/stores/**").authenticated()
                         .requestMatchers("/api/storage/store/image").authenticated()
                         .requestMatchers("/api/storage/product/image*").permitAll()
-                        .requestMatchers(HttpMethod.GET,"/api/users/stores*").permitAll()
-                        .anyRequest().permitAll()
-                )
+                        .requestMatchers(HttpMethod.GET, "/api/users/stores*").permitAll()
+                        .anyRequest().permitAll())
                 .oauth2Login(oauth2 -> {
                     oauth2.authorizationEndpoint(auth -> auth
                             .authorizationRequestResolver(kakaoAuthorizationRequestResolver()));
