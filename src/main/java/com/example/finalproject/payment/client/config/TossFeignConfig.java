@@ -8,7 +8,6 @@ import java.util.Base64;
 import org.springframework.context.annotation.Bean;
 
 public class TossFeignConfig {
-
     @Bean
     public RequestInterceptor tossAuthInterceptor(TossPaymentsProperties props) {
         return template -> {

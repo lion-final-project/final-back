@@ -3,12 +3,16 @@ package com.example.finalproject.delivery.service;
 
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.dto.request.PatchRiderStatusRequest;
+import com.example.finalproject.delivery.dto.request.PostRiderLocationRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderRegisterRequest;
+import com.example.finalproject.delivery.dto.response.GetRiderLocationResponse;
 import com.example.finalproject.delivery.dto.response.RiderApprovalResponse;
 import com.example.finalproject.delivery.dto.response.RiderResponse;
 import com.example.finalproject.delivery.enums.RiderOperationStatus;
 import com.example.finalproject.delivery.repository.RiderRepository;
+import com.example.finalproject.delivery.service.interfaces.RiderLocationService;
 import com.example.finalproject.delivery.service.interfaces.RiderService;
+import com.example.finalproject.global.util.GeometryUtil;
 import com.example.finalproject.moderation.domain.Approval;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.ApprovalStatus;
@@ -17,18 +21,27 @@ import com.example.finalproject.moderation.repository.ApprovalRepository;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.geo.Point;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class RiderServiceImpl implements RiderService {
+public class RiderServiceImpl implements RiderService, RiderLocationService {
     private final RiderRepository riderRepository;
     private final UserRepository userRepository;
     private final ApprovalRepository approvalRepository;
+
+    private final StringRedisTemplate redisTemplate;
+    private static final String RIDER_GEO_KEY = "rider:locations";
 
     @Override
     public RiderResponse getRiderInfo(String username) {
@@ -130,5 +143,40 @@ public class RiderServiceImpl implements RiderService {
          ){
              throw new RuntimeException("Cannot delete: Not PENDING or HELD");
          }
+    }
+
+    @Override
+    public void updateRiderLocation(PostRiderLocationRequest request) {
+        log.info("updateRiderLocation 호출 - riderId: {}, lon: {}, lat: {}",
+                request.getRiderId(), request.getLongitude(), request.getLatitude());
+        try {
+            Point point = GeometryUtil.createPointForRedis(request.getLongitude(), request.getLatitude());
+            log.info("Point 생성 결과: {}", point);
+            redisTemplate.opsForGeo().add(RIDER_GEO_KEY, point, request.getRiderId());
+        } catch (Exception e) {
+            log.error("Redis GEO 저장 실패", e);
+            throw e;
+        }
+    }
+
+    @Override
+    public void removeRider(String riderId) {
+        redisTemplate.opsForZSet().remove(RIDER_GEO_KEY, riderId);
+    }
+
+    @Override
+    public GetRiderLocationResponse getRiderLocation(String riderId) {
+        List<Point> positions = redisTemplate.opsForGeo().position(RIDER_GEO_KEY, riderId);
+
+        if (positions == null || positions.isEmpty() || positions.getFirst() == null) {
+            throw new RuntimeException("라이더 위치 정보를 찾을 수 없습니다.");
+        }
+
+        Point point = positions.getFirst();
+        return GetRiderLocationResponse.builder()
+                .riderId(riderId)
+                .longitude(point.getX())
+                .latitude(point.getY())
+                .build();
     }
 }
