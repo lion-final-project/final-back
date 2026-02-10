@@ -97,7 +97,6 @@ public class AdminRiderApprovalService {
                         approval.getUser().getId(),
                         approval.getUser().getName(),
                         approval.getUser().getPhone(),
-                        rider.getIdCardVerified(),
                         rider.getBankName(),
                         rider.getBankAccount(),
                         rider.getAccountHolder()
