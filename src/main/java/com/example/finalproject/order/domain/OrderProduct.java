@@ -56,4 +56,15 @@ public class OrderProduct extends BaseTimeEntity {
         this.priceSnapshot = priceSnapshot;
         this.quantity = quantity;
     }
+
+    public static OrderProduct of(StoreOrder storeOrder, Product product, OrderLine line) {
+        return OrderProduct.builder()
+                .storeOrder(storeOrder)
+                .product(product)
+                .productNameSnapshot(line.getProductNameSnapshot())
+                .priceSnapshot(line.getPriceSnapshot())
+                .quantity(line.getQuantity())
+                .build();
+    }
+
 }
