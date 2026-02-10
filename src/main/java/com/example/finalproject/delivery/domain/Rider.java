@@ -55,9 +55,6 @@ public class Rider extends BaseTimeEntity {
     @Column(nullable = false)
     private RiderApprovalStatus status = RiderApprovalStatus.PENDING;
 
-    @Column(name = "status_reason", columnDefinition = "TEXT")
-    private String statusReason;
-
     @Builder
     public Rider(User user, String bankName, String bankAccount, String accountHolder) {
         this.user = user;
@@ -72,10 +69,6 @@ public class Rider extends BaseTimeEntity {
 
     public void reject() {
         this.status = RiderApprovalStatus.REJECTED;
-    }
-
-    public void setStatusReason(String statusReason) {
-        this.statusReason = statusReason;
     }
 
     public RiderResponse createResponse() {
