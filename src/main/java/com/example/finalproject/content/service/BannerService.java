@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,22 @@ public class BannerService {
 
     public List<GetBannerResponse> getBanners() {
         return bannerRepository.findAllByOrderByDisplayOrderAscIdAsc().stream()
+                .map(GetBannerResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 고객용 배너 조회
+     * - ACTIVE 상태
+     * - 노출 기간 내에 있는 배너만
+     * - displayOrder, id 순으로 정렬
+     */
+    public List<GetBannerResponse> getActiveBannersForCustomer() {
+        LocalDateTime now = LocalDateTime.now();
+        return bannerRepository.findAllByOrderByDisplayOrderAscIdAsc().stream()
+                .filter(banner -> banner.getStatus() == ContentStatus.ACTIVE
+                        && (banner.getStartedAt() == null || !banner.getStartedAt().isAfter(now))
+                        && (banner.getEndedAt() == null || !banner.getEndedAt().isBefore(now)))
                 .map(GetBannerResponse::from)
                 .collect(Collectors.toList());
     }
