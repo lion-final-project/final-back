@@ -17,7 +17,7 @@ public class PostBannerCreateRequest {
 
     private String content;
 
-    @NotBlank(message = "이미지 URL은 필수입니다.")
+    // 이미지 URL은 선택 입력 (URL 직접 입력 또는 파일 업로드 결과 사용)
     private String imageUrl;
 
     private String linkUrl;

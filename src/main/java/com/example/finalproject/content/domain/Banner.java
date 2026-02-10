@@ -32,7 +32,7 @@ public class Banner extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    @Column(name = "image_url", nullable = false, length = 500)
+    @Column(name = "image_url", length = 500)
     private String imageUrl;
 
     @Column(name = "link_url", length = 500)
