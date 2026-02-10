@@ -20,4 +20,5 @@ public interface StoreRepository extends JpaRepository<Store, Long>, StoreReposi
 
     Optional<Store> findByOwner(User owner);
 
+    Optional<Store> findByOwnerEmail(String ownerEmail);
 }
