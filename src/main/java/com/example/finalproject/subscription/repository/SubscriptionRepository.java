@@ -31,6 +31,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
      */
     List<Subscription> findByUserIdAndStatusInOrderByCreatedAtDesc(Long userId, Collection<SubscriptionStatus> statuses);
 
+    long countByUserIdAndStatusIn(Long userId, Collection<SubscriptionStatus> statuses);
+
     /**
      * 구독 ID와 소유 사용자 ID로 구독을 조회한다. 본인 구독 여부 검증용.
      *

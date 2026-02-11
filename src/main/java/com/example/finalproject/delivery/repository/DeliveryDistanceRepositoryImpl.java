@@ -32,4 +32,21 @@ public class DeliveryDistanceRepositoryImpl implements DeliveryDistanceRepositor
             throw new BusinessException(ErrorCode.DISTANCE_CALCULATION_FAILED);
         }
     }
+
+    @Override
+    public Double getDistanceToStoreMeterByAddress(Long addressId, Long storeId) {
+        String sql = "SELECT ST_Distance(a.location::geography, s.location::geography) "
+                + "FROM addresses a, stores s "
+                + "WHERE a.id = :addressId AND s.id = :storeId "
+                + "AND a.location IS NOT NULL AND s.location IS NOT NULL ";
+        try {
+            return ((Number) em.createNativeQuery(sql)
+                    .setParameter("addressId", addressId)
+                    .setParameter("storeId", storeId)
+                    .getSingleResult())
+                    .doubleValue();
+        } catch (NoResultException e) {
+            return null;
+        }
+    }
 }

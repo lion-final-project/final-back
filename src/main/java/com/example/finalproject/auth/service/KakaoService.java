@@ -16,6 +16,7 @@ import com.example.finalproject.user.domain.SocialLogin;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.domain.UserRole;
 import com.example.finalproject.user.enums.SocialProvider;
+import com.example.finalproject.user.enums.UserStatus;
 import com.example.finalproject.user.repository.RoleRepository;
 import com.example.finalproject.user.repository.SocialLoginRepository;
 import com.example.finalproject.user.repository.UserRepository;
@@ -71,6 +72,8 @@ public class KakaoService {
                 .map(SocialLogin::getUser)
                 .orElseGet(() -> registerKakaoUser(providerUserId, nickname));
 
+        validateActiveUser(user);
+
         //권한 부여
         List<String> roles = user.getUserRoles().stream()
                 .map(UserRole::getRole)
@@ -112,6 +115,8 @@ public class KakaoService {
         User user = socialLoginRepository.findByProviderAndProviderUserId(SocialProvider.KAKAO, providerUserId)
                 .map(SocialLogin::getUser)
                 .orElseGet(() -> registerKakaoUser(providerUserId, nickname));
+
+        validateActiveUser(user);
 
         List<String> roles = user.getUserRoles().stream()
                 .map(UserRole::getRole)
@@ -297,5 +302,12 @@ public class KakaoService {
                 ZoneId.systemDefault()
         );
         refreshTokenRepository.save(new RefreshToken(user, refreshToken, expiresAt));
+    }
+
+
+    private void validateActiveUser(User user) {
+        if (user.getStatus() != UserStatus.ACTIVE || user.getDeletedAt() != null) {
+            throw new BusinessException(ErrorCode.USER_STATUS_FORBIDDEN);
+        }
     }
 }
