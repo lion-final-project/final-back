@@ -73,9 +73,13 @@ public class RiderController {
             Authentication authentication) {
         Optional<GetRiderRegistrationStatusResponse> result =
                 riderService.getRegistrationStatus(authentication.getName());
-        return result
-                .map(data -> ResponseEntity.ok(ApiResponse.success("조회했습니다.", data)))
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        GetRiderRegistrationStatusResponse response = result.orElseGet(() ->
+                GetRiderRegistrationStatusResponse.builder()
+                        .status("NONE")
+                        .approvalId(null)
+                        .build()
+        );
+        return ResponseEntity.ok(ApiResponse.success("조회했습니다.", response));
     }
 
     @DeleteMapping("/approvals/{approvals-id}")

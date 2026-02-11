@@ -108,10 +108,11 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
     @Override
     public Page<RiderApprovalResponse> getApprovals(String username, Pageable pageable) {
         User user = findUserByUserName(username);
-        if (!riderRepository.existsByUserId(user.getId())){
-            throw new RuntimeException("Rider not found");
+        Optional<Rider> riderOptional = riderRepository.findByUserId(user.getId());
+        if (riderOptional.isEmpty()) {
+            return Page.empty(pageable);
         }
-        Rider rider = findRiderByUsername(username);
+        Rider rider = riderOptional.get();
 
         Page<Approval> approvalPage = approvalRepository
                 .findApprovalsByUserAndApplicantType(user, ApplicantType.RIDER, pageable);
