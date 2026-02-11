@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -93,7 +94,19 @@ public class User extends BaseTimeEntity {
     }
 
     public void deactive() {
+        deactive(LocalDateTime.now());
+    }
+    public void deactive(LocalDateTime deletedAt) {
         this.status = UserStatus.INACTIVE;
-        this.deletedAt = LocalDateTime.now();
+        this.deletedAt = deletedAt;
+    }
+
+    public void maskPersonalInfoForWithdrawal(LocalDateTime deletedAt) {
+        String timestamp = deletedAt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String key = "deleted_" + this.id + "_" + timestamp;
+        this.email = key + "@example.com";
+        String maskedPhone = "del" + this.id + timestamp;
+        this.phone = maskedPhone.length() > 20 ? maskedPhone.substring(0, 20) : maskedPhone;
+        this.name = "탈퇴회원_" + this.id;
     }
 }

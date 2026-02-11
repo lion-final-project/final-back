@@ -6,6 +6,7 @@ import com.example.finalproject.user.dto.request.GetStoreSearchRequest;
 import com.example.finalproject.user.dto.response.GetWithdrawalCheckResponse;
 import com.example.finalproject.user.dto.response.PostWithdrawalConfirmResponse;
 import com.example.finalproject.user.service.interfaces.UserService;
+import com.example.finalproject.user.withdrawal.dto.BlockedReason;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Slice;
@@ -34,23 +35,23 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("마켓 조회 성공", response));
     }
 
-    @GetMapping("/me/withdrawal/check")
+    @GetMapping("/me/withdrawal/eligibility")
     public ResponseEntity<ApiResponse<GetWithdrawalCheckResponse>> checkWithdrawal(Authentication authentication) {
         GetWithdrawalCheckResponse response = userService.checkWithdrawalEligibility(authentication);
         return ResponseEntity.ok(ApiResponse.success("회원 탈퇴 가능 여부 조회가 완료되었습니다.", response));
     }
 
-    @PostMapping("/me/withdrawal")
+    @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<?>> withdraw(Authentication authentication) {
         GetWithdrawalCheckResponse check = userService.checkWithdrawalEligibility(authentication);
-        if (!check.isWithdrawable()) {
-            List<ApiResponse.FieldErrorDetail> details = check.getReasons().stream()
-                    .map(reason -> new ApiResponse.FieldErrorDetail("withdrawal", reason))
+        if (!check.isCanWithdraw()) {
+            List<ApiResponse.FieldErrorDetail> details = check.getBlockedReasons().stream()
+                    .map(BlockedReason::getMessage)
+                    .map(msg -> new ApiResponse.FieldErrorDetail("withdrawal", msg))
                     .toList();
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(ApiResponse.fail("USER-001", "탈퇴가 제한되었습니다.", details));
         }
-
         PostWithdrawalConfirmResponse response = userService.withdraw(authentication);
         return ResponseEntity.ok(ApiResponse.success("회원 탈퇴가 완료되었습니다.", response));
     }

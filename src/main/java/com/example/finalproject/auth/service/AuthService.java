@@ -116,7 +116,7 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BusinessException(ErrorCode.PASSWORD_MISMATCH);
         }
-        if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+        if (user.getStatus() != UserStatus.ACTIVE || user.getDeletedAt() != null) {
             throw new BusinessException(ErrorCode.USER_STATUS_FORBIDDEN);
         }
         List<String> roles = user.getUserRoles().stream()
@@ -149,7 +149,7 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID));
         User user = storedToken.getUser();
 
-        if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+        if (user.getStatus() != UserStatus.ACTIVE || user.getDeletedAt() != null) {
             refreshTokenRepository.delete(storedToken);
             throw new BusinessException(ErrorCode.USER_STATUS_FORBIDDEN);
         }

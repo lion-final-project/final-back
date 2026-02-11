@@ -1,6 +1,5 @@
 package com.example.finalproject.user.dto.response;
 
-import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -8,7 +7,7 @@ import lombok.Getter;
 @Builder
 public class PostWithdrawalConfirmResponse {
 
-    private final Long userId;
-    private final String status;
-    private final LocalDateTime deletedAt;
+    private final String message;
+    private final boolean loggedOut;
+    private final String nextAction;
 }

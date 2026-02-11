@@ -367,7 +367,7 @@ public class LocalDataInitializer implements CommandLineRunner {
 
     /**
      * 회원탈퇴 테스트더미: user@test.com에 진행중 구독, 결제 대기 상태, 진행중 주문 3가지를 넣어
-     * GET /api/users/me/withdrawal/check 시 탈퇴 불가·사유 반환, POST /api/users/me/withdrawal 시 409 검증용.
+     * GET /api/users/me/withdrawal/eligibility 시 탈퇴 불가·사유 반환, DELETE /api/users/me 시 409 검증용.
      */
     private void seedWithdrawalTestDummyData() {
         User testUser = userRepository.findByEmail("user@test.com").orElse(null);
@@ -383,6 +383,7 @@ public class LocalDataInitializer implements CommandLineRunner {
             return;
         }
 
+        // 회원탈퇴 테스트더미: 배송지 또는 결제수단 없으면 스킵
         List<Address> addresses = addressRepository.findByUserOrderByIsDefaultDesc(testUser);
         Address deliveryAddress = addresses.isEmpty() ? null : addresses.get(0);
         PaymentMethod paymentMethod = paymentMethodRepository.findFirstByUserIdAndIsDefaultTrue(testUser.getId()).orElse(null);

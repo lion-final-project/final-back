@@ -306,7 +306,7 @@ public class KakaoService {
 
 
     private void validateActiveUser(User user) {
-        if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+        if (user.getStatus() != UserStatus.ACTIVE || user.getDeletedAt() != null) {
             throw new BusinessException(ErrorCode.USER_STATUS_FORBIDDEN);
         }
     }

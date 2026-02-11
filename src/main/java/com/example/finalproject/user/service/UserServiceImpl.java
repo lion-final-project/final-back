@@ -4,21 +4,19 @@ import com.example.finalproject.auth.repository.RefreshTokenRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.security.CustomUserDetails;
-import com.example.finalproject.order.enums.OrderStatus;
-import com.example.finalproject.order.repository.OrderRepository;
-import com.example.finalproject.payment.enums.PaymentStatus;
-import com.example.finalproject.payment.repository.PaymentRepository;
 import com.example.finalproject.store.dto.response.StoreNearbyResponse;
 import com.example.finalproject.store.repository.StoreRepository;
-import com.example.finalproject.subscription.enums.SubscriptionStatus;
-import com.example.finalproject.subscription.repository.SubscriptionRepository;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.dto.request.GetStoreSearchRequest;
 import com.example.finalproject.user.dto.response.GetWithdrawalCheckResponse;
 import com.example.finalproject.user.dto.response.PostWithdrawalConfirmResponse;
 import com.example.finalproject.user.enums.UserStatus;
+import com.example.finalproject.user.repository.AddressRepository;
+import com.example.finalproject.user.repository.SocialLoginRepository;
 import com.example.finalproject.user.repository.UserRepository;
 import com.example.finalproject.user.service.interfaces.UserService;
+import com.example.finalproject.user.withdrawal.dto.BlockedReason;
+import com.example.finalproject.user.withdrawal.rule.WithdrawalEligibilityRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Slice;
@@ -26,6 +24,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,98 +32,87 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
+    private static final String ALREADY_INACTIVE_CODE = "ALREADY_INACTIVE";
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final PaymentRepository paymentRepository;
-    private final OrderRepository orderRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final AddressRepository addressRepository;
+    private final SocialLoginRepository socialLoginRepository;
+    private final List<WithdrawalEligibilityRule> withdrawalEligibilityRules;
 
     @Override
     public Slice<StoreNearbyResponse> getNearbyStores(GetStoreSearchRequest request) {
         return storeRepository.findNearbyStoresByCategory(request);
     }
 
-    //회원탈퇴 가능 여부 조회
+    //회원탈퇴 사전 가능 여부 조회
     @Override
     @Transactional(readOnly = true)
     public GetWithdrawalCheckResponse checkWithdrawalEligibility(Authentication authentication) {
         User user = getCurrentUser(authentication);
         log.info("[회원탈퇴] 탈퇴 가능 여부 조회 시작 userId={}", user.getId());
 
-        long activeSubscriptionCount = subscriptionRepository.countByUserIdAndStatusIn(
-                user.getId(),
-                List.of(
-                        SubscriptionStatus.ACTIVE,
-                        SubscriptionStatus.PAUSED,
-                        SubscriptionStatus.CANCELLATION_PENDING
-                )
-        );
-        log.info("[회원탈퇴] 구독 여부 확인 userId={}, 진행중 구독 수={}", user.getId(), activeSubscriptionCount);
 
-        long pendingPaymentCount = paymentRepository.countByOrder_UserIdAndPaymentStatus(
-                user.getId(),
-                PaymentStatus.PENDING
-        );
-        log.info("[회원탈퇴] 결제 대기 여부 확인 userId={}, 결제대기 수={}", user.getId(), pendingPaymentCount);
+        List<BlockedReason> blockedReasons = evaluateBlockedReasons(user);
 
-        long inProgressOrderCount = orderRepository.countByUserIdAndStatusIn(
-                user.getId(),
-                List.of(OrderStatus.PENDING, OrderStatus.PAID, OrderStatus.PARTIAL_CANCELLED)
-        );
-        log.info("[회원탈퇴] 주문 진행 여부 확인 userId={}, 진행중 주문 수={}", user.getId(), inProgressOrderCount);
-
-        List<String> reasons = new ArrayList<>();
-        if (user.getStatus() != UserStatus.ACTIVE) {
-            reasons.add("이미 탈퇴했거나 비활성화된 계정입니다.");
-        }
-        if (activeSubscriptionCount > 0) {
-            reasons.add("진행 중인 구독이 있어 탈퇴할 수 없습니다.");
-        }
-        if (pendingPaymentCount > 0) {
-            reasons.add("결제 대기 상태(PENDING)가 있어 탈퇴할 수 없습니다.");
-        }
-        if (inProgressOrderCount > 0) {
-            reasons.add("진행 중인 주문(PENDING/PAID 등)이 있어 탈퇴할 수 없습니다.");
-        }
-
-        if (reasons.isEmpty()) {
+        if (blockedReasons.isEmpty()) {
             log.info("[회원탈퇴] 탈퇴 가능 userId={}", user.getId());
         } else {
-            log.warn("[회원탈퇴] 회원탈퇴 불가 userId={}, 사유={}", user.getId(), reasons);
+            log.warn("[회원탈퇴] 회원탈퇴 불가 userId={}, 사유={}", user.getId(),blockedReasons.stream().map(BlockedReason::getCode).toList());
         }
 
         return GetWithdrawalCheckResponse.builder()
-                .withdrawable(reasons.isEmpty())
-                .reasons(reasons)
-                .activeSubscriptionCount(activeSubscriptionCount)
-                .pendingPaymentCount(pendingPaymentCount)
-                .inProgressOrderCount(inProgressOrderCount)
+                .canWithdraw(blockedReasons.isEmpty())
+                .blockedReasons(blockedReasons)
                 .build();
     }
 
-    //회원탈퇴 처리
+    // 회원탈퇴 확정 처리(재검증 + 소프트삭제 + 토큰/세션 무효화)
     @Override
     @Transactional
     public PostWithdrawalConfirmResponse withdraw(Authentication authentication) {
         User user = getCurrentUser(authentication);
-        GetWithdrawalCheckResponse check = checkWithdrawalEligibility(authentication);
+        List<BlockedReason> blockedReasons = evaluateBlockedReasons(user);
 
-        if (!check.isWithdrawable()) {
-            log.warn("[회원탈퇴] 회원탈퇴 불가 - 확정 요청 거부 userId={}, 사유={}", user.getId(), check.getReasons());
+        if (!blockedReasons.isEmpty()) {
+            log.warn("[회원탈퇴] 회원탈퇴 불가 - 확정 요청 거부 userId={}, 사유={}", user.getId(), blockedReasons.stream().map(BlockedReason::getCode).toList());
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
-        user.deactive();
+        LocalDateTime now = LocalDateTime.now();
+        user.deactive(now);
+        user.maskPersonalInfoForWithdrawal(now);
+
+        addressRepository.deleteAllByUserId(user.getId());
+        socialLoginRepository.deleteAllByUserId(user.getId());
         refreshTokenRepository.deleteByUser(user);
+
         log.info("[회원탈퇴] 정상 회원탈퇴 완료 userId={}, deletedAt={}", user.getId(), user.getDeletedAt());
 
         return PostWithdrawalConfirmResponse.builder()
-                .userId(user.getId())
-                .status(UserStatus.INACTIVE.name())
-                .deletedAt(user.getDeletedAt())
+                .message("회원 탈퇴가 완료되었습니다.")
+                .loggedOut(true)
+                .nextAction("REDIRECT_LOGIN")
                 .build();
     }
+
+private List<BlockedReason> evaluateBlockedReasons(User user) {
+    List<BlockedReason> blockedReasons = new ArrayList<>();
+
+    if (user.getStatus() != UserStatus.ACTIVE || user.getDeletedAt() != null) {
+        blockedReasons.add(BlockedReason.builder()
+                .code(ALREADY_INACTIVE_CODE)
+                .message("이미 탈퇴했거나 비활성화된 계정입니다.")
+                .build());
+    }
+
+    for (WithdrawalEligibilityRule rule : withdrawalEligibilityRules) {
+        rule.validate(user).ifPresent(blockedReasons::add);
+    }
+
+    return blockedReasons;
+}
 
     //현재 사용자 조회
     private User getCurrentUser(Authentication authentication) {

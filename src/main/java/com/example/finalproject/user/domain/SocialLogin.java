@@ -60,5 +60,4 @@ public class SocialLogin extends BaseTimeEntity {
         this.providerUserId = providerUserId;
         this.connectedAt = connectedAt;
     }
-
 }
