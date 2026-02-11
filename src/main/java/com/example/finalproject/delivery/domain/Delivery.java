@@ -19,10 +19,9 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+
+import lombok.*;
+import org.locationtech.jts.geom.Point;
 
 @Entity
 @Table(name = "deliveries")
@@ -38,6 +37,13 @@ public class Delivery extends BaseTimeEntity {
     @JoinColumn(name = "store_order_id", nullable = false, unique = true,
             foreignKey = @ForeignKey(name = "fk_deliveries_store_order"))
     private StoreOrder storeOrder;
+
+    @Column(columnDefinition = "GEOGRAPHY(POINT,4326)")
+    private Point storeLocation;
+
+    @Column(columnDefinition = "GEOGRAPHY(POINT,4326)")
+    private Point customerLocation;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rider_id",
@@ -71,8 +77,50 @@ public class Delivery extends BaseTimeEntity {
 
     @Builder
     public Delivery(StoreOrder storeOrder,
-                    Integer deliveryFee) {
+                    Point storeLocation,
+                    Point customerLocation,
+                    Integer deliveryFee,
+                    BigDecimal distanceKm,
+                    Integer estimatedMinutes) {
         this.storeOrder = storeOrder;
+        this.storeLocation = storeLocation;
+        this.customerLocation = customerLocation;
         this.deliveryFee = deliveryFee;
+        this.distanceKm = distanceKm;
+        this.estimatedMinutes = estimatedMinutes;
+    }
+
+    /**
+     * 라이더가 배달을 수락합니다.
+     */
+    public void accept(Rider rider) {
+        this.rider = rider;
+        this.status = DeliveryStatus.ACCEPTED;
+        this.acceptedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 라이더가 상품을 픽업합니다.
+     */
+    public void pickUp() {
+        this.status = DeliveryStatus.PICKED_UP;
+        this.pickedUpAt = LocalDateTime.now();
+    }
+
+    /**
+     * 배달이 완료됩니다.
+     */
+    public void complete() {
+        this.status = DeliveryStatus.DELIVERED;
+        this.deliveredAt = LocalDateTime.now();
+    }
+
+    /**
+     * 배달을 취소합니다.
+     */
+    public void cancel(String reason) {
+        this.status = DeliveryStatus.CANCELLED;
+        this.cancelledAt = LocalDateTime.now();
+        this.cancelReason = reason;
     }
 }

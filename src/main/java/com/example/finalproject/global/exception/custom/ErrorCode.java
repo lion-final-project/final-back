@@ -107,8 +107,12 @@ public enum ErrorCode {
     DUPLICATE_ADDRESS(HttpStatus.CONFLICT, "ADDRESS-004", "이미 등록된 배송지 주소입니다."),
     ADDRESS_DELETE_MIN_REQUIRED(HttpStatus.BAD_REQUEST, "ADDRESS-005", "배송지는 최소 1개 이상 등록되어 있어야 합니다."),
     // DELIVERY
-    DISTANCE_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELIVERY-001", "배달바 계산에 실패했습니다."),
+    DISTANCE_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELIVERY-001", "배달비 계산에 실패했습니다."),
     DELIVERY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "DELIVERY-002", "배달 가능한 지역이 아닙니다."),
+    DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "DELIVERY-003", "배달 정보를 찾을 수 없습니다."),
+    DELIVERY_ALREADY_LOCKED(HttpStatus.CONFLICT, "DELIVERY-004", "이미 다른 라이더가 수락 중인 배달입니다."),
+    DELIVERY_ALREADY_MATCHED(HttpStatus.CONFLICT, "DELIVERY-005", "이미 매칭이 완료된 배달입니다."),
+    RIDER_NOT_FOUND(HttpStatus.NOT_FOUND, "DELIVERY-006", "라이더 정보를 찾을 수 없습니다."),
 
     // INQUIRY
     INQUIRY_NOT_FOUND(HttpStatus.NOT_FOUND, "INQUIRY-001", "문의를 조회할 수 없습니다."),

@@ -1,6 +1,5 @@
 package com.example.finalproject.delivery.service;
 
-
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.dto.request.PatchRiderStatusRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderLocationRequest;
@@ -12,6 +11,7 @@ import com.example.finalproject.delivery.enums.RiderOperationStatus;
 import com.example.finalproject.delivery.repository.RiderRepository;
 import com.example.finalproject.delivery.service.interfaces.RiderLocationService;
 import com.example.finalproject.delivery.service.interfaces.RiderService;
+import com.example.finalproject.global.component.UserLoader;
 import com.example.finalproject.global.util.GeometryUtil;
 import com.example.finalproject.moderation.domain.Approval;
 import com.example.finalproject.moderation.enums.ApplicantType;
@@ -19,7 +19,6 @@ import com.example.finalproject.moderation.enums.ApprovalStatus;
 import com.example.finalproject.moderation.enums.DocumentType;
 import com.example.finalproject.moderation.repository.ApprovalRepository;
 import com.example.finalproject.user.domain.User;
-import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,8 +36,9 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class RiderServiceImpl implements RiderService, RiderLocationService {
     private final RiderRepository riderRepository;
-    private final UserRepository userRepository;
+    private final UserLoader userLoader;
     private final ApprovalRepository approvalRepository;
+    private final DeliveryMatchingService deliveryMatchingService;
 
     private final StringRedisTemplate redisTemplate;
     private static final String RIDER_GEO_KEY = "rider:locations";
@@ -54,7 +54,7 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
     public RiderResponse updateOperationStatus(String username, PatchRiderStatusRequest request) {
 
         Rider rider = findRiderByUsername(username);
-        if (rider.getOperationStatus() == RiderOperationStatus.DELIVERING){
+        if (rider.getOperationStatus() == RiderOperationStatus.DELIVERING) {
             throw new RuntimeException("Status locked: DELIVERING");
         }
 
@@ -67,12 +67,12 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
     @Override
     @Transactional
     public RiderApprovalResponse createApproval(String username, PostRiderRegisterRequest request) {
-        User user = findUserByUserName(username);
+        User user = userLoader.loadUserByUsername(username);
         Rider rider;
 
-        if (riderRepository.existsByUserId(user.getId())){
+        if (riderRepository.existsByUserId(user.getId())) {
             rider = findRiderByUsername(username);
-        }else{
+        } else {
             validateAlreadyPending(user);
 
             rider = Rider.builder().user(user)
@@ -81,7 +81,6 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
                     .bankName(request.getBankName())
                     .build();
         }
-
 
         Approval approval = Approval.builder().user(user)
                 .applicantType(ApplicantType.RIDER)
@@ -98,8 +97,8 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
 
     @Override
     public Page<RiderApprovalResponse> getApprovals(String username, Pageable pageable) {
-        User user = findUserByUserName(username);
-        if (!riderRepository.existsByUserId(user.getId())){
+        User user = userLoader.loadUserByUsername(username);
+        if (!riderRepository.existsByUserId(user.getId())) {
             throw new RuntimeException("Rider not found");
         }
         Rider rider = findRiderByUsername(username);
@@ -116,7 +115,7 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
         Approval approval = approvalRepository.findById(approvalId)
                 .orElseThrow(() -> new RuntimeException("Approval not found"));
 
-        if (!(approval.getStatus() == ApprovalStatus.PENDING)){
+        if (!(approval.getStatus() == ApprovalStatus.PENDING)) {
             throw new RuntimeException("Approval status is not PENDING");
         }
 
@@ -129,20 +128,13 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
                 .orElseThrow(() -> new RuntimeException("Rider not found"));
     }
 
-    // 유저 조회
-    private User findUserByUserName(String username) {
-        return userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-    }
+    // 신청이력 삭제 가능여부 확인
+    private void validateAlreadyPending(User user) throws RuntimeException {
 
-    //신청이력 삭제 가능여부 확인
-    private void validateAlreadyPending(User user) throws RuntimeException{
-
-         if (approvalRepository.existsByUserAndStatus(user, ApprovalStatus.PENDING) ||
-                 approvalRepository.existsByUserAndStatus(user, ApprovalStatus.HELD)
-         ){
-             throw new RuntimeException("Cannot delete: Not PENDING or HELD");
-         }
+        if (approvalRepository.existsByUserAndStatus(user, ApprovalStatus.PENDING) ||
+                approvalRepository.existsByUserAndStatus(user, ApprovalStatus.HELD)) {
+            throw new RuntimeException("Cannot delete: Not PENDING or HELD");
+        }
     }
 
     @Override
@@ -153,6 +145,12 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
             Point point = GeometryUtil.createPointForRedis(request.getLongitude(), request.getLatitude());
             log.info("Point 생성 결과: {}", point);
             redisTemplate.opsForGeo().add(RIDER_GEO_KEY, point, request.getRiderId());
+
+            // 2. 주변 배달 목록 갱신 트리거
+            deliveryMatchingService.updateRiderNearbyDeliveries(
+                    Long.parseLong(request.getRiderId()),
+                    request.getLongitude(),
+                    request.getLatitude());
         } catch (Exception e) {
             log.error("Redis GEO 저장 실패", e);
             throw e;
@@ -161,7 +159,7 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
 
     @Override
     public void removeRider(String riderId) {
-        redisTemplate.opsForZSet().remove(RIDER_GEO_KEY, riderId);
+        redisTemplate.opsForGeo().remove(RIDER_GEO_KEY, riderId);
     }
 
     @Override

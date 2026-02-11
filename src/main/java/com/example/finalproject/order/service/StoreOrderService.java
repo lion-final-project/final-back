@@ -95,7 +95,13 @@ public class StoreOrderService {
         User customer = storeOrder.getOrder().getUser();
 
         //배달 생성
-        Delivery delivery = new Delivery(storeOrder, storeOrder.getDeliveryFee());
+        Delivery delivery = Delivery.builder()
+                .storeOrder(storeOrder)
+                .deliveryFee(storeOrder.getDeliveryFee())
+                        .storeLocation(store.getAddress().getLocation())
+                        .customerLocation(storeOrder.getOrder().getDeliveryLocation())
+                        .build();
+
         deliveryRepository.save(delivery);
 
         //접수 알림

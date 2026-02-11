@@ -4,6 +4,9 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.PrecisionModel;
+import org.springframework.data.geo.Circle;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.Metrics;
 
 public class GeometryUtil {
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(new PrecisionModel(), 4326);
@@ -73,11 +76,25 @@ public class GeometryUtil {
         double dLon = Math.toRadians(lon2 - lon1);
 
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                   Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                   Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return EARTH_RADIUS * c;
+    }
+
+    /**
+     * Redis GEO 검색을 위한 Circle(반경) 객체를 생성합니다.
+     * @param longitude 경도
+     * @param latitude 위도
+     * @param distanceKm 반경 (km)
+     * @return Circle
+     */
+    public static Circle createSearchCircle(Double longitude, Double latitude, double distanceKm) {
+        org.springframework.data.geo.Point point = createPointForRedis(longitude, latitude);
+        if (point == null) return null;
+
+        return new Circle(point, new Distance(distanceKm, Metrics.KILOMETERS));
     }
 
     private static void validateCoordinates(Double longitude, Double latitude) {
