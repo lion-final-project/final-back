@@ -95,22 +95,46 @@ public class AdminStoreApprovalService {
         String businessNumber = store.getSubmittedDocumentInfo() != null
                 ? store.getSubmittedDocumentInfo().getBusinessNumber()
                 : null;
+        String businessOwnerName = store.getSubmittedDocumentInfo() != null
+                ? store.getSubmittedDocumentInfo().getBusinessOwnerName()
+                : null;
+        String telecomSalesReportNumber = store.getSubmittedDocumentInfo() != null
+                ? store.getSubmittedDocumentInfo().getTelecomSalesReportNumber()
+                : null;
         String addressLine1 = store.getAddress() != null
                 ? store.getAddress().getAddressLine1()
                 : null;
         String addressLine2 = store.getAddress() != null
                 ? store.getAddress().getAddressLine2()
                 : null;
+        String categoryName = store.getStoreCategory() != null
+                ? store.getStoreCategory().getCategoryName()
+                : null;
+        String settlementBankName = store.getSettlementAccount() != null
+                ? store.getSettlementAccount().getBankName()
+                : null;
+        String settlementBankAccount = store.getSettlementAccount() != null
+                ? store.getSettlementAccount().getBankAccount()
+                : null;
+        String settlementAccountHolder = store.getSettlementAccount() != null
+                ? store.getSettlementAccount().getAccountHolder()
+                : null;
 
         AdminStoreApprovalDetailResponse.StoreInfo storeInfo =
                 new AdminStoreApprovalDetailResponse.StoreInfo(
                         store.getId(),
                         store.getStoreName(),
+                        categoryName,
+                        businessOwnerName,
                         businessNumber,
+                        telecomSalesReportNumber,
                         store.getRepresentativeName(),
                         store.getRepresentativePhone(),
                         addressLine1,
-                        addressLine2
+                        addressLine2,
+                        settlementBankName,
+                        settlementBankAccount,
+                        settlementAccountHolder
                 );
 
         return new AdminStoreApprovalDetailResponse(
