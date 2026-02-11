@@ -1,6 +1,8 @@
 package com.example.finalproject.order.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
+import com.example.finalproject.global.exception.custom.BusinessException;
+import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.enums.OrderType;
 import com.example.finalproject.order.enums.StoreOrderStatus;
 import com.example.finalproject.store.domain.Store;
@@ -89,5 +91,39 @@ public class StoreOrder extends BaseTimeEntity {
     public void accept() {
         this.status = StoreOrderStatus.ACCEPTED;
         this.acceptedAt = LocalDateTime.now();
+    }
+
+    public void accept(Integer prepTime) {
+        if (this.status != StoreOrderStatus.PENDING) {
+            throw new BusinessException(ErrorCode.STORE_ORDER_NOT_PENDING);
+        }
+        this.prepTime = prepTime;
+        this.status = StoreOrderStatus.ACCEPTED;
+        this.acceptedAt = LocalDateTime.now();
+    }
+
+    public void reject(String reason) {
+        if (this.status != StoreOrderStatus.PENDING) {
+            throw new BusinessException(ErrorCode.STORE_ORDER_NOT_PENDING);
+        }
+        this.status = StoreOrderStatus.REJECTED;
+        this.cancelReason = reason;
+        this.cancelledAt = LocalDateTime.now();
+    }
+
+    public void markReady() {
+        if (this.status != StoreOrderStatus.ACCEPTED) {
+            throw new BusinessException(ErrorCode.STORE_ORDER_NOT_ACCEPTED);
+        }
+        this.status = StoreOrderStatus.READY;
+        this.preparedAt = LocalDateTime.now();
+    }
+
+    public void markPickedUp() {
+        if (this.status != StoreOrderStatus.READY) {
+            throw new BusinessException(ErrorCode.STORE_ORDER_NOT_READY);
+        }
+        this.status = StoreOrderStatus.PICKED_UP;
+        this.pickedUpAt = LocalDateTime.now();
     }
 }

@@ -3,12 +3,19 @@ package com.example.finalproject.user.controller;
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.store.dto.response.StoreNearbyResponse;
 import com.example.finalproject.user.dto.request.GetStoreSearchRequest;
+import com.example.finalproject.user.dto.response.GetWithdrawalCheckResponse;
+import com.example.finalproject.user.dto.response.PostWithdrawalConfirmResponse;
 import com.example.finalproject.user.service.interfaces.UserService;
+import com.example.finalproject.user.withdrawal.dto.BlockedReason;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Slice;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -27,4 +34,26 @@ public class UserController {
         Slice<StoreNearbyResponse> response = userService.getNearbyStores(request);
         return ResponseEntity.ok(ApiResponse.success("마켓 조회 성공", response));
     }
+
+    @GetMapping("/me/withdrawal/eligibility")
+    public ResponseEntity<ApiResponse<GetWithdrawalCheckResponse>> checkWithdrawal(Authentication authentication) {
+        GetWithdrawalCheckResponse response = userService.checkWithdrawalEligibility(authentication);
+        return ResponseEntity.ok(ApiResponse.success("회원 탈퇴 가능 여부 조회가 완료되었습니다.", response));
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<?>> withdraw(Authentication authentication) {
+        GetWithdrawalCheckResponse check = userService.checkWithdrawalEligibility(authentication);
+        if (!check.isCanWithdraw()) {
+            List<ApiResponse.FieldErrorDetail> details = check.getBlockedReasons().stream()
+                    .map(BlockedReason::getMessage)
+                    .map(msg -> new ApiResponse.FieldErrorDetail("withdrawal", msg))
+                    .toList();
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ApiResponse.fail("USER-001", "탈퇴가 제한되었습니다.", details));
+        }
+        PostWithdrawalConfirmResponse response = userService.withdraw(authentication);
+        return ResponseEntity.ok(ApiResponse.success("회원 탈퇴가 완료되었습니다.", response));
+    }
+
 }

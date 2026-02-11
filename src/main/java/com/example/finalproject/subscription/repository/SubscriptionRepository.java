@@ -4,11 +4,12 @@ import com.example.finalproject.subscription.domain.Subscription;
 import com.example.finalproject.subscription.domain.SubscriptionProduct;
 import com.example.finalproject.subscription.enums.SubscriptionStatus;
 import java.time.LocalDate;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
 
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
@@ -30,6 +31,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
      */
     List<Subscription> findByUserIdAndStatusInOrderByCreatedAtDesc(Long userId,
                                                                    Collection<SubscriptionStatus> statuses);
+
+    long countByUserIdAndStatusIn(Long userId, Collection<SubscriptionStatus> statuses);
 
     /**
      * 구독 ID와 소유 사용자 ID로 구독을 조회한다. 본인 구독 여부 검증용.
@@ -59,15 +62,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
     boolean existsBySubscriptionProductAndStatusIn(SubscriptionProduct subscriptionProduct,
                                                    Collection<SubscriptionStatus> statuses);
 
-    /**
-     * 구독 상품에 대해 특정 상태 집합에 속한 구독 건수를 계산한다.
-     *
-     * @param subscriptionProduct 구독 상품
-     * @param statuses            구독 상태 목록
-     * @return 해당 상태 집합에 속한 구독 수
-     */
-    long countBySubscriptionProductAndStatusIn(SubscriptionProduct subscriptionProduct,
-                                               Collection<SubscriptionStatus> statuses);
 
     @Query("select s.id "
             + "from Subscription s "
@@ -75,4 +69,19 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Long
             + "and s.nextPaymentDate <= :today")
     List<Long> findIdsByStatusAndNextPaymentDateLessThanEqual(SubscriptionStatus status, LocalDate today);
 
+    long countBySubscriptionProductAndStatusIn(SubscriptionProduct subscriptionProduct,
+                                               Collection<SubscriptionStatus> statuses);
+
+    /**
+     * 구독 상품에 대해 특정 상태 집합에 속하는 구독 목록을 조회한다. 삭제 예정 알림 등 구독자별 알림 발송 시 사용. User를 fetch join하여 LazyInitializationException
+     * 방지.
+     *
+     * @param subscriptionProduct 구독 상품
+     * @param statuses            구독 상태 목록 (ACTIVE, PAUSED, CANCELLATION_PENDING 등)
+     * @return 구독 목록
+     */
+    @Query("SELECT s FROM Subscription s JOIN FETCH s.user WHERE s.subscriptionProduct = :product AND s.status IN :statuses")
+    List<Subscription> findBySubscriptionProductAndStatusIn(
+            @Param("product") SubscriptionProduct subscriptionProduct,
+            @Param("statuses") Collection<SubscriptionStatus> statuses);
 }

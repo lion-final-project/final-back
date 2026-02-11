@@ -24,6 +24,7 @@ import com.example.finalproject.payment.dto.response.PostPaymentPrepareResponse;
 import com.example.finalproject.payment.dto.response.TossCancelResponse;
 import com.example.finalproject.payment.dto.response.TossConfirmResponse;
 import com.example.finalproject.payment.enums.PaymentStatus;
+import com.example.finalproject.payment.event.StoreOrderCreatedEvent;
 import com.example.finalproject.payment.repository.PaymentRepository;
 import com.example.finalproject.product.domain.Product;
 import com.example.finalproject.product.repository.ProductRepository;
@@ -32,11 +33,13 @@ import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.Address;
 import com.example.finalproject.user.domain.User;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +58,7 @@ public class PaymentService {
     private final StoreOrderRepository storeOrderRepository;
     private final StoreRepository storeRepository;
     private final OrderProductRepository orderProductRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public PostPaymentPrepareResponse prepare(
             String email,
@@ -126,7 +130,14 @@ public class PaymentService {
             throw e;
         }
 
-        createStoreOrdersAndOrderProducts(order, lines);
+        List<StoreOrder> storeOrders =
+                createStoreOrdersAndOrderProducts(order, lines);
+
+        for (StoreOrder storeOrder : storeOrders) {
+            applicationEventPublisher.publishEvent(
+                    new StoreOrderCreatedEvent(storeOrder.getId())
+            );
+        }
 
         payment.approve(
                 request.getPaymentKey(),
@@ -145,12 +156,14 @@ public class PaymentService {
         );
     }
 
-    private void createStoreOrdersAndOrderProducts(
+    private List<StoreOrder> createStoreOrdersAndOrderProducts(
             Order order,
             List<OrderLine> lines) {
 
         Map<Long, List<OrderLine>> grouped = lines.stream()
                 .collect(Collectors.groupingBy(OrderLine::getStoreId));
+
+        List<StoreOrder> createdStoreOrders = new ArrayList<>();
 
         for (Map.Entry<Long, List<OrderLine>> entry : grouped.entrySet()) {
 
@@ -161,7 +174,12 @@ public class PaymentService {
                     .mapToInt(l -> l.getPriceSnapshot() * l.getQuantity())
                     .sum();
 
-            int deliveryFee = deliveryFeeService.calculateDeliveryFee(order.getUser().getId(), storeId);
+            int deliveryFee =
+                    deliveryFeeService.calculateDeliveryFee(
+                            order.getUser().getId(),
+                            storeId
+                    );
+
             int finalPrice = storeProductPrice + deliveryFee;
 
             Store store = storeRepository.findById(storeId)
@@ -178,6 +196,8 @@ public class PaymentService {
                             .build()
             );
 
+            createdStoreOrders.add(storeOrder);
+
             List<Long> productIds = storeLines.stream()
                     .map(OrderLine::getProductId)
                     .toList();
@@ -193,13 +213,14 @@ public class PaymentService {
                         if (product == null) {
                             throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
                         }
-
                         return OrderProduct.of(storeOrder, product, line);
                     })
                     .toList();
 
             orderProductRepository.saveAll(orderProducts);
         }
+
+        return createdStoreOrders;
     }
 
 

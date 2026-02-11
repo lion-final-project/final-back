@@ -40,7 +40,7 @@ public class Delivery extends BaseTimeEntity {
     private StoreOrder storeOrder;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rider_id", nullable = false,
+    @JoinColumn(name = "rider_id",
             foreignKey = @ForeignKey(name = "fk_deliveries_rider"))
     private Rider rider;
 
@@ -51,7 +51,7 @@ public class Delivery extends BaseTimeEntity {
     @Column(name = "delivery_fee", nullable = false)
     private Integer deliveryFee;
 
-    @Column(name = "rider_earning", nullable = false)
+    @Column(name = "rider_earning")
     private Integer riderEarning;
 
     @Column(name = "distance_km", precision = 5, scale = 2)
@@ -60,8 +60,6 @@ public class Delivery extends BaseTimeEntity {
     @Column(name = "estimated_minutes")
     private Integer estimatedMinutes;
 
-    @Column(name = "requested_at", nullable = false)
-    private LocalDateTime requestedAt;
 
     private LocalDateTime acceptedAt;
     private LocalDateTime pickedUpAt;
@@ -72,13 +70,9 @@ public class Delivery extends BaseTimeEntity {
     private String cancelReason;
 
     @Builder
-    public Delivery(StoreOrder storeOrder, Rider rider,
-                    Integer deliveryFee, Integer riderEarning,
-                    LocalDateTime requestedAt) {
+    public Delivery(StoreOrder storeOrder,
+                    Integer deliveryFee) {
         this.storeOrder = storeOrder;
-        this.rider = rider;
         this.deliveryFee = deliveryFee;
-        this.riderEarning = riderEarning;
-        this.requestedAt = requestedAt;
     }
 }

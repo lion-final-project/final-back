@@ -35,4 +35,8 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     Boolean existsByUserIdAndAddressLine1AndAddressLine2AndIdNot(Long userId, String line1, String line2, Long id);
 
     Optional<Address> findFirstByUserIdOrderByCreatedAtDesc(Long id);
+
+    @Modifying
+    @Query("DELETE FROM Address a WHERE a.user.id = :userId")
+    void deleteAllByUserId(@Param("userId") Long userId);
 }
