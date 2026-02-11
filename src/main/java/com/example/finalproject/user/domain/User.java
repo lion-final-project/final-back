@@ -91,4 +91,9 @@ public class User extends BaseTimeEntity {
     public void setPoints(int points) {
         this.points = points >= 0 ? points : 0;
     }
+
+    public void deactive() {
+        this.status = UserStatus.INACTIVE;
+        this.deletedAt = LocalDateTime.now();
+    }
 }

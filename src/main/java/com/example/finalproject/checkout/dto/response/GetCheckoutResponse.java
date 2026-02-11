@@ -40,6 +40,8 @@ public class GetCheckoutResponse {
     public static class StoreGroup {
         private Long storeId;
         private String storeName;
+        /** 배송지~마트 거리(km). 좌표 없으면 null. */
+        private Double distanceKm;
         private Integer deliveryFee;
         private Integer storeProductPrice;
         private Integer storeFinalPrice;

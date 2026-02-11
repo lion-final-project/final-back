@@ -5,6 +5,7 @@ import com.example.finalproject.checkout.service.PriceCalculationResult;
 import com.example.finalproject.checkout.service.PriceCalculator;
 import com.example.finalproject.coupon.domain.Coupon;
 import com.example.finalproject.coupon.repository.CouponRepository;
+import com.example.finalproject.delivery.service.DeliveryFeeService;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.Cart;
@@ -53,7 +54,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderCreateService {
 
-    private static final int DEFAULT_DELIVERY_FEE = 3000;
     private static final int MAX_ORDER_NUMBER_RETRY = 3;
 
     private final UserRepository userRepository;
@@ -62,6 +62,7 @@ public class OrderCreateService {
     private final AddressRepository addressRepository;
     private final PaymentMethodRepository paymentMethodRepository;
     private final PriceCalculator priceCalculator;
+    private final DeliveryFeeService deliveryFeeService;
     private final OrderRepository orderRepository;
     private final StoreOrderRepository storeOrderRepository;
     private final OrderProductRepository orderProductRepository;
@@ -124,8 +125,9 @@ public class OrderCreateService {
                         cp.getProduct().getEffectivePrice(),
                         cp.getQuantity()))
                 .toList();
+        Long addressIdForFee = address.getId();
         PriceCalculationResult priceResult = priceCalculator.calculate(
-                items, storeId -> DEFAULT_DELIVERY_FEE, discount, points);
+                items, storeId -> deliveryFeeService.calculateDeliveryFeeByAddress(addressIdForFee, storeId), discount, points);
         int productTotal = priceResult.priceSummary().productTotal();
         int deliveryTotal = priceResult.priceSummary().deliveryTotal();
         if (discount > productTotal) {

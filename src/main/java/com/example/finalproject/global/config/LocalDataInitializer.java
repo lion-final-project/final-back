@@ -11,8 +11,12 @@ import com.example.finalproject.coupon.domain.Coupon;
 import com.example.finalproject.coupon.repository.CouponRepository;
 import com.example.finalproject.order.domain.Cart;
 import com.example.finalproject.order.domain.CartProduct;
+import com.example.finalproject.order.domain.Order;
+import com.example.finalproject.order.enums.OrderStatus;
+import com.example.finalproject.order.enums.OrderType;
 import com.example.finalproject.order.repository.CartProductRepository;
 import com.example.finalproject.order.repository.CartRepository;
+import com.example.finalproject.order.repository.OrderRepository;
 import com.example.finalproject.product.domain.Product;
 import com.example.finalproject.product.domain.ProductCategory;
 import com.example.finalproject.product.repository.ProductCategoryRepository;
@@ -25,9 +29,18 @@ import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.enums.StoreActiveStatus;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
 import com.example.finalproject.store.repository.StoreRepository;
+import com.example.finalproject.subscription.domain.Subscription;
+import com.example.finalproject.subscription.domain.SubscriptionProduct;
+import com.example.finalproject.subscription.enums.SubscriptionProductStatus;
+import com.example.finalproject.subscription.enums.SubscriptionStatus;
+import com.example.finalproject.subscription.repository.SubscriptionProductRepository;
+import com.example.finalproject.subscription.repository.SubscriptionRepository;
+import com.example.finalproject.payment.domain.Payment;
 import com.example.finalproject.payment.domain.PaymentMethod;
 import com.example.finalproject.payment.enums.PaymentMethodType;
+import com.example.finalproject.payment.enums.PaymentStatus;
 import com.example.finalproject.payment.repository.PaymentMethodRepository;
+import com.example.finalproject.payment.repository.PaymentRepository;
 import com.example.finalproject.user.domain.Address;
 import com.example.finalproject.user.domain.Role;
 import com.example.finalproject.user.domain.User;
@@ -44,6 +57,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
@@ -70,6 +84,10 @@ public class LocalDataInitializer implements CommandLineRunner {
     private final CouponRepository couponRepository;
     private final ApprovalRepository approvalRepository;
     private final RiderRepository riderRepository;
+    private final OrderRepository orderRepository;
+    private final PaymentRepository paymentRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final SubscriptionProductRepository subscriptionProductRepository;
 
     @Override
     @Transactional
@@ -171,6 +189,12 @@ public class LocalDataInitializer implements CommandLineRunner {
         // 결제 더미데이터 (장바구니·주문서·결제 플로우 확인용)
         seedCheckoutDummyData(userRole);
 
+        // 회원탈퇴 테스트더미 user@test.com에 진행중 구독, 결제 대기, 진행중 주문 존재 (탈퇴 불가 검증용)
+        seedWithdrawalTestDummyData();
+
+        // 거리 기반 배송비 테스트: 1km / 2km / 3km 이내 테스트마트 3곳 (user@test.com 기본 배송지 기준)
+        seedDistanceTestMarts(userRole);
+
         // 신청 목록 더미데이터 (상점 2건 + 라이더 2건 PENDING)
         seedApprovalListDummyData(userRole);
     }
@@ -269,6 +293,7 @@ public class LocalDataInitializer implements CommandLineRunner {
 
         // 이 스토어의 더미 상품 조회 (방금 생성했거나 기존 DB에 있든 모두 포함)
         List<Product> productsForCart = productRepository.findByStoreAndDeletedAtIsNull(store, org.springframework.data.domain.Pageable.unpaged())
+                .getContent()
                 .stream()
                 .filter(p -> dummyProductNames.contains(p.getProductName()))
                 .collect(Collectors.toList());
@@ -337,6 +362,104 @@ public class LocalDataInitializer implements CommandLineRunner {
                 userRepository.save(testUser);
                 log.info("결제 더미데이터: user@test.com 보유 포인트 5000원 설정");
             }
+        }
+    }
+
+    /**
+     * 회원탈퇴 테스트더미: user@test.com에 진행중 구독, 결제 대기 상태, 진행중 주문 3가지를 넣어
+     * GET /api/users/me/withdrawal/check 시 탈퇴 불가·사유 반환, POST /api/users/me/withdrawal 시 409 검증용.
+     */
+    private void seedWithdrawalTestDummyData() {
+        User testUser = userRepository.findByEmail("user@test.com").orElse(null);
+        if (testUser == null) {
+            return;
+        }
+        User storeOwner = userRepository.findByEmail("storeowner@test.com").orElse(null);
+        if (storeOwner == null) {
+            return;
+        }
+        Store store = storeRepository.findByOwner(storeOwner).orElse(null);
+        if (store == null) {
+            return;
+        }
+
+        List<Address> addresses = addressRepository.findByUserOrderByIsDefaultDesc(testUser);
+        Address deliveryAddress = addresses.isEmpty() ? null : addresses.get(0);
+        PaymentMethod paymentMethod = paymentMethodRepository.findFirstByUserIdAndIsDefaultTrue(testUser.getId()).orElse(null);
+        if (deliveryAddress == null || paymentMethod == null) {
+            log.warn("회원탈퇴 테스트더미: user@test.com 배송지 또는 결제수단 없음, 스킵");
+            return;
+        }
+
+        // 회원탈퇴 테스트더미: 진행중 구독용 구독 상품 (ACTIVE)
+        List<SubscriptionProduct> storeProducts = subscriptionProductRepository.findByStoreIdOrderByCreatedAtDesc(store.getId());
+        SubscriptionProduct subProduct = storeProducts.stream()
+                .filter(p -> p.getStatus() == SubscriptionProductStatus.ACTIVE)
+                .findFirst()
+                .orElseGet(() -> {
+                    SubscriptionProduct p = SubscriptionProduct.builder()
+                            .store(store)
+                            .subscriptionProductName("회원탈퇴 테스트더미 - 진행중 구독용")
+                            .description("탈퇴 불가 검증용 더미 구독 상품")
+                            .price(19_900)
+                            .totalDeliveryCount(4)
+                            .deliveryCountOfWeek(1)
+                            .build();
+                    p = subscriptionProductRepository.save(p);
+                    log.info("회원탈퇴 테스트더미: 구독 상품 생성 - [진행중 구독용]");
+                    return p;
+                });
+
+        // 회원탈퇴 테스트더미: 진행중 구독 1건 (ACTIVE) — 탈퇴 시 "진행 중인 구독이 있어 탈퇴할 수 없습니다" 사유용
+        long activeSubCount = subscriptionRepository.countByUserIdAndStatusIn(testUser.getId(),
+                List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAUSED, SubscriptionStatus.CANCELLATION_PENDING));
+        if (activeSubCount == 0) {
+            Subscription sub = Subscription.builder()
+                    .user(testUser)
+                    .store(store)
+                    .subscriptionProduct(subProduct)
+                    .address(deliveryAddress)
+                    .paymentMethod(paymentMethod)
+                    .totalAmount(19_900)
+                    .startedAt(LocalDateTime.now().minusDays(7))
+                    .nextPaymentDate(LocalDate.now().plusDays(7))
+                    .deliveryTimeSlot("09:00-12:00")
+                    .build();
+            subscriptionRepository.save(sub);
+            log.info("회원탈퇴 테스트더미: 진행중 구독 1건 생성 (ACTIVE) — 탈퇴 불가 사유용");
+        }
+
+        // 회원탈퇴 테스트더미: 진행중 주문 1건 (PENDING) + 결제 대기 1건 (PENDING) — 탈퇴 시 주문/결제 사유용
+        long inProgressOrderCount = orderRepository.countByUserIdAndStatusIn(testUser.getId(),
+                List.of(OrderStatus.PENDING, OrderStatus.PAID, OrderStatus.PARTIAL_CANCELLED));
+        if (inProgressOrderCount == 0) {
+            String orderNumber = "WD-ORDER-" + System.currentTimeMillis();
+            Order order = Order.builder()
+                    .orderNumber(orderNumber)
+                    .user(testUser)
+                    .orderType(OrderType.REGULAR)
+                    .totalProductPrice(15_000)
+                    .totalDeliveryFee(3_000)
+                    .finalPrice(18_000)
+                    .deliveryAddress(deliveryAddress.getAddressLine1() + " " + deliveryAddress.getAddressLine2())
+                    .deliveryLocation(deliveryAddress.getLocation())
+                    .deliveryRequest("회원탈퇴 테스트더미")
+                    .orderedAt(LocalDateTime.now())
+                    .build();
+            order = orderRepository.save(order);
+            log.info("회원탈퇴 테스트더미: 진행중 주문 1건 생성 (PENDING) — 탈퇴 불가 사유용");
+
+            String pgOrderId = "WD-PG-" + System.currentTimeMillis();
+            Payment payment = Payment.builder()
+                    .order(order)
+                    .paymentStatus(PaymentStatus.PENDING)
+                    .paymentMethod(PaymentMethodType.CARD)
+                    .amount(order.getFinalPrice())
+                    .pgOrderId(pgOrderId)
+                    .pgProvider("dummy")
+                    .build();
+            paymentRepository.save(payment);
+            log.info("회원탈퇴 테스트더미: 결제 대기 1건 생성 (PENDING) — 탈퇴 불가 사유용");
         }
     }
 
@@ -428,6 +551,117 @@ public class LocalDataInitializer implements CommandLineRunner {
         if (riderRepository.findByUserId(riderApp2.getId()).isEmpty()) {
             riderRepository.save(Rider.builder().user(riderApp2).bankName("하나은행").bankAccount("777-888-999999").accountHolder("최라이더").build());
             log.info("신청 목록 더미: 라이더 신청 1건 생성 - 신청라이더2");
+        }
+    }
+
+    /**
+     * 거리 기반 배송비 테스트: user@test.com 기본 배송지(127.0276, 37.4979) 기준
+     * - 1km 이내 테스트마트: ~0.5km → 배송비 3,000원
+     * - 2km 이내 테스트마트: ~1.5km → 배송비 4,000원
+     * - 3km 이내 테스트마트: ~2.5km → 배송비 5,000원
+     */
+    private void seedDistanceTestMarts(Role userRole) {
+        double baseLon = 127.0276;
+        double baseLat = 37.4979;
+        // 위도 1도 ≈ 111km → 0.5km ≈ 0.0045, 1.5km ≈ 0.0135, 2.5km ≈ 0.0225
+        List<Object[]> marts = List.of(
+                new Object[]{"mart1km@test.com", "1km이내 테스트마트", baseLon, baseLat + 0.0045, "거리 0.5km → 배송비 3,000원", "333456789001", "제2024-서울강남-10101", "01033333001"},
+                new Object[]{"mart2km@test.com", "2km이내 테스트마트", baseLon, baseLat + 0.0135, "거리 1.5km → 배송비 4,000원", "333456789002", "제2024-서울강남-10102", "01033333002"},
+                new Object[]{"mart3km@test.com", "3km이내 테스트마트", baseLon, baseLat + 0.0225, "거리 2.5km → 배송비 5,000원", "333456789003", "제2024-서울강남-10103", "01033333003"}
+        );
+        StoreCategory martCategory = storeCategoryRepository.findByCategoryName("마트/슈퍼").orElseThrow();
+        ProductCategory vegCategory = productCategoryRepository.findByCategoryName("채소").orElseThrow();
+        for (Object[] row : marts) {
+            String ownerEmail = (String) row[0];
+            String storeName = (String) row[1];
+            Double lon = (Double) row[2];
+            Double lat = (Double) row[3];
+            String desc = (String) row[4];
+            String businessNumber = (String) row[5];
+            String telecomNumber = (String) row[6];
+            String ownerPhone = (String) row[7];
+            User owner = userRepository.findByEmail(ownerEmail).orElseGet(() -> {
+                User u = User.builder()
+                        .email(ownerEmail)
+                        .password(passwordEncoder.encode("owner1234"))
+                        .name("오너-" + storeName)
+                        .phone(ownerPhone)
+                        .termsAgreed(true)
+                        .privacyAgreed(true)
+                        .termsAgreedAt(LocalDateTime.now())
+                        .privacyAgreedAt(LocalDateTime.now())
+                        .build();
+                userRepository.save(u);
+                userRoleRepository.save(UserRole.builder().user(u).role(userRole).build());
+                return u;
+            });
+            Store store = storeRepository.findByOwner(owner).orElse(null);
+            if (store == null) {
+                StoreAddress address = StoreAddress.builder()
+                        .postalCode("06134")
+                        .addressLine1(storeName + " 주소")
+                        .addressLine2("1층")
+                        .location(GeometryUtil.createPoint(lon, lat))
+                        .build();
+                store = Store.builder()
+                        .owner(owner)
+                        .storeCategory(martCategory)
+                        .storeName(storeName)
+                        .phone("02-1234-5678")
+                        .description(desc)
+                        .representativeName("테스트오너")
+                        .representativePhone(ownerPhone)
+                        .submittedDocumentInfo(SubmittedDocumentInfo.builder()
+                                .businessOwnerName("테스트오너")
+                                .businessNumber(businessNumber)
+                                .telecomSalesReportNumber(telecomNumber)
+                                .build())
+                        .address(address)
+                        .settlementAccount(SettlementAccount.builder()
+                                .bankName("테스트은행")
+                                .bankAccount("110-123-456789")
+                                .accountHolder("테스트오너")
+                                .build())
+                        .build();
+                store = storeRepository.save(store);
+                store.approve();
+                store.setDeliveryAvailable(true);
+                store.setActiveStatus(StoreActiveStatus.ACTIVE);
+                log.info("거리 테스트마트 시드: {} (배송비 구간 테스트용)", storeName);
+                for (String productName : List.of("테스트 상품 A", "테스트 상품 B")) {
+                    if (!productRepository.existsByStoreAndProductNameAndDeletedAtIsNull(store, productName)) {
+                        Product p = Product.builder()
+                                .store(store)
+                                .productCategory(vegCategory)
+                                .productName(productName)
+                                .description(storeName + " " + productName)
+                                .price(1000)
+                                .stock(100)
+                                .build();
+                        p = productRepository.save(p);
+                        p.updateStatus(true);
+                    }
+                }
+            }
+            // user@test.com 장바구니에 이 마트 상품 1건 담기 (거리별 배송비 확인용)
+            User testUser = userRepository.findByEmail("user@test.com").orElse(null);
+            if (testUser != null && store != null) {
+                List<Product> products = productRepository.findByStoreAndDeletedAtIsNull(store, org.springframework.data.domain.Pageable.unpaged()).getContent();
+                if (!products.isEmpty()) {
+                    Cart cart = cartRepository.findByUserId(testUser.getId())
+                            .orElseGet(() -> cartRepository.save(Cart.create(testUser)));
+                    Product first = products.get(0);
+                    if (cartProductRepository.findByCartIdAndProductId(cart.getId(), first.getId()).isEmpty()) {
+                        cartProductRepository.save(CartProduct.builder()
+                                .cart(cart)
+                                .product(first)
+                                .store(store)
+                                .quantity(1)
+                                .build());
+                        log.info("거리 테스트마트 시드: user@test.com 장바구니에 [{}] 1건 담김 (배송비 확인용)", storeName);
+                    }
+                }
+            }
         }
     }
 

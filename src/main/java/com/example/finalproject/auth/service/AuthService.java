@@ -148,6 +148,12 @@ public class AuthService {
         RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID));
         User user = storedToken.getUser();
+
+        if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+            refreshTokenRepository.delete(storedToken);
+            throw new BusinessException(ErrorCode.USER_STATUS_FORBIDDEN);
+        }
+
         List<String> roles = user.getUserRoles().stream()
                 .map(UserRole::getRole)
                 .map(Role::getRoleName)
