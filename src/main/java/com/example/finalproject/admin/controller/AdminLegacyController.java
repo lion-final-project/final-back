@@ -10,6 +10,7 @@ import com.example.finalproject.moderation.enums.ApprovalStatus;
 import com.example.finalproject.moderation.repository.ApprovalRepository;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.enums.StoreActiveStatus;
+import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.store.repository.StoreRepository;
 import jakarta.validation.constraints.NotNull;
 import java.util.ArrayList;
@@ -190,7 +191,7 @@ public class AdminLegacyController {
     }
 
     private boolean isStoreApproved(Store store) {
-        return store.getIsActive() == StoreActiveStatus.ACTIVE;
+        return store.getStatus() == StoreStatus.APPROVED;
     }
 
     private boolean isRiderActive(Rider rider) {
