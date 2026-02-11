@@ -71,7 +71,13 @@ public class StoreService {
 
         log.info("마트 입점 신청 완료. storeId={}, userId={}", savedStore.getId(), user.getId());
 
-        return PostStoreRegistrationResponse.of(savedStore.getId(), savedApproval.getId(), savedStore.getStatus(), savedStore.getStoreName());
+        return PostStoreRegistrationResponse.of(
+                savedStore.getId(),
+                savedApproval.getId(),
+                savedStore.getStatus(),
+                savedStore.getStoreName(),
+                savedStore.getRepresentativeName()
+        );
     }
 
     /**
@@ -82,7 +88,11 @@ public class StoreService {
     public java.util.Optional<GetStoreRegistrationStatusResponse> getMyStoreRegistration(String userName) {
         User user = findUserByUserName(userName);
         return storeRepository.findByOwner(user)
-                .map(store -> GetStoreRegistrationStatusResponse.of(store.getStatus(), store.getStoreName()));
+                .map(store -> GetStoreRegistrationStatusResponse.of(
+                        store.getStatus(),
+                        store.getStoreName(),
+                        store.getRepresentativeName()
+                ));
     }
 
     public void cancelStoreRegistration(String userName) {

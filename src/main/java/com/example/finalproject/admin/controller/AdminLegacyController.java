@@ -52,6 +52,7 @@ public class AdminLegacyController {
 
         String keyword = normalize(name);
         List<Store> filtered = stores.stream()
+                .filter(this::isStoreApproved)
                 .filter(store -> keyword.isEmpty() || normalize(store.getStoreName()).contains(keyword))
                 .toList();
 
@@ -67,7 +68,7 @@ public class AdminLegacyController {
                         "total", mapped.size(),
                         "active", (int) mapped.stream().filter(LegacyStoreListItem::getIsActive).count(),
                         "inactive", (int) mapped.stream().filter(item -> !item.getIsActive()).count(),
-                        "pending", (int) filtered.stream().filter(store -> !isStoreApproved(store)).count()
+                        "pending", getPendingStoreApprovalCount()
                 )
         );
 
@@ -205,6 +206,11 @@ public class AdminLegacyController {
                         .map(rider -> rider.getStatus() != RiderApprovalStatus.APPROVED)
                         .orElse(false))
                 .count();
+        return Math.toIntExact(pendingCount);
+    }
+
+    private int getPendingStoreApprovalCount() {
+        long pendingCount = approvalRepository.countByApplicantTypeAndStatus(ApplicantType.STORE, ApprovalStatus.PENDING);
         return Math.toIntExact(pendingCount);
     }
 
