@@ -3,33 +3,22 @@ package com.example.finalproject.subscription.service;
 import com.example.finalproject.global.component.UserLoader;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
-import com.example.finalproject.payment.domain.PaymentMethod;
-import com.example.finalproject.payment.repository.PaymentMethodRepository;
+import com.example.finalproject.payment.service.SubscriptionBillingService;
 import com.example.finalproject.subscription.domain.Subscription;
-import com.example.finalproject.subscription.domain.SubscriptionDayOfWeek;
-import com.example.finalproject.subscription.domain.SubscriptionProduct;
-import com.example.finalproject.subscription.domain.SubscriptionProductDayOfWeek;
 import com.example.finalproject.subscription.domain.SubscriptionStatusLog;
 import com.example.finalproject.subscription.dto.request.PostSubscriptionRequest;
 import com.example.finalproject.subscription.dto.response.GetSubscriptionResponse;
 import com.example.finalproject.subscription.enums.SubHistoryStatus;
-import com.example.finalproject.subscription.enums.SubscriptionProductStatus;
 import com.example.finalproject.subscription.enums.SubscriptionStatus;
-import com.example.finalproject.subscription.repository.SubscriptionDayOfWeekRepository;
 import com.example.finalproject.subscription.repository.SubscriptionHistoryRepository;
 import com.example.finalproject.subscription.repository.SubscriptionProductDayOfWeekRepository;
 import com.example.finalproject.subscription.repository.SubscriptionProductItemRepository;
-import com.example.finalproject.subscription.repository.SubscriptionProductRepository;
 import com.example.finalproject.subscription.repository.SubscriptionRepository;
 import com.example.finalproject.subscription.repository.SubscriptionStatusLogRepository;
-import com.example.finalproject.user.domain.Address;
 import com.example.finalproject.user.domain.User;
-import com.example.finalproject.user.repository.AddressRepository;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -43,23 +32,18 @@ public class SubscriptionService {
     private static final Set<SubscriptionStatus> LISTABLE_STATUSES =
             EnumSet.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAUSED, SubscriptionStatus.CANCELLATION_PENDING);
 
-    private static final List<String> VALID_DELIVERY_TIME_SLOTS =
-            List.of("08:00~11:00", "11:00~14:00", "14:00~17:00", "17:00~20:00");
-
     private final SubscriptionRepository subscriptionRepository;
-    private final SubscriptionProductRepository subscriptionProductRepository;
     private final SubscriptionProductItemRepository subscriptionProductItemRepository;
     private final SubscriptionProductDayOfWeekRepository subscriptionProductDayOfWeekRepository;
-    private final SubscriptionDayOfWeekRepository subscriptionDayOfWeekRepository;
     private final SubscriptionHistoryRepository subscriptionHistoryRepository;
     private final SubscriptionStatusLogRepository subscriptionStatusLogRepository;
-    private final AddressRepository addressRepository;
-    private final PaymentMethodRepository paymentMethodRepository;
     private final UserLoader userLoader;
+    private final SubscriptionBillingService subscriptionBillingService;
+    private final SubscriptionStatusService subscriptionStatusService;
+    private final SubscriptionCreationService subscriptionCreationService;
 
     /**
-     * 고객의 구독 목록을 조회한다 (API-SUB-002). 해지 완료(CANCELLED)는 제외.
-     * 유저 조회는 UserLoader를 통해 수행한다.
+     * 고객의 구독 목록을 조회한다 (API-SUB-002). 해지 완료(CANCELLED)는 제외. 유저 조회는 UserLoader를 통해 수행한다.
      *
      * @param username 로그인한 사용자 식별자 (이메일)
      * @return 구독 목록 (구독 상품, 구독 상태, 다음 결제 예정일 등)
@@ -74,8 +58,9 @@ public class SubscriptionService {
      * 구독을 일시정지한다 (API-SUB-003). 본인 구독이며 ACTIVE 상태일 때만 가능.
      *
      * @param subscriptionId 구독 ID
-     * @param username        로그인한 사용자 식별자 (이메일)
-     * @throws BusinessException 구독 없음(SUBSCRIPTION_NOT_FOUND), 본인 구독 아님(SUBSCRIPTION_FORBIDDEN), 상태 불가(SUBSCRIPTION_INVALID_STATUS)
+     * @param username       로그인한 사용자 식별자 (이메일)
+     * @throws BusinessException 구독 없음(SUBSCRIPTION_NOT_FOUND), 본인 구독 아님(SUBSCRIPTION_FORBIDDEN), 상태
+     *                           불가(SUBSCRIPTION_INVALID_STATUS)
      */
     @Transactional
     public void pause(Long subscriptionId, String username) {
@@ -111,8 +96,8 @@ public class SubscriptionService {
     }
 
     /**
-     * 구독 해지를 요청한다 (API-SUB-005). 다음 결제일 기준 해지 정책에 따라 해지 예정(CANCELLATION_PENDING)으로 전환한다.
-     * 본인 구독이며 ACTIVE 또는 PAUSED 상태일 때만 가능.
+     * 구독 해지를 요청한다 (API-SUB-005). 다음 결제일 기준 해지 정책에 따라 해지 예정(CANCELLATION_PENDING)으로 전환한다. 본인 구독이며 ACTIVE 또는 PAUSED 상태일
+     * 때만 가능.
      *
      * @param subscriptionId 구독 ID
      * @param username       로그인한 사용자 식별자 (이메일)
@@ -133,8 +118,7 @@ public class SubscriptionService {
     }
 
     /**
-     * 해지 예정을 취소하고 구독을 유지한다 (UC-C10 5-a).
-     * 본인 구독이며 CANCELLATION_PENDING 상태일 때만 가능.
+     * 해지 예정을 취소하고 구독을 유지한다 (UC-C10 5-a). 본인 구독이며 CANCELLATION_PENDING 상태일 때만 가능.
      */
     @Transactional
     public void cancelCancellation(Long subscriptionId, String username) {
@@ -150,80 +134,25 @@ public class SubscriptionService {
     }
 
     /**
-     * 구독을 신청한다 (API-SUB-001).
-     * deliveryTimeSlot이 null이거나 빈 값이면 08:00~11:00을 기본값으로 사용한다.
+     * 구독을 신청한다 (API-SUB-001). deliveryTimeSlot이 null이거나 빈 값이면 08:00~11:00을 기본값으로 사용한다.
      *
      * @param username 로그인한 사용자 식별자 (이메일)
      * @param request  구독 신청 요청
      * @return 생성된 구독 응답
      */
-    @Transactional
     public GetSubscriptionResponse create(String username, PostSubscriptionRequest request) {
         User user = userLoader.loadUserByUsername(username);
         Long userId = user.getId();
 
-        SubscriptionProduct product = subscriptionProductRepository.findById(request.getSubscriptionProductId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_NOT_FOUND));
-        if (product.getStatus() != SubscriptionProductStatus.ACTIVE) {
-            throw new BusinessException(ErrorCode.SUBSCRIPTION_PRODUCT_INVALID_STATUS);
-        }
+        Subscription subscription = subscriptionCreationService.createPendingSubscription(request, userId, user);
 
-        Address address = addressRepository.findByIdWithUser(request.getAddressId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.ADDRESS_NOT_FOUND));
-        if (!Objects.equals(address.getUser().getId(), userId)) {
-            throw new BusinessException(ErrorCode.ADDRESS_NOT_FOUND);
-        }
+        try {
+            subscriptionBillingService.chargeMonthlyFee(subscription);
+            subscriptionStatusService.activateAfterFirstPayment(subscription.getId());
 
-        PaymentMethod paymentMethod = paymentMethodRepository.findByIdAndUser_Id(request.getPaymentMethodId(), userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-
-        String deliveryTimeSlot = request.getDeliveryTimeSlot();
-        if (deliveryTimeSlot == null || deliveryTimeSlot.isBlank()) {
-            deliveryTimeSlot = VALID_DELIVERY_TIME_SLOTS.get(0);
-        } else if (!VALID_DELIVERY_TIME_SLOTS.contains(deliveryTimeSlot)) {
-            throw new BusinessException(ErrorCode.SUBSCRIPTION_INVALID_DELIVERY_TIME_SLOT);
-        }
-
-        List<Short> daysOfWeek;
-        if (request.getDeliveryDays() != null && !request.getDeliveryDays().isEmpty()) {
-            daysOfWeek = request.getDeliveryDays().stream()
-                    .map(Integer::shortValue)
-                    .filter(d -> d >= 0 && d <= 6)
-                    .distinct()
-                    .collect(Collectors.toList());
-        } else {
-            List<SubscriptionProductDayOfWeek> productDays =
-                    subscriptionProductDayOfWeekRepository.findBySubscriptionProductOrderById_DayOfWeekAsc(product);
-            daysOfWeek = productDays.stream()
-                    .map(d -> d.getId().getDayOfWeek())
-                    .collect(Collectors.toList());
-        }
-        if (daysOfWeek.isEmpty()) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        LocalDateTime startedAt = LocalDateTime.now();
-        LocalDate nextPaymentDate = LocalDate.now().plusMonths(1);
-
-        Subscription subscription = Subscription.builder()
-                .user(user)
-                .store(product.getStore())
-                .subscriptionProduct(product)
-                .address(address)
-                .paymentMethod(paymentMethod)
-                .totalAmount(product.getPrice())
-                .startedAt(startedAt)
-                .nextPaymentDate(nextPaymentDate)
-                .deliveryTimeSlot(deliveryTimeSlot)
-                .build();
-        subscription = subscriptionRepository.save(subscription);
-
-        for (Short day : daysOfWeek) {
-            subscriptionDayOfWeekRepository.save(
-                    SubscriptionDayOfWeek.builder()
-                            .subscription(subscription)
-                            .dayOfWeek(day)
-                            .build());
+        } catch (Exception e) {
+            subscriptionStatusService.markPaymentFailed(subscription.getId());
+            throw new BusinessException(ErrorCode.PAYMENT_FAILED);
         }
 
         return toResponse(subscription);
@@ -231,7 +160,8 @@ public class SubscriptionService {
 
     @Transactional(readOnly = true)
     private List<GetSubscriptionResponse> findListByUserId(Long userId) {
-        List<Subscription> list = subscriptionRepository.findByUserIdAndStatusInOrderByCreatedAtDesc(userId, LISTABLE_STATUSES);
+        List<Subscription> list = subscriptionRepository.findByUserIdAndStatusInOrderByCreatedAtDesc(userId,
+                LISTABLE_STATUSES);
         return list.stream().map(this::toResponse).collect(Collectors.toList());
     }
 
@@ -245,7 +175,8 @@ public class SubscriptionService {
 
     private GetSubscriptionResponse toResponse(Subscription s) {
         var product = s.getSubscriptionProduct();
-        List<Short> daysOfWeek = subscriptionProductDayOfWeekRepository.findBySubscriptionProductOrderById_DayOfWeekAsc(product)
+        List<Short> daysOfWeek = subscriptionProductDayOfWeekRepository.findBySubscriptionProductOrderById_DayOfWeekAsc(
+                        product)
                 .stream()
                 .map(d -> d.getId().getDayOfWeek())
                 .collect(Collectors.toList());
@@ -265,7 +196,8 @@ public class SubscriptionService {
                         .build())
                 .collect(Collectors.toList());
         int totalDeliveryCount = product.getTotalDeliveryCount() != null ? product.getTotalDeliveryCount() : 0;
-        int completedDeliveryCount = (int) subscriptionHistoryRepository.countBySubscriptionAndStatus(s, SubHistoryStatus.COMPLETED);
+        int completedDeliveryCount = (int) subscriptionHistoryRepository.countBySubscriptionAndStatus(s,
+                SubHistoryStatus.COMPLETED);
 
         return GetSubscriptionResponse.builder()
                 .subscriptionId(s.getId())
@@ -288,7 +220,9 @@ public class SubscriptionService {
                 .build();
     }
 
-    /** BR-C10-05: 구독 상태 변경 이력을 기록한다. */
+    /**
+     * BR-C10-05: 구독 상태 변경 이력을 기록한다.
+     */
     private void saveStatusLog(Subscription subscription, SubscriptionStatus fromStatus, SubscriptionStatus toStatus) {
         subscriptionStatusLogRepository.save(
                 SubscriptionStatusLog.builder()
