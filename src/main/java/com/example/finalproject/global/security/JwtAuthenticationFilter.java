@@ -30,7 +30,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
+    private final UserAuthCache userAuthCache;
 
     @Override
     protected void doFilterInternal(
@@ -43,8 +43,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (token != null && !token.isBlank() && jwtTokenProvider.validateToken(token)) {
                 Claims claims = jwtTokenProvider.parseClaims(token);
                 String subject = claims.getSubject();
-                User user = userRepository.findByEmail(subject).orElse(null);
-                if (user != null && user.getStatus() == UserStatus.ACTIVE && user.getDeletedAt() == null) {
+                Integer tokenVersion = claims.get("ver", Integer.class);
+                UserAuthCache.CachedUserAuth user = userAuthCache.get(subject).orElse(null);
+                if (user != null && isTokenVersionValid(tokenVersion, user.tokenVersion())) {
                     List<org.springframework.security.core.GrantedAuthority> authorities = new ArrayList<>();
                     Object rolesObj = claims.get("roles");
                     if (rolesObj instanceof List<?> rolesList) {
@@ -66,6 +67,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.debug("JWT 인증 스킵: {}", ex.getMessage());
         }
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isTokenVersionValid(Integer tokenVersionInJwt, Integer currentTokenVersion) {
+        int jwtVersion = tokenVersionInJwt == null ? 0 : tokenVersionInJwt;
+        int userVersion = currentTokenVersion == null ? 0 : currentTokenVersion;
+        return jwtVersion == userVersion;
     }
 
     //Authorization : Bearer 헤더 or AT 쿠키에서 토큰 추출
