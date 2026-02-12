@@ -3,6 +3,8 @@ package com.example.finalproject.global.sse.enums;
 public enum SseEventType {
     UNREAD_COUNT("unread-count"),
     CONNECTED("connected"),
+    ORDER_CREATED("order-created"),
+
     STORE_ORDER_CREATED("store-order-created");
 
     private final String eventName;

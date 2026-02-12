@@ -128,6 +128,8 @@ public enum ErrorCode {
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-001", "결제를 조회할 수 없습니다."),
     ALREADY_PROCESSED_PAYMENT(HttpStatus.BAD_REQUEST, "PAYMENT-002", "이미 처리된 결제입니다."),
     PAYMENT_METHOD_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-003", "결제 수단을 찾을 수 없습니다."),
+    PAYMENT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT-004", "결제에 실패했습니다."),
+
 
     // ORDER (order-checkout)
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-001", "주문을 찾을 수 없습니다."),

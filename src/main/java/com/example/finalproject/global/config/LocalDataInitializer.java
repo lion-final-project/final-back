@@ -200,7 +200,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     }
 
     // 결제 더미데이터
-    //스토어, 상품, 테스트 유저 장바구니에 상품 담기 (장바구니·주문서·결제 플로우 확인용)
+    // 스토어, 상품, 테스트 유저 장바구니에 상품 담기 (장바구니·주문서·결제 플로우 확인용)
     private void seedCheckoutDummyData(Role userRole) {
         String storeOwnerEmail = "storeowner@test.com";
         User storeOwner = userRepository.findByEmail(storeOwnerEmail).orElseGet(() -> {
@@ -276,7 +276,9 @@ public class LocalDataInitializer implements CommandLineRunner {
         for (String[] row : productRows) {
             String name = row[0];
             boolean exists = productRepository.existsByStoreAndProductNameAndDeletedAtIsNull(store, name);
-            if (exists) continue;
+            if (exists) {
+                continue;
+            }
             Product p = Product.builder()
                     .store(store)
                     .productCategory(vegCategory)
@@ -292,7 +294,8 @@ public class LocalDataInitializer implements CommandLineRunner {
         }
 
         // 이 스토어의 더미 상품 조회 (방금 생성했거나 기존 DB에 있든 모두 포함)
-        List<Product> productsForCart = productRepository.findByStoreAndDeletedAtIsNull(store, org.springframework.data.domain.Pageable.unpaged())
+        List<Product> productsForCart = productRepository.findByStoreAndDeletedAtIsNull(store,
+                        org.springframework.data.domain.Pageable.unpaged())
                 .getContent()
                 .stream()
                 .filter(p -> dummyProductNames.contains(p.getProductName()))
@@ -307,7 +310,9 @@ public class LocalDataInitializer implements CommandLineRunner {
                 if (cartProductRepository.findByCartIdAndProductId(cart.getId(), product.getId()).isEmpty()) {
                     // 수량은 상품마다 1~3개로 다양하게
                     int qty = (product.getProductName().length() % 3) + 1;
-                    if (qty < 1) qty = 1;
+                    if (qty < 1) {
+                        qty = 1;
+                    }
                     cartProductRepository.save(CartProduct.builder()
                             .cart(cart)
                             .product(product)
@@ -366,8 +371,8 @@ public class LocalDataInitializer implements CommandLineRunner {
     }
 
     /**
-     * 회원탈퇴 테스트더미: user@test.com에 진행중 구독, 결제 대기 상태, 진행중 주문 3가지를 넣어
-     * GET /api/users/me/withdrawal/eligibility 시 탈퇴 불가·사유 반환, DELETE /api/users/me 시 409 검증용.
+     * 회원탈퇴 테스트더미: user@test.com에 진행중 구독, 결제 대기 상태, 진행중 주문 3가지를 넣어 GET /api/users/me/withdrawal/eligibility 시 탈퇴 불가·사유
+     * 반환, DELETE /api/users/me 시 409 검증용.
      */
     private void seedWithdrawalTestDummyData() {
         User testUser = userRepository.findByEmail("user@test.com").orElse(null);
@@ -386,14 +391,16 @@ public class LocalDataInitializer implements CommandLineRunner {
         // 회원탈퇴 테스트더미: 배송지 또는 결제수단 없으면 스킵
         List<Address> addresses = addressRepository.findByUserOrderByIsDefaultDesc(testUser);
         Address deliveryAddress = addresses.isEmpty() ? null : addresses.get(0);
-        PaymentMethod paymentMethod = paymentMethodRepository.findFirstByUserIdAndIsDefaultTrue(testUser.getId()).orElse(null);
+        PaymentMethod paymentMethod = paymentMethodRepository.findFirstByUserIdAndIsDefaultTrue(testUser.getId())
+                .orElse(null);
         if (deliveryAddress == null || paymentMethod == null) {
             log.warn("회원탈퇴 테스트더미: user@test.com 배송지 또는 결제수단 없음, 스킵");
             return;
         }
 
         // 회원탈퇴 테스트더미: 진행중 구독용 구독 상품 (ACTIVE)
-        List<SubscriptionProduct> storeProducts = subscriptionProductRepository.findByStoreIdOrderByCreatedAtDesc(store.getId());
+        List<SubscriptionProduct> storeProducts = subscriptionProductRepository.findByStoreIdOrderByCreatedAtDesc(
+                store.getId());
         SubscriptionProduct subProduct = storeProducts.stream()
                 .filter(p -> p.getStatus() == SubscriptionProductStatus.ACTIVE)
                 .findFirst()
@@ -425,6 +432,7 @@ public class LocalDataInitializer implements CommandLineRunner {
                     .startedAt(LocalDateTime.now().minusDays(7))
                     .nextPaymentDate(LocalDate.now().plusDays(7))
                     .deliveryTimeSlot("09:00-12:00")
+                    .status(SubscriptionStatus.ACTIVE)
                     .build();
             subscriptionRepository.save(sub);
             log.info("회원탈퇴 테스트더미: 진행중 구독 1건 생성 (ACTIVE) — 탈퇴 불가 사유용");
@@ -464,54 +472,62 @@ public class LocalDataInitializer implements CommandLineRunner {
         }
     }
 
-    //신청 목록 더미: 상점 2건 + 라이더 2건 PENDING
+    // 신청 목록 더미: 상점 2건 + 라이더 2건 PENDING
     private void seedApprovalListDummyData(Role userRole) {
         String pw = passwordEncoder.encode("password123");
         LocalDateTime now = LocalDateTime.now();
 
         User storeApp1 = userRepository.findByEmail("storeapp1@dongnae.com").orElseGet(() -> {
-            User u = userRepository.save(User.builder().email("storeapp1@dongnae.com").password(pw).name("신청상점1").phone("01080000001")
-                    .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
+            User u = userRepository.save(
+                    User.builder().email("storeapp1@dongnae.com").password(pw).name("신청상점1").phone("01080000001")
+                            .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
             userRoleRepository.save(UserRole.builder().user(u).role(userRole).build());
             return u;
         });
         User storeApp2 = userRepository.findByEmail("storeapp2@dongnae.com").orElseGet(() -> {
-            User u = userRepository.save(User.builder().email("storeapp2@dongnae.com").password(pw).name("신청상점2").phone("01080000002")
-                    .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
+            User u = userRepository.save(
+                    User.builder().email("storeapp2@dongnae.com").password(pw).name("신청상점2").phone("01080000002")
+                            .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
             userRoleRepository.save(UserRole.builder().user(u).role(userRole).build());
             return u;
         });
         User riderApp1 = userRepository.findByEmail("riderapp1@dongnae.com").orElseGet(() -> {
-            User u = userRepository.save(User.builder().email("riderapp1@dongnae.com").password(pw).name("신청라이더1").phone("01080000003")
-                    .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
+            User u = userRepository.save(
+                    User.builder().email("riderapp1@dongnae.com").password(pw).name("신청라이더1").phone("01080000003")
+                            .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
             userRoleRepository.save(UserRole.builder().user(u).role(userRole).build());
             return u;
         });
         User riderApp2 = userRepository.findByEmail("riderapp2@dongnae.com").orElseGet(() -> {
-            User u = userRepository.save(User.builder().email("riderapp2@dongnae.com").password(pw).name("신청라이더2").phone("01080000004")
-                    .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
+            User u = userRepository.save(
+                    User.builder().email("riderapp2@dongnae.com").password(pw).name("신청라이더2").phone("01080000004")
+                            .termsAgreed(true).privacyAgreed(true).termsAgreedAt(now).privacyAgreedAt(now).build());
             userRoleRepository.save(UserRole.builder().user(u).role(userRole).build());
             return u;
         });
 
-        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(storeApp1, ApplicantType.STORE, ApprovalStatus.PENDING).isEmpty()) {
+        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(storeApp1, ApplicantType.STORE,
+                ApprovalStatus.PENDING).isEmpty()) {
             approvalRepository.save(Approval.builder().user(storeApp1).applicantType(ApplicantType.STORE).build());
         }
-        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(storeApp2, ApplicantType.STORE, ApprovalStatus.PENDING).isEmpty()) {
+        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(storeApp2, ApplicantType.STORE,
+                ApprovalStatus.PENDING).isEmpty()) {
             approvalRepository.save(Approval.builder().user(storeApp2).applicantType(ApplicantType.STORE).build());
         }
         boolean riderApp1AlreadyApproved = riderRepository.findByUserId(riderApp1.getId())
                 .map(rider -> rider.getStatus() == com.example.finalproject.delivery.enums.RiderApprovalStatus.APPROVED)
                 .orElse(false);
         if (!riderApp1AlreadyApproved
-                && approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp1, ApplicantType.RIDER, ApprovalStatus.PENDING).isEmpty()) {
+                && approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp1, ApplicantType.RIDER,
+                ApprovalStatus.PENDING).isEmpty()) {
             approvalRepository.save(Approval.builder().user(riderApp1).applicantType(ApplicantType.RIDER).build());
         }
         boolean riderApp2AlreadyApproved = riderRepository.findByUserId(riderApp2.getId())
                 .map(rider -> rider.getStatus() == com.example.finalproject.delivery.enums.RiderApprovalStatus.APPROVED)
                 .orElse(false);
         if (!riderApp2AlreadyApproved
-                && approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp2, ApplicantType.RIDER, ApprovalStatus.PENDING).isEmpty()) {
+                && approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp2, ApplicantType.RIDER,
+                ApprovalStatus.PENDING).isEmpty()) {
             approvalRepository.save(Approval.builder().user(riderApp2).applicantType(ApplicantType.RIDER).build());
         }
 
@@ -527,9 +543,14 @@ public class LocalDataInitializer implements CommandLineRunner {
                     .description("신청 상점 설명1")
                     .representativeName("홍길동")
                     .representativePhone("01090000001")
-                    .submittedDocumentInfo(SubmittedDocumentInfo.builder().businessOwnerName("홍길동").businessNumber("111222333444").telecomSalesReportNumber("TSR-0001").build())
-                    .address(StoreAddress.builder().postalCode("06236").addressLine1("서울시 강남구 테헤란로 1").addressLine2("1층").location(GeometryUtil.createPoint(127.0276, 37.4979)).build())
-                    .settlementAccount(SettlementAccount.builder().bankName("신한은행").bankAccount("110-123-456789").accountHolder("홍길동").build())
+                    .submittedDocumentInfo(
+                            SubmittedDocumentInfo.builder().businessOwnerName("홍길동").businessNumber("111222333444")
+                                    .telecomSalesReportNumber("TSR-0001").build())
+                    .address(
+                            StoreAddress.builder().postalCode("06236").addressLine1("서울시 강남구 테헤란로 1").addressLine2("1층")
+                                    .location(GeometryUtil.createPoint(127.0276, 37.4979)).build())
+                    .settlementAccount(SettlementAccount.builder().bankName("신한은행").bankAccount("110-123-456789")
+                            .accountHolder("홍길동").build())
                     .build();
             s = storeRepository.save(s);
             s.setActiveStatus(StoreActiveStatus.INACTIVE);
@@ -544,9 +565,14 @@ public class LocalDataInitializer implements CommandLineRunner {
                     .description("신청 상점 설명2")
                     .representativeName("김철수")
                     .representativePhone("01090000002")
-                    .submittedDocumentInfo(SubmittedDocumentInfo.builder().businessOwnerName("김철수").businessNumber("555666777888").telecomSalesReportNumber("TSR-0002").build())
-                    .address(StoreAddress.builder().postalCode("06611").addressLine1("서울시 서초구 강남대로 2").addressLine2("2층").location(GeometryUtil.createPoint(127.0280, 37.4980)).build())
-                    .settlementAccount(SettlementAccount.builder().bankName("국민은행").bankAccount("120-987-654321").accountHolder("김철수").build())
+                    .submittedDocumentInfo(
+                            SubmittedDocumentInfo.builder().businessOwnerName("김철수").businessNumber("555666777888")
+                                    .telecomSalesReportNumber("TSR-0002").build())
+                    .address(
+                            StoreAddress.builder().postalCode("06611").addressLine1("서울시 서초구 강남대로 2").addressLine2("2층")
+                                    .location(GeometryUtil.createPoint(127.0280, 37.4980)).build())
+                    .settlementAccount(SettlementAccount.builder().bankName("국민은행").bankAccount("120-987-654321")
+                            .accountHolder("김철수").build())
                     .build();
             s = storeRepository.save(s);
             s.setActiveStatus(StoreActiveStatus.INACTIVE);
@@ -554,29 +580,34 @@ public class LocalDataInitializer implements CommandLineRunner {
         }
 
         if (riderRepository.findByUserId(riderApp1.getId()).isEmpty()) {
-            riderRepository.save(Rider.builder().user(riderApp1).bankName("우리은행").bankAccount("333-444-555555").accountHolder("박라이더").build());
+            riderRepository.save(
+                    Rider.builder().user(riderApp1).bankName("우리은행").bankAccount("333-444-555555").accountHolder("박라이더")
+                            .build());
             log.info("신청 목록 더미: 라이더 신청 1건 생성 - 신청라이더1");
         }
         if (riderRepository.findByUserId(riderApp2.getId()).isEmpty()) {
-            riderRepository.save(Rider.builder().user(riderApp2).bankName("하나은행").bankAccount("777-888-999999").accountHolder("최라이더").build());
+            riderRepository.save(
+                    Rider.builder().user(riderApp2).bankName("하나은행").bankAccount("777-888-999999").accountHolder("최라이더")
+                            .build());
             log.info("신청 목록 더미: 라이더 신청 1건 생성 - 신청라이더2");
         }
     }
 
     /**
-     * 거리 기반 배송비 테스트: user@test.com 기본 배송지(127.0276, 37.4979) 기준
-     * - 1km 이내 테스트마트: ~0.5km → 배송비 3,000원
-     * - 2km 이내 테스트마트: ~1.5km → 배송비 4,000원
-     * - 3km 이내 테스트마트: ~2.5km → 배송비 5,000원
+     * 거리 기반 배송비 테스트: user@test.com 기본 배송지(127.0276, 37.4979) 기준 - 1km 이내 테스트마트: ~0.5km → 배송비 3,000원 - 2km 이내 테스트마트:
+     * ~1.5km → 배송비 4,000원 - 3km 이내 테스트마트: ~2.5km → 배송비 5,000원
      */
     private void seedDistanceTestMarts(Role userRole) {
         double baseLon = 127.0276;
         double baseLat = 37.4979;
         // 위도 1도 ≈ 111km → 0.5km ≈ 0.0045, 1.5km ≈ 0.0135, 2.5km ≈ 0.0225
         List<Object[]> marts = List.of(
-                new Object[]{"mart1km@test.com", "1km이내 테스트마트", baseLon, baseLat + 0.0045, "거리 0.5km → 배송비 3,000원", "333456789001", "제2024-서울강남-10101", "01033333001"},
-                new Object[]{"mart2km@test.com", "2km이내 테스트마트", baseLon, baseLat + 0.0135, "거리 1.5km → 배송비 4,000원", "333456789002", "제2024-서울강남-10102", "01033333002"},
-                new Object[]{"mart3km@test.com", "3km이내 테스트마트", baseLon, baseLat + 0.0225, "거리 2.5km → 배송비 5,000원", "333456789003", "제2024-서울강남-10103", "01033333003"}
+                new Object[]{"mart1km@test.com", "1km이내 테스트마트", baseLon, baseLat + 0.0045, "거리 0.5km → 배송비 3,000원",
+                        "333456789001", "제2024-서울강남-10101", "01033333001"},
+                new Object[]{"mart2km@test.com", "2km이내 테스트마트", baseLon, baseLat + 0.0135, "거리 1.5km → 배송비 4,000원",
+                        "333456789002", "제2024-서울강남-10102", "01033333002"},
+                new Object[]{"mart3km@test.com", "3km이내 테스트마트", baseLon, baseLat + 0.0225, "거리 2.5km → 배송비 5,000원",
+                        "333456789003", "제2024-서울강남-10103", "01033333003"}
         );
         StoreCategory martCategory = storeCategoryRepository.findByCategoryName("마트/슈퍼").orElseThrow();
         ProductCategory vegCategory = productCategoryRepository.findByCategoryName("채소").orElseThrow();
@@ -655,7 +686,8 @@ public class LocalDataInitializer implements CommandLineRunner {
             // user@test.com 장바구니에 이 마트 상품 1건 담기 (거리별 배송비 확인용)
             User testUser = userRepository.findByEmail("user@test.com").orElse(null);
             if (testUser != null && store != null) {
-                List<Product> products = productRepository.findByStoreAndDeletedAtIsNull(store, org.springframework.data.domain.Pageable.unpaged()).getContent();
+                List<Product> products = productRepository.findByStoreAndDeletedAtIsNull(store,
+                        org.springframework.data.domain.Pageable.unpaged()).getContent();
                 if (!products.isEmpty()) {
                     Cart cart = cartRepository.findByUserId(testUser.getId())
                             .orElseGet(() -> cartRepository.save(Cart.create(testUser)));
