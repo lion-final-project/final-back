@@ -102,6 +102,7 @@ public class GlobalExceptionHandler {
             return ResponseEntity.noContent().build();
         }
 
+        log.error("Unhandled Exception: {} {}", request.getMethod(), request.getRequestURI(), e);
         return ResponseEntity.status(ErrorCode.INTERNAL_SERVER_ERROR.getStatus())
                 .body(ApiResponse.fail(ErrorCode.INTERNAL_SERVER_ERROR));
     }

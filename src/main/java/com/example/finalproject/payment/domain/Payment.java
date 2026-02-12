@@ -76,7 +76,7 @@ public class Payment extends BaseTimeEntity {
     public Payment(Order order, PaymentStatus paymentStatus, PaymentMethodType paymentMethod, Integer amount,
                    String pgOrderId, String pgProvider) {
         this.order = order;
-        this.paymentStatus = paymentStatus;
+        this.paymentStatus = paymentStatus != null ? paymentStatus : PaymentStatus.PENDING;
         this.paymentMethod = paymentMethod;
         this.amount = amount;
         this.pgOrderId = pgOrderId;

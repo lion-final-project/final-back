@@ -49,6 +49,12 @@ public class Rider extends BaseTimeEntity {
     @JoinColumn(name = "user_id", nullable = false, unique = true, foreignKey = @ForeignKey(name = "fk_riders_user"))
     private User user;
 
+    @Column(name = "applicant_name", length = 50)
+    private String applicantName;
+
+    @Column(name = "applicant_phone", length = 20)
+    private String applicantPhone;
+
     @Column(name = "id_card_verified", nullable = false)
     private Boolean idCardVerified = false;
 
@@ -70,8 +76,10 @@ public class Rider extends BaseTimeEntity {
     private RiderApprovalStatus status = RiderApprovalStatus.PENDING;
 
     @Builder
-    public Rider(User user, String bankName, String bankAccount, String accountHolder) {
+    public Rider(User user, String applicantName, String applicantPhone, String bankName, String bankAccount, String accountHolder) {
         this.user = user;
+        this.applicantName = applicantName;
+        this.applicantPhone = applicantPhone;
         this.bankName = bankName;
         this.bankAccount = bankAccount;
         this.accountHolder = accountHolder;
@@ -84,6 +92,8 @@ public class Rider extends BaseTimeEntity {
     public void reject() {
         this.status = RiderApprovalStatus.REJECTED;
     }
+
+    // ======================= 운행 상태 도메인 메서드 (P1-1) =======================
 
     /**
      * 라이더 영업 시작 (OFFLINE → ONLINE)
@@ -117,5 +127,26 @@ public class Rider extends BaseTimeEntity {
      */
     public void finishDelivering() {
         this.operationStatus = RiderOperationStatus.ONLINE;
+    }
+
+    // ======================= 정보 업데이트 메서드 (dev 병합) =======================
+
+    public void updateApplicantInfo(String applicantName, String applicantPhone) {
+        this.applicantName = applicantName;
+        this.applicantPhone = applicantPhone;
+    }
+
+    public void updateSettlementInfo(String bankName, String bankAccount, String accountHolder) {
+        this.bankName = bankName;
+        this.bankAccount = bankAccount;
+        this.accountHolder = accountHolder;
+    }
+
+    public String getDisplayName() {
+        return this.applicantName != null && !this.applicantName.isBlank() ? this.applicantName : this.user.getName();
+    }
+
+    public String getDisplayPhone() {
+        return this.applicantPhone != null && !this.applicantPhone.isBlank() ? this.applicantPhone : this.user.getPhone();
     }
 }

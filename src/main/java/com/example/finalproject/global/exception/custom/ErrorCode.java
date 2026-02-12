@@ -58,6 +58,9 @@ public enum ErrorCode {
         // NOTICE
         NOTICE_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTICE-001", "공지사항을 찾을 수 없습니다."),
 
+        // BANNER (dev 병합)
+        BANNER_NOT_FOUND(HttpStatus.NOT_FOUND, "BANNER-001", "배너를 찾을 수 없습니다."),
+
         // PRODUCT
         PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT-001", "상품을 찾을 수 없거나 해당 마트 소속이 아닙니다."),
         PRODUCT_INACTIVE(HttpStatus.BAD_REQUEST, "PRODUCT-002", "판매 중지된 상품입니다"),
@@ -105,6 +108,7 @@ public enum ErrorCode {
         DUPLICATE_ADDRESS_NAME(HttpStatus.CONFLICT, "ADDRESS-003", "이미 존재하는 배송지 이름입니다."),
         DUPLICATE_ADDRESS(HttpStatus.CONFLICT, "ADDRESS-004", "이미 등록된 배송지 주소입니다."),
         ADDRESS_DELETE_MIN_REQUIRED(HttpStatus.BAD_REQUEST, "ADDRESS-005", "배송지는 최소 1개 이상 등록되어 있어야 합니다."),
+
         // DELIVERY
         DISTANCE_CALCULATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "DELIVERY-001", "배달비 계산에 실패했습니다."),
         DELIVERY_NOT_AVAILABLE(HttpStatus.BAD_REQUEST, "DELIVERY-002", "배달 가능한 지역이 아닙니다."),
@@ -142,6 +146,7 @@ public enum ErrorCode {
         PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-001", "결제를 조회할 수 없습니다."),
         ALREADY_PROCESSED_PAYMENT(HttpStatus.BAD_REQUEST, "PAYMENT-002", "이미 처리된 결제입니다."),
         PAYMENT_METHOD_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-003", "결제 수단을 찾을 수 없습니다."),
+        PAYMENT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT-004", "결제에 실패했습니다."),
 
         // ORDER (order-checkout)
         ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER-001", "주문을 찾을 수 없습니다."),

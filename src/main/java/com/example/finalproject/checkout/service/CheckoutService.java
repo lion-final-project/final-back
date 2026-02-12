@@ -3,6 +3,8 @@ package com.example.finalproject.checkout.service;
 import com.example.finalproject.checkout.dto.response.GetCheckoutResponse;
 import com.example.finalproject.coupon.domain.Coupon;
 import com.example.finalproject.coupon.repository.CouponRepository;
+import com.example.finalproject.delivery.repository.DeliveryDistanceRepository;
+import com.example.finalproject.delivery.service.DeliveryFeeService;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.Cart;
@@ -31,8 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class CheckoutService {
 
-    private static final int DEFAULT_DELIVERY_FEE = 3000;
-
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
     private final CartProductRepository cartProductRepository;
@@ -40,6 +40,8 @@ public class CheckoutService {
     private final PaymentMethodRepository paymentMethodRepository;
     private final CouponRepository couponRepository;
     private final PriceCalculator priceCalculator;
+    private final DeliveryFeeService deliveryFeeService;
+    private final DeliveryDistanceRepository deliveryDistanceRepository;
 
     public GetCheckoutResponse getCheckout(String email, List<Long> cartItemIds, Long addressId,
             Long couponId, Integer usePoints) {
@@ -96,23 +98,32 @@ public class CheckoutService {
         int availablePoints = user.getPoints() != null ? user.getPoints() : 0;
         log.info("[결제창] 쿠폰·포인트 적용. 쿠폰ID={}, 쿠폰할인={}원, 사용포인트={}원, 보유포인트={}원",
                 couponId, discount, points, availablePoints);
-        // 장바구니 상품 가격 계산 (BR-O03 공용 로직)
-        PriceCalculationResult result = priceCalculator.calculate(calculatorItems, storeId -> DEFAULT_DELIVERY_FEE, discount, points);
+        // 장바구니 상품 가격 계산 — 선택 배송지 기준 거리 기반 배송비
+        Long addressIdForFee = address.getId();
+        PriceCalculationResult result = priceCalculator.calculate(
+                calculatorItems,
+                storeId -> deliveryFeeService.calculateDeliveryFeeByAddress(addressIdForFee, storeId),
+                discount,
+                points);
         log.info("[결제창] 금액 계산. 상품총액={}원, 배달비={}원, 할인={}원, 포인트={}원, 최종결제={}원",
                 result.priceSummary().productTotal(), result.priceSummary().deliveryTotal(),
                 result.priceSummary().discount(), result.priceSummary().points(), result.priceSummary().finalTotal());
         Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = result.storeSummaries().stream()
                 .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s));
 
-        // 장바구니 상품 그룹화
+        // 장바구니 상품 그룹화 (마트별 distanceKm, deliveryFee 반영)
         List<GetCheckoutResponse.StoreGroup> storeGroups = grouped.values().stream()
                 .map(group -> {
                     CartProduct first = group.getFirst();
-                    PriceCalculationResult.StorePriceSummary storeSummary = summaryMap.get(first.getStore().getId());
+                    Long storeId = first.getStore().getId();
+                    PriceCalculationResult.StorePriceSummary storeSummary = summaryMap.get(storeId);
+                    Double distanceMeter = deliveryDistanceRepository.getDistanceToStoreMeterByAddress(addressIdForFee, storeId);
+                    Double distanceKm = distanceMeter != null ? Math.round(distanceMeter / 100.0) / 10.0 : null;
                     List<GetCheckoutResponse.Item> items = group.stream().map(this::toItem).toList();
                     return GetCheckoutResponse.StoreGroup.builder()
-                            .storeId(first.getStore().getId())
+                            .storeId(storeId)
                             .storeName(first.getStore().getStoreName())
+                            .distanceKm(distanceKm)
                             .deliveryFee(storeSummary.deliveryFee())
                             .storeProductPrice(storeSummary.storeProductPrice())
                             .storeFinalPrice(storeSummary.storeFinalPrice())
