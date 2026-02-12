@@ -53,8 +53,7 @@ public class DeliveryMatchComponent {
 
         Circle searchArea = GeometryUtil.createSearchCircle(marketLng, marketLat, SEARCH_RADIUS_KM);
 
-        GeoResults<GeoLocation<String>> results =
-                redisTemplate.opsForGeo().search(RIDER_LOC_KEY, searchArea);
+        GeoResults<GeoLocation<String>> results = redisTemplate.opsForGeo().search(RIDER_LOC_KEY, searchArea);
 
         if (results == null)
             return;
@@ -71,11 +70,11 @@ public class DeliveryMatchComponent {
     public void updateRiderNearbyDeliveries(Long riderId, Double riderLng, Double riderLat) {
         Circle searchArea = GeometryUtil.createSearchCircle(riderLng, riderLat, SEARCH_RADIUS_KM);
 
-        GeoResults<GeoLocation<String>> results =
-                redisTemplate.opsForGeo().search(DELIVERY_GEO_KEY, searchArea);
+        GeoResults<GeoLocation<String>> results = redisTemplate.opsForGeo().search(DELIVERY_GEO_KEY, searchArea);
 
         List<String> nearbyDeliveryIds = results != null ? results.getContent().stream()
                 .map(r -> r.getContent().getName())
+                .filter(id -> id != null && id.matches("^\\d+$")) // 숫자 형식만 허용
                 .toList() : List.of();
 
         sendToRider(RIDER_KEY_PREFIX + riderId, SseEventType.NEARBY_DELIVERIES, nearbyDeliveryIds);
@@ -140,6 +139,10 @@ public class DeliveryMatchComponent {
 
         // 주변 라이더들에게 매칭 알림
         broadcastDeliveryMatched(deliveryId, marketLng, marketLat);
+
+        // 상점 사장님에게 배차 완료 알림 전송 (주문 목록 갱신용)
+        sseService.send(delivery.getStoreOrder().getStore().getOwner().getId(), SseEventType.DELIVERY_MATCHED,
+                deliveryId);
     }
 
     /**

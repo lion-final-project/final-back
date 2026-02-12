@@ -22,19 +22,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * 배달 워크플로우 서비스 구현체.
- * <p>
- * 배달 상태 전이(수락→픽업→배송시작→완료)와 조회 기능을 제공합니다.
- * 각 상태 변경 시 {@link DeliveryStatusChangedEvent}를 발행하여
- * 고객에게 SSE 실시간 알림을 전송합니다.
- * </p>
- * <p>
- * ※ 라이더는 최대 {@value Rider#MAX_CONCURRENT_DELIVERIES}건의 배달을 동시 진행할 수 있으며,
- * Redis SET({@code RIDER:DISPATCH:{riderId}})으로 배차 현황을 추적합니다.
- * 라이더는 배달을 취소할 수 없습니다. 취소는 관리자/마트 사장만 가능합니다.
- * </p>
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -60,6 +47,7 @@ public class DeliveryServiceImpl implements DeliveryService {
     public void pickUpDelivery(String username, Long deliveryId) {
         Delivery delivery = findDeliveryAndValidateRider(username, deliveryId);
         delivery.pickUp();
+        delivery.getStoreOrder().markPickedUp();
 
         publishStatusChangedEvent(delivery, DeliveryStatus.PICKED_UP);
     }
@@ -70,6 +58,7 @@ public class DeliveryServiceImpl implements DeliveryService {
     public void startDelivery(String username, Long deliveryId) {
         Delivery delivery = findDeliveryAndValidateRider(username, deliveryId);
         delivery.startDelivering();
+        delivery.getStoreOrder().markDelivering();
 
         publishStatusChangedEvent(delivery, DeliveryStatus.DELIVERING);
     }
@@ -80,6 +69,7 @@ public class DeliveryServiceImpl implements DeliveryService {
     public void completeDelivery(String username, Long deliveryId) {
         Delivery delivery = findDeliveryAndValidateRider(username, deliveryId);
         delivery.complete();
+        delivery.getStoreOrder().markDelivered();
 
         Rider rider = delivery.getRider();
 
@@ -96,7 +86,7 @@ public class DeliveryServiceImpl implements DeliveryService {
         publishStatusChangedEvent(delivery, DeliveryStatus.DELIVERED);
     }
 
-    /** 내 배달 목록 조회*/
+    /** 내 배달 목록 조회 */
     @Override
     public Page<GetDeliveryResponse> getMyDeliveries(String username, DeliveryStatus status, Pageable pageable) {
         Rider rider = findRiderByUsername(username);
@@ -119,7 +109,6 @@ public class DeliveryServiceImpl implements DeliveryService {
         Delivery delivery = findDeliveryAndValidateRider(username, deliveryId);
         return GetDeliveryDetailResponse.from(delivery);
     }
-
 
     /**
      * 배달을 조회하고, 요청한 라이더가 해당 배달에 배정된 라이더인지 검증
@@ -150,8 +139,9 @@ public class DeliveryServiceImpl implements DeliveryService {
     private void publishStatusChangedEvent(Delivery delivery, DeliveryStatus newStatus) {
         Long customerId = delivery.getStoreOrder().getOrder().getUser().getId();
         Long riderId = delivery.getRider().getId();
+        Long storeOwnerId = delivery.getStoreOrder().getStore().getOwner().getId();
 
         eventPublisher.publishEvent(new DeliveryStatusChangedEvent(
-                this, delivery.getId(), newStatus, riderId, customerId));
+                this, delivery.getId(), newStatus, riderId, customerId, storeOwnerId));
     }
 }

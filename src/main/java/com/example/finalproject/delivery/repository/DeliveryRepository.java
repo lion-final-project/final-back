@@ -21,8 +21,11 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
     /** 특정 라이더의 배달을 상태별로 필터링하여 페이징 조회 */
     Page<Delivery> findByRiderAndStatus(Rider rider, DeliveryStatus status, Pageable pageable);
 
-    /** 매장주문(StoreOrder) ID로 배달 조회 (배달 생성 시 중복 랩도 확인용) */
+    /** 매장주문(StoreOrder) ID로 배달 조회 (배달 생성 시 중복 확인용) */
     Optional<Delivery> findByStoreOrderId(Long storeOrderId);
+
+    /** 여러 매장주문 ID로 배달 목록 조회 */
+    java.util.List<Delivery> findByStoreOrderIdIn(java.util.List<Long> storeOrderIds);
 
     /** 라이더가 특정 상태들 중 하나에 해당하는 배달을 보유 중인지 확인 */
     boolean existsByRiderAndStatusIn(Rider rider, java.util.List<DeliveryStatus> statuses);

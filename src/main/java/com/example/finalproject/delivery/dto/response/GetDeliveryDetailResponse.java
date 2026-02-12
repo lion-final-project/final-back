@@ -30,6 +30,12 @@ public class GetDeliveryDetailResponse {
     @JsonProperty("store-name")
     private String storeName;
 
+    @JsonProperty("pickup-address")
+    private String pickupAddress;
+
+    @JsonProperty("delivery-address")
+    private String deliveryAddress;
+
     private DeliveryStatus status;
 
     @JsonProperty("delivery-fee")
@@ -79,6 +85,8 @@ public class GetDeliveryDetailResponse {
                 .id(delivery.getId())
                 .storeOrderId(delivery.getStoreOrder().getId())
                 .storeName(delivery.getStoreOrder().getStore().getStoreName())
+                .pickupAddress(delivery.getStoreOrder().getStore().getAddress().getAddressLine1())
+                .deliveryAddress(delivery.getStoreOrder().getOrder().getDeliveryAddress())
                 .status(delivery.getStatus())
                 .deliveryFee(delivery.getDeliveryFee())
                 .riderEarning(delivery.getRiderEarning())

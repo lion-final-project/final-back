@@ -7,9 +7,10 @@ import com.example.finalproject.global.sse.Service.SseService;
 import com.example.finalproject.global.sse.enums.SseEventType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.Map;
 
@@ -26,7 +27,7 @@ public class DeliveryEventListener {
     private final SseService sseService;
 
     @Async
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleDeliveryStatusChanged(DeliveryStatusChangedEvent event) {
         log.info("배달 상태 변경 이벤트 수신 - deliveryId: {}, status: {}",
                 event.getDeliveryId(), event.getNewStatus());
@@ -52,6 +53,14 @@ public class DeliveryEventListener {
                         "배달이 취소되었습니다.",
                         NotificationRefType.DELIVERY);
             }
+        }
+
+        // 상점주에게 SSE 실시간 알림 (배달 상태 변경 시 대시보드 갱신용)
+        if (event.getStoreOwnerId() != null) {
+            Map<String, Object> sseData = Map.of(
+                    "deliveryId", event.getDeliveryId(),
+                    "status", event.getNewStatus().name());
+            sseService.send(event.getStoreOwnerId(), SseEventType.DELIVERY_STATUS_CHANGED, sseData);
         }
     }
 }

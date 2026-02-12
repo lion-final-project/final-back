@@ -13,14 +13,16 @@ public class DeliveryStatusChangedEvent extends ApplicationEvent {
     private final DeliveryStatus newStatus;
     private final Long riderId;
     private final Long customerId;
+    private final Long storeOwnerId;
 
     public DeliveryStatusChangedEvent(Object source, Long deliveryId,
             DeliveryStatus newStatus,
-            Long riderId, Long customerId) {
+            Long riderId, Long customerId, Long storeOwnerId) {
         super(source);
         this.deliveryId = deliveryId;
         this.newStatus = newStatus;
         this.riderId = riderId;
         this.customerId = customerId;
+        this.storeOwnerId = storeOwnerId;
     }
 }

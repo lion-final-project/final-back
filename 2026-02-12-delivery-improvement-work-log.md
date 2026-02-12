@@ -181,3 +181,30 @@ Lint 경고(QueryDSL 생성 파일 unused import, Duration/Long null safety)는 
 | `PatchRiderStatusRequest.java` | @NotNull 검증 |
 | `SseEventType.java` | DELIVERY_STATUS_CHANGED 추가 |
 | `ErrorCode.java` | DELIVERY/RIDER/APPROVAL 에러코드 추가 |
+
+---
+
+## 9. 상점 대시보드 UI/UX 개선 및 버그 수정
+
+### 9-1. 배차 완료 상태 표시 개선
+- **문제**: 라이더가 배차를 수락했음에도 상점 대시보드에서 여전히 "배차 진행중"이나 "준비중"으로 표시되어 혼동 발생.
+- **해결**:
+  - `StoreDashboard.jsx`: `DELIVERY_MATCHED` SSE 이벤트 수신 로직 추가.
+  - `DashboardTab.jsx`: 주문 상태와 관계없이 `deliveryStatus === 'ACCEPTED'`일 경우 "배차 완료" 버튼 또는 "배달원 매칭 완료" 배지 표시.
+  - **효과**: "준비중" 상태에서도 배차 여부를 즉시 확인할 수 있어 상점주의 불안감 해소.
+
+### 9-2. 픽업 완료 시 주문 목록 미갱신 해결 (State Synchronization)
+- **문제**: 라이더가 픽업을 완료해도 상점의 '신규 주문 현황' 목록에서 주문이 사라지지 않음.
+- **원인**:
+  1. `Delivery` 엔티티의 상태만 변경되고 `StoreOrder` 엔티티의 상태는 동기화되지 않음.
+  2. `DeliveryEventListener`가 트랜잭션 커밋 전에 SSE를 발송하여, 클라이언트가 갱신 전 데이터를 조회하는 Race Condition 발생.
+- **해결**:
+  - `DeliveryServiceImpl.java`: 픽업/배송시작/완료 시 `StoreOrder` 상태도 함께 변경(`PICKED_UP`, `DELIVERING`, `DELIVERED`)하도록 수정.
+  - `StoreOrder.java`: 상태 변경 편의 메서드(`markPickedUp`, `markDelivering`, `markDelivered`) 추가 및 상태 검증 로직 완화(`ACCEPTED` -> `PICKED_UP` 허용).
+  - `DeliveryEventListener.java`: `@TransactionalEventListener(phase = AFTER_COMMIT)` 적용하여 데이터 커밋 후 알림 전송 보장.
+  - **효과**: 픽업 완료 시 주문 목록에서 즉시 사라지고 "완료된 주문" 탭으로 이동.
+
+### 9-3. 인프라 안정성 확보
+- **문제**: Redis 컨테이너 중지로 인해 실시간 위치 정보 및 배차 알림이 정상 작동하지 않음.
+- **해결**: Redis 컨테이너 재시작 및 연결 상태 확인.
+

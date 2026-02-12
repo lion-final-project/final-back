@@ -158,13 +158,15 @@ public enum ErrorCode {
         INVALID_ORDER_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "ORDER-008", "존재하지 않는 주문 방식입니다."),
         ORDER_NOT_PAID(HttpStatus.BAD_REQUEST, "ORDER-00", "결제 완료된 주문만 주문접수가 가능합니다."),
 
-        // STORE ORDER
-        STORE_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE-ORDER-001", "마트 주문을 찾을 수 없습니다."),
-        STORE_ORDER_FORBIDDEN(HttpStatus.FORBIDDEN, "STORE-ORDER-002", "해당 마트의 주문이 아닙니다."),
-        STORE_ORDER_NOT_PENDING(HttpStatus.BAD_REQUEST, "STORE-ORDER-003", "대기 중인 주문만 처리할 수 있습니다."),
-        STORE_ORDER_NOT_ACCEPTED(HttpStatus.BAD_REQUEST, "STORE-ORDER-004", "접수된 주문만 준비완료 처리할 수 있습니다."),
-        STORE_ORDER_NOT_READY(HttpStatus.BAD_REQUEST, "STORE-ORDER-005", "준비완료된 주문만 픽업 처리할 수 있습니다."),
-        STORE_ORDER_ALREADY_PROCESSED(HttpStatus.CONFLICT, "STORE-ORDER-006", "이미 처리된 주문입니다."),
+        // STORE_ORDER
+        STORE_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "STORE-ORDER-001", "주문을 찾을 수 없습니다."),
+        STORE_ORDER_NOT_BELONG_TO_STORE(HttpStatus.FORBIDDEN, "STORE-ORDER-002", "해당 상점의 주문이 아닙니다."),
+        STORE_ORDER_NOT_PENDING(HttpStatus.BAD_REQUEST, "STORE-ORDER-003", "접수 대기 중인 주문이 아닙니다."),
+        STORE_ORDER_NOT_ACCEPTED(HttpStatus.BAD_REQUEST, "STORE-ORDER-004", "접수된 주문이 아닙니다."),
+        STORE_ORDER_NOT_READY(HttpStatus.BAD_REQUEST, "STORE-ORDER-005", "준비 완료된 주문이 아닙니다."),
+        STORE_ORDER_NOT_PICKED_UP(HttpStatus.BAD_REQUEST, "STORE-ORDER-006", "픽업 완료된 주문이 아닙니다."),
+        STORE_ORDER_NOT_DELIVERING(HttpStatus.BAD_REQUEST, "STORE-ORDER-007", "배송 중인 주문이 아닙니다."),
+        STORE_ORDER_ALREADY_PROCESSED(HttpStatus.CONFLICT, "STORE-ORDER-008", "이미 처리된 주문입니다."),
         ;
 
         private final HttpStatus status;
