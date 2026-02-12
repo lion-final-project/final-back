@@ -40,7 +40,6 @@ public class DeliveryMatchComponent {
 
     /**
      * 1. 신규 배달 발생 시 주변 라이더들에게 알림 (Broadcasting)
-     * - 배달 위치를 Redis GEO에 등록한 뒤, 주변 라이더를 검색하여 알림을 전송
      */
     public void notifyNewDelivery(String deliveryId, Double marketLng, Double marketLat) {
         // [이슈 #8] 배달 위치를 Redis GEO에 등록
@@ -146,7 +145,7 @@ public class DeliveryMatchComponent {
     }
 
     /**
-     * 특정 배달이 매칭되었을 때 주변 라이더들에게 '삭제' 이벤트를 보냅니다.
+     * 특정 배달이 매칭되었을 때 주변 라이더들에게 삭제 이벤트
      */
     private void broadcastDeliveryMatched(Long deliveryId, Double lng, Double lat) {
 

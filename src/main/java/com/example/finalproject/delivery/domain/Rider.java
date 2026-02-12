@@ -20,18 +20,6 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.*;
 
-/**
- * 라이더 엔티티.
- * <p>
- * 사용자(User)와 1:1 매핑되며, 승인 상태(status)와 운행 상태(operationStatus)를 관리합니다.
- * operationStatus는 @Setter 대신 도메인
- * 메서드(goOnline/goOffline/startDelivering/finishDelivering)로
- * 통제된 상태 전이만 허용합니다.
- * </p>
- * <p>
- * ※ 라이더는 최대 {@value #MAX_CONCURRENT_DELIVERIES}개의 배달을 동시에 진행할 수 있습니다.
- * </p>
- */
 @Entity
 @Table(name = "riders")
 @Getter
@@ -93,7 +81,6 @@ public class Rider extends BaseTimeEntity {
         this.status = RiderApprovalStatus.REJECTED;
     }
 
-    // ======================= 운행 상태 도메인 메서드 (P1-1) =======================
 
     /**
      * 라이더 영업 시작 (OFFLINE → ONLINE)
@@ -129,7 +116,6 @@ public class Rider extends BaseTimeEntity {
         this.operationStatus = RiderOperationStatus.ONLINE;
     }
 
-    // ======================= 정보 업데이트 메서드 (dev 병합) =======================
 
     public void updateApplicantInfo(String applicantName, String applicantPhone) {
         this.applicantName = applicantName;

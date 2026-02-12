@@ -97,7 +97,6 @@ public class Delivery extends BaseTimeEntity {
     }
 
     /**
-     * 라이더가 배달을 수락합니다.
      * REQUESTED → ACCEPTED
      */
     public void accept(Rider rider) {
@@ -107,8 +106,7 @@ public class Delivery extends BaseTimeEntity {
         this.acceptedAt = LocalDateTime.now();
     }
 
-    /**
-     * 라이더가 상품을 픽업합니다.
+    /*
      * ACCEPTED → PICKED_UP
      */
     public void pickUp() {
@@ -118,7 +116,6 @@ public class Delivery extends BaseTimeEntity {
     }
 
     /**
-     * 라이더가 배송을 시작합니다.
      * PICKED_UP → DELIVERING
      */
     public void startDelivering() {
@@ -127,7 +124,6 @@ public class Delivery extends BaseTimeEntity {
     }
 
     /**
-     * 배달이 완료됩니다.
      * DELIVERING → DELIVERED
      */
     public void complete() {
@@ -137,7 +133,6 @@ public class Delivery extends BaseTimeEntity {
     }
 
     /**
-     * 배달을 취소합니다.
      * REQUESTED | ACCEPTED | PICKED_UP | DELIVERING → CANCELLED
      */
     public void cancel(String reason) {
@@ -150,7 +145,7 @@ public class Delivery extends BaseTimeEntity {
     }
 
     /**
-     * 현재 상태가 expectedStatus인지 검증합니다.
+     * 현재 상태가 expectedStatus인지 검증
      */
     private void validateStatusTransition(DeliveryStatus expectedCurrentStatus) {
         if (this.status != expectedCurrentStatus) {
