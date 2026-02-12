@@ -4,7 +4,7 @@ import com.example.finalproject.delivery.dto.request.PostRiderLocationRequest;
 import com.example.finalproject.delivery.dto.response.GetRiderLocationResponse;
 
 public interface RiderLocationService {
-    void updateRiderLocation(PostRiderLocationRequest request);
+    void updateRiderLocation(String username, PostRiderLocationRequest request);
 
     void removeRider(String riderId);
 

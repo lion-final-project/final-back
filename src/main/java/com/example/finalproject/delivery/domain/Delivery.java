@@ -1,8 +1,9 @@
 package com.example.finalproject.delivery.domain;
 
-
 import com.example.finalproject.delivery.enums.DeliveryStatus;
 import com.example.finalproject.global.domain.BaseTimeEntity;
+import com.example.finalproject.global.exception.custom.BusinessException;
+import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.StoreOrder;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,6 +24,15 @@ import java.time.LocalDateTime;
 import lombok.*;
 import org.locationtech.jts.geom.Point;
 
+/**
+ * 배달 엔티티.
+ * <p>
+ * 매장주문(StoreOrder)에 대한 배달을 나타냅니다.
+ * 상태 전이: REQUESTED → ACCEPTED → PICKED_UP → DELIVERING → DELIVERED (또는
+ * CANCELLED)
+ * 각 상태 전이는 도메인 메서드에서 검증됩니다.
+ * </p>
+ */
 @Entity
 @Table(name = "deliveries")
 @Getter
@@ -34,8 +44,7 @@ public class Delivery extends BaseTimeEntity {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "store_order_id", nullable = false, unique = true,
-            foreignKey = @ForeignKey(name = "fk_deliveries_store_order"))
+    @JoinColumn(name = "store_order_id", nullable = false, unique = true, foreignKey = @ForeignKey(name = "fk_deliveries_store_order"))
     private StoreOrder storeOrder;
 
     @Column(columnDefinition = "GEOGRAPHY(POINT,4326)")
@@ -44,10 +53,8 @@ public class Delivery extends BaseTimeEntity {
     @Column(columnDefinition = "GEOGRAPHY(POINT,4326)")
     private Point customerLocation;
 
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rider_id",
-            foreignKey = @ForeignKey(name = "fk_deliveries_rider"))
+    @JoinColumn(name = "rider_id", foreignKey = @ForeignKey(name = "fk_deliveries_rider"))
     private Rider rider;
 
     @Enumerated(EnumType.STRING)
@@ -66,7 +73,6 @@ public class Delivery extends BaseTimeEntity {
     @Column(name = "estimated_minutes")
     private Integer estimatedMinutes;
 
-
     private LocalDateTime acceptedAt;
     private LocalDateTime pickedUpAt;
     private LocalDateTime deliveredAt;
@@ -77,11 +83,11 @@ public class Delivery extends BaseTimeEntity {
 
     @Builder
     public Delivery(StoreOrder storeOrder,
-                    Point storeLocation,
-                    Point customerLocation,
-                    Integer deliveryFee,
-                    BigDecimal distanceKm,
-                    Integer estimatedMinutes) {
+            Point storeLocation,
+            Point customerLocation,
+            Integer deliveryFee,
+            BigDecimal distanceKm,
+            Integer estimatedMinutes) {
         this.storeOrder = storeOrder;
         this.storeLocation = storeLocation;
         this.customerLocation = customerLocation;
@@ -92,8 +98,10 @@ public class Delivery extends BaseTimeEntity {
 
     /**
      * 라이더가 배달을 수락합니다.
+     * REQUESTED → ACCEPTED
      */
     public void accept(Rider rider) {
+        validateStatusTransition(DeliveryStatus.REQUESTED);
         this.rider = rider;
         this.status = DeliveryStatus.ACCEPTED;
         this.acceptedAt = LocalDateTime.now();
@@ -101,26 +109,52 @@ public class Delivery extends BaseTimeEntity {
 
     /**
      * 라이더가 상품을 픽업합니다.
+     * ACCEPTED → PICKED_UP
      */
     public void pickUp() {
+        validateStatusTransition(DeliveryStatus.ACCEPTED);
         this.status = DeliveryStatus.PICKED_UP;
         this.pickedUpAt = LocalDateTime.now();
     }
 
     /**
+     * 라이더가 배송을 시작합니다.
+     * PICKED_UP → DELIVERING
+     */
+    public void startDelivering() {
+        validateStatusTransition(DeliveryStatus.PICKED_UP);
+        this.status = DeliveryStatus.DELIVERING;
+    }
+
+    /**
      * 배달이 완료됩니다.
+     * DELIVERING → DELIVERED
      */
     public void complete() {
+        validateStatusTransition(DeliveryStatus.DELIVERING);
         this.status = DeliveryStatus.DELIVERED;
         this.deliveredAt = LocalDateTime.now();
     }
 
     /**
      * 배달을 취소합니다.
+     * REQUESTED | ACCEPTED | PICKED_UP | DELIVERING → CANCELLED
      */
     public void cancel(String reason) {
+        if (this.status == DeliveryStatus.DELIVERED || this.status == DeliveryStatus.CANCELLED) {
+            throw new BusinessException(ErrorCode.DELIVERY_INVALID_STATUS_TRANSITION);
+        }
         this.status = DeliveryStatus.CANCELLED;
         this.cancelledAt = LocalDateTime.now();
         this.cancelReason = reason;
+    }
+
+    /**
+     * 현재 상태가 expectedStatus인지 검증합니다.
+     */
+    private void validateStatusTransition(DeliveryStatus expectedCurrentStatus) {
+        if (this.status != expectedCurrentStatus) {
+            throw new BusinessException(ErrorCode.DELIVERY_INVALID_STATUS_TRANSITION);
+        }
     }
 }

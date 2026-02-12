@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class PatchRiderStatusRequest {
+    @NotNull(message = "운행 상태는 필수입니다.")
     @JsonProperty(value = "operation-status")
     private RiderOperationStatus operationStatus;
 }

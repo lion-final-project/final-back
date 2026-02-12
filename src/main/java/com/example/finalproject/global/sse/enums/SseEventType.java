@@ -6,7 +6,8 @@ public enum SseEventType {
     STORE_ORDER_CREATED("store-order-created"),
     NEW_DELIVERY("new-delivery"),
     NEARBY_DELIVERIES("nearby-deliveries"),
-    DELIVERY_MATCHED("delivery-matched");
+    DELIVERY_MATCHED("delivery-matched"),
+    DELIVERY_STATUS_CHANGED("delivery-status-changed");
 
     private final String eventName;
 
