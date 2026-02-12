@@ -1,13 +1,11 @@
 package com.example.finalproject.auth.service;
 
 import com.example.finalproject.auth.config.KakaoProperties;
-import com.example.finalproject.auth.domain.RefreshToken;
 import com.example.finalproject.auth.dto.kakao.KakaoTokenResponseDto;
 import com.example.finalproject.auth.dto.kakao.KakaoUserInfoResponse;
 import com.example.finalproject.auth.dto.kakao.OAuthLoginSessionResult;
 import com.example.finalproject.auth.dto.request.SocialSignupCompleteRequest;
 import com.example.finalproject.auth.dto.response.LoginResponse;
-import com.example.finalproject.auth.repository.RefreshTokenRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.jwt.JwtTokenProvider;
@@ -22,7 +20,6 @@ import com.example.finalproject.user.repository.SocialLoginRepository;
 import com.example.finalproject.user.repository.UserRepository;
 import com.example.finalproject.user.repository.UserRoleRepository;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +49,7 @@ public class KakaoService {
     private final SocialLoginRepository socialLoginRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenStore refreshTokenStore;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
 
@@ -68,7 +65,7 @@ public class KakaoService {
         String nickname = userInfo.getNickname();
 
         //카카오 최초 로그인 여부 확인
-        User user = socialLoginRepository.findByProviderAndProviderUserId(SocialProvider.KAKAO, providerUserId)
+        User user = socialLoginRepository.findByProviderAndProviderUserIdAndDeletedAtIsNull(SocialProvider.KAKAO, providerUserId)
                 .map(SocialLogin::getUser)
                 .orElseGet(() -> registerKakaoUser(providerUserId, nickname));
 
@@ -89,8 +86,8 @@ public class KakaoService {
         //JWT 토큰 발급
         String newAccessToken = jwtTokenProvider.generateAccessToken(user, roles);
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user, roles);
-        refreshTokenRepository.deleteByUser(user);
-        saveRefreshToken(user, newRefreshToken);
+        refreshTokenStore.deleteByUser(user);
+        refreshTokenStore.save(user, newRefreshToken);
 
         //로그인 응답 반환
         return new LoginResponse(
@@ -112,7 +109,7 @@ public class KakaoService {
         String providerUserId = String.valueOf(userInfo.getId());
         String nickname = userInfo.getNickname();
 
-        User user = socialLoginRepository.findByProviderAndProviderUserId(SocialProvider.KAKAO, providerUserId)
+        User user = socialLoginRepository.findByProviderAndProviderUserIdAndDeletedAtIsNull(SocialProvider.KAKAO, providerUserId)
                 .map(SocialLogin::getUser)
                 .orElseGet(() -> registerKakaoUser(providerUserId, nickname));
 
@@ -133,13 +130,13 @@ public class KakaoService {
 
     // 카카오 최초 로그인 여부. true = 이미 가입됨, false = 회원가입 폼 필요
     public boolean isKakaoUserRegistered(String providerUserId) {
-        return socialLoginRepository.findByProviderAndProviderUserId(SocialProvider.KAKAO, providerUserId).isPresent();
+        return socialLoginRepository.findByProviderAndProviderUserIdAndDeletedAtIsNull(SocialProvider.KAKAO, providerUserId).isPresent();
     }
 
     //Spring OAuth2 Client용: 카카오에서 받은 id·닉네임으로 우리 User 조회. 이미 가입된 경우만 사용
     @Transactional
     public OAuthLoginSessionResult findOrCreateByKakaoInfo(String providerUserId, String nickname) {
-        User user = socialLoginRepository.findByProviderAndProviderUserId(SocialProvider.KAKAO, providerUserId)
+        User user = socialLoginRepository.findByProviderAndProviderUserIdAndDeletedAtIsNull(SocialProvider.KAKAO, providerUserId)
                 .map(SocialLogin::getUser)
                 .orElseGet(() -> registerKakaoUser(providerUserId, nickname));
 
@@ -160,7 +157,7 @@ public class KakaoService {
     @Transactional
     public OAuthLoginSessionResult completeKakaoSignup(String providerUserId, SocialSignupCompleteRequest request) {
         log.info("[카카오 소셜 가입] 시작 providerUserId={}, email={}", providerUserId, request.getEmail());
-        if (socialLoginRepository.findByProviderAndProviderUserId(SocialProvider.KAKAO, providerUserId).isPresent()) {
+        if (socialLoginRepository.findByProviderAndProviderUserIdAndDeletedAtIsNull(SocialProvider.KAKAO, providerUserId).isPresent()) {
             log.warn("[카카오 소셜 가입] 이미 가입된 providerUserId={}", providerUserId);
             throw new IllegalStateException("이미 카카오로 가입된 회원입니다.");
         }
@@ -294,16 +291,6 @@ public class KakaoService {
         }
         return "kakao-" + UUID.randomUUID().toString().replace("-", "").substring(0, 13);
     }
-
-    private void saveRefreshToken(User user, String refreshToken) {
-        
-        LocalDateTime expiresAt = LocalDateTime.ofInstant(
-                jwtTokenProvider.parseClaims(refreshToken).getExpiration().toInstant(),
-                ZoneId.systemDefault()
-        );
-        refreshTokenRepository.save(new RefreshToken(user, refreshToken, expiresAt));
-    }
-
 
     private void validateActiveUser(User user) {
         if (user.getStatus() != UserStatus.ACTIVE || user.getDeletedAt() != null) {
