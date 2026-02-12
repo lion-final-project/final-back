@@ -18,5 +18,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT COUNT(o) FROM Order o WHERE o.orderedAt >= :start AND o.orderedAt < :end")
     long countByOrderedAtBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
+    long countByUserId(Long userId);
+
     long countByUserIdAndStatusIn(Long userId, Collection<OrderStatus> statuses);
 }
