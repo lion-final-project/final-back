@@ -7,6 +7,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface SubscriptionHistoryRepository extends JpaRepository<SubscriptionHistory, Long> {
 
@@ -47,5 +49,6 @@ public interface SubscriptionHistoryRepository extends JpaRepository<Subscriptio
      * @param storeOrderId StoreOrder ID
      * @return 해당 구독 이력 (없으면 empty)
      */
-    Optional<SubscriptionHistory> findFirstByStoreOrderId(Long storeOrderId);
+    @Query("SELECT sh FROM SubscriptionHistory sh WHERE sh.storeOrder.id = :storeOrderId")
+    Optional<SubscriptionHistory> findFirstByStoreOrderId(@Param("storeOrderId") Long storeOrderId);
 }

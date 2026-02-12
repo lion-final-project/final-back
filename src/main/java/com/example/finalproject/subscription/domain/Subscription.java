@@ -164,4 +164,11 @@ public class Subscription extends BaseTimeEntity {
     public void moveNextBillingDate() {
         this.nextPaymentDate = this.nextPaymentDate.plusMonths(1);
     }
+
+    /**
+     * 배송 완료 시 주기 차수를 1 증가시킨다 (구독 진행 상황 추적용).
+     */
+    public void incrementCycleCount() {
+        this.cycleCount = (this.cycleCount != null ? this.cycleCount : 1) + 1;
+    }
 }
