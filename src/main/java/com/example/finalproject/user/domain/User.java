@@ -62,6 +62,10 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, columnDefinition = "integer not null default 0")
     private Integer points = 0;
 
+    @Column(nullable = false, columnDefinition = "integer not null default 0")
+    private Integer tokenVersion = 0;
+
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<UserRole> userRoles = new ArrayList<>();
 
@@ -99,6 +103,12 @@ public class User extends BaseTimeEntity {
     public void deactive(LocalDateTime deletedAt) {
         this.status = UserStatus.INACTIVE;
         this.deletedAt = deletedAt;
+        increaseTokenVersion();
+    }
+
+    public void increaseTokenVersion() {
+        this.tokenVersion = (this.tokenVersion == null ? 0 : this.tokenVersion) + 1;
+
     }
 
     public void activate() {
