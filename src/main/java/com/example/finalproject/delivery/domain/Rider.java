@@ -34,6 +34,12 @@ public class Rider extends BaseTimeEntity {
             foreignKey = @ForeignKey(name = "fk_riders_user"))
     private User user;
 
+    @Column(name = "applicant_name", length = 50)
+    private String applicantName;
+
+    @Column(name = "applicant_phone", length = 20)
+    private String applicantPhone;
+
     @Column(name = "id_card_verified", nullable = false)
     private Boolean idCardVerified = false;
 
@@ -56,8 +62,10 @@ public class Rider extends BaseTimeEntity {
     private RiderApprovalStatus status = RiderApprovalStatus.PENDING;
 
     @Builder
-    public Rider(User user, String bankName, String bankAccount, String accountHolder) {
+    public Rider(User user, String applicantName, String applicantPhone, String bankName, String bankAccount, String accountHolder) {
         this.user = user;
+        this.applicantName = applicantName;
+        this.applicantPhone = applicantPhone;
         this.bankName = bankName;
         this.bankAccount = bankAccount;
         this.accountHolder = accountHolder;
@@ -71,12 +79,31 @@ public class Rider extends BaseTimeEntity {
         this.status = RiderApprovalStatus.REJECTED;
     }
 
+    public void updateApplicantInfo(String applicantName, String applicantPhone) {
+        this.applicantName = applicantName;
+        this.applicantPhone = applicantPhone;
+    }
+
+    public void updateSettlementInfo(String bankName, String bankAccount, String accountHolder) {
+        this.bankName = bankName;
+        this.bankAccount = bankAccount;
+        this.accountHolder = accountHolder;
+    }
+
+    public String getDisplayName() {
+        return this.applicantName != null && !this.applicantName.isBlank() ? this.applicantName : this.user.getName();
+    }
+
+    public String getDisplayPhone() {
+        return this.applicantPhone != null && !this.applicantPhone.isBlank() ? this.applicantPhone : this.user.getPhone();
+    }
+
     public RiderResponse createResponse() {
         return RiderResponse.builder()
                 .id(this.getId())
                 .userId(this.user.getId())
-                .name(this.user.getName())
-                .phone(this.user.getPhone())
+                .name(this.getDisplayName())
+                .phone(this.getDisplayPhone())
                 .bankAccount(this.bankAccount)
                 .bankName(this.bankName)
                 .accountHolder(this.accountHolder)

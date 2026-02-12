@@ -6,6 +6,7 @@ import com.example.finalproject.delivery.dto.request.PatchRiderStatusRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderLocationRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderRegisterRequest;
 import com.example.finalproject.delivery.dto.response.GetRiderLocationResponse;
+import com.example.finalproject.delivery.dto.response.GetRiderRegistrationStatusResponse;
 import com.example.finalproject.delivery.dto.response.RiderApprovalResponse;
 import com.example.finalproject.delivery.dto.response.RiderResponse;
 import com.example.finalproject.delivery.enums.RiderOperationStatus;
@@ -30,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -70,12 +72,19 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
         User user = findUserByUserName(username);
         Rider rider;
 
+        validateAlreadyPending(user);
+
         if (riderRepository.existsByUserId(user.getId())){
             rider = findRiderByUsername(username);
+            if (rider.getStatus() == com.example.finalproject.delivery.enums.RiderApprovalStatus.APPROVED) {
+                throw new IllegalStateException("이미 승인된 라이더 계정입니다. 배달원 관리 메뉴를 이용해주세요.");
+            }
+            rider.updateApplicantInfo(request.getName(), request.getPhone());
+            rider.updateSettlementInfo(request.getBankName(), request.getBankAccount(), request.getAccountHolder());
         }else{
-            validateAlreadyPending(user);
-
             rider = Rider.builder().user(user)
+                    .applicantName(request.getName())
+                    .applicantPhone(request.getPhone())
                     .accountHolder(request.getAccountHolder())
                     .bankAccount(request.getBankAccount())
                     .bankName(request.getBankName())
@@ -99,10 +108,11 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
     @Override
     public Page<RiderApprovalResponse> getApprovals(String username, Pageable pageable) {
         User user = findUserByUserName(username);
-        if (!riderRepository.existsByUserId(user.getId())){
-            throw new RuntimeException("Rider not found");
+        Optional<Rider> riderOptional = riderRepository.findByUserId(user.getId());
+        if (riderOptional.isEmpty()) {
+            return Page.empty(pageable);
         }
-        Rider rider = findRiderByUsername(username);
+        Rider rider = riderOptional.get();
 
         Page<Approval> approvalPage = approvalRepository
                 .findApprovalsByUserAndApplicantType(user, ApplicantType.RIDER, pageable);
@@ -111,13 +121,34 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
     }
 
     @Override
+    public Optional<GetRiderRegistrationStatusResponse> getRegistrationStatus(String username) {
+        User user = findUserByUserName(username);
+
+        Optional<Approval> latestApproval = approvalRepository.findTopByUserAndApplicantTypeOrderByIdDesc(
+                user, ApplicantType.RIDER);
+        if (latestApproval.isPresent()) {
+            Approval approval = latestApproval.get();
+            return Optional.of(GetRiderRegistrationStatusResponse.builder()
+                    .status(approval.getStatus().name())
+                    .approvalId(approval.getId())
+                    .build());
+        }
+
+        return riderRepository.findByUserId(user.getId())
+                .map(rider -> GetRiderRegistrationStatusResponse.builder()
+                        .status(rider.getStatus().name())
+                        .approvalId(null)
+                        .build());
+    }
+
+    @Override
     @Transactional
     public void deleteApproval(Long approvalId) {
         Approval approval = approvalRepository.findById(approvalId)
                 .orElseThrow(() -> new RuntimeException("Approval not found"));
 
-        if (!(approval.getStatus() == ApprovalStatus.PENDING)){
-            throw new RuntimeException("Approval status is not PENDING");
+        if (!(approval.getStatus() == ApprovalStatus.PENDING || approval.getStatus() == ApprovalStatus.HELD)){
+            throw new IllegalStateException("심사 대기 또는 보류 상태의 신청만 취소할 수 있습니다.");
         }
 
         approvalRepository.delete(approval);
@@ -135,14 +166,14 @@ public class RiderServiceImpl implements RiderService, RiderLocationService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    //신청이력 삭제 가능여부 확인
+    // 신청 이력 중 대기/보류 상태 여부 확인
     private void validateAlreadyPending(User user) throws RuntimeException{
 
-         if (approvalRepository.existsByUserAndStatus(user, ApprovalStatus.PENDING) ||
-                 approvalRepository.existsByUserAndStatus(user, ApprovalStatus.HELD)
-         ){
-             throw new RuntimeException("Cannot delete: Not PENDING or HELD");
-         }
+        if (approvalRepository.existsByUserAndApplicantTypeAndStatus(user, ApplicantType.RIDER, ApprovalStatus.PENDING) ||
+                approvalRepository.existsByUserAndApplicantTypeAndStatus(user, ApplicantType.RIDER, ApprovalStatus.HELD)
+        ){
+            throw new IllegalStateException("이미 배달원 신청이 심사 대기/보류 상태입니다.");
+        }
     }
 
     @Override
