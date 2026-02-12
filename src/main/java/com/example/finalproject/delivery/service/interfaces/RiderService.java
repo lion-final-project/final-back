@@ -1,15 +1,16 @@
 package com.example.finalproject.delivery.service.interfaces;
 
-import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.dto.request.PatchRiderStatusRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderRegisterRequest;
+import com.example.finalproject.delivery.dto.response.GetRiderRegistrationStatusResponse;
 import com.example.finalproject.delivery.dto.response.RiderApprovalResponse;
 import com.example.finalproject.delivery.dto.response.RiderResponse;
-import com.example.finalproject.delivery.enums.RiderOperationStatus;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface RiderService {
+
     /**
      * @param username 유저 이메일
      * @param request 라이더 영업 상태 변경 요청
@@ -32,6 +33,13 @@ public interface RiderService {
      * @return 라이더 등록 신청 목록
      */
     Page<RiderApprovalResponse> getApprovals(String username, Pageable pageable);
+
+    /**
+     * 라이더 등록 신청 상태 조회
+     * @param username 유저 이메일
+     * @return 최신 신청 상태
+     */
+    Optional<GetRiderRegistrationStatusResponse> getRegistrationStatus(String username);
 
     /**
      * 라이더 신청 삭제

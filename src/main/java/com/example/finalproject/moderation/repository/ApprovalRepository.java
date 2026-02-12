@@ -28,4 +28,8 @@ public interface ApprovalRepository extends JpaRepository<Approval, Long> {
     Page<Approval> findApprovalsByUserAndApplicantType(User user, ApplicantType applicantType, Pageable pageable);
 
     Optional<Approval> findFirstByUserAndApplicantTypeAndStatus(User user, ApplicantType applicantType, ApprovalStatus status);
+
+    Optional<Approval> findTopByUserAndApplicantTypeOrderByIdDesc(User user, ApplicantType applicantType);
+
+    long countByApplicantTypeAndStatus(ApplicantType applicantType, ApprovalStatus status);
 }

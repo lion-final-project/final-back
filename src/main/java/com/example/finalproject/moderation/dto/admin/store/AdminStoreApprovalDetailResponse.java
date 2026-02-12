@@ -25,11 +25,17 @@ public class AdminStoreApprovalDetailResponse {
     public static class StoreInfo {
         private Long storeId;
         private String storeName;
+        private String categoryName;
+        private String businessOwnerName;
         private String businessNumber;
+        private String telecomSalesReportNumber;
         private String representativeName;
         private String representativePhone;
         private String addressLine1;
         private String addressLine2;
+        private String settlementBankName;
+        private String settlementBankAccount;
+        private String settlementAccountHolder;
     }
 
     @Getter

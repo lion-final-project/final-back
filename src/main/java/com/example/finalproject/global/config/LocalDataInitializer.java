@@ -500,10 +500,18 @@ public class LocalDataInitializer implements CommandLineRunner {
         if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(storeApp2, ApplicantType.STORE, ApprovalStatus.PENDING).isEmpty()) {
             approvalRepository.save(Approval.builder().user(storeApp2).applicantType(ApplicantType.STORE).build());
         }
-        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp1, ApplicantType.RIDER, ApprovalStatus.PENDING).isEmpty()) {
+        boolean riderApp1AlreadyApproved = riderRepository.findByUserId(riderApp1.getId())
+                .map(rider -> rider.getStatus() == com.example.finalproject.delivery.enums.RiderApprovalStatus.APPROVED)
+                .orElse(false);
+        if (!riderApp1AlreadyApproved
+                && approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp1, ApplicantType.RIDER, ApprovalStatus.PENDING).isEmpty()) {
             approvalRepository.save(Approval.builder().user(riderApp1).applicantType(ApplicantType.RIDER).build());
         }
-        if (approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp2, ApplicantType.RIDER, ApprovalStatus.PENDING).isEmpty()) {
+        boolean riderApp2AlreadyApproved = riderRepository.findByUserId(riderApp2.getId())
+                .map(rider -> rider.getStatus() == com.example.finalproject.delivery.enums.RiderApprovalStatus.APPROVED)
+                .orElse(false);
+        if (!riderApp2AlreadyApproved
+                && approvalRepository.findFirstByUserAndApplicantTypeAndStatus(riderApp2, ApplicantType.RIDER, ApprovalStatus.PENDING).isEmpty()) {
             approvalRepository.save(Approval.builder().user(riderApp2).applicantType(ApplicantType.RIDER).build());
         }
 
