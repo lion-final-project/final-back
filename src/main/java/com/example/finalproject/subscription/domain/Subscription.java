@@ -162,7 +162,7 @@ public class Subscription extends BaseTimeEntity {
     }
 
     public void moveNextBillingDate() {
-        this.nextPaymentDate = this.nextPaymentDate.plusMonths(1);
+        this.nextPaymentDate = this.nextPaymentDate.plusDays(SubscriptionProduct.SUBSCRIPTION_PERIOD_DAYS);
     }
 
     /**

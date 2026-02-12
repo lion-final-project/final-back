@@ -27,6 +27,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SubscriptionProduct extends BaseTimeEntity {
 
+    /** 구독 주기: 7일 × 4주 = 28일 */
+    public static final int SUBSCRIPTION_PERIOD_DAYS = 28;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

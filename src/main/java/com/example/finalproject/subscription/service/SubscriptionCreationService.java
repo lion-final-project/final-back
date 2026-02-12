@@ -90,7 +90,7 @@ public class SubscriptionCreationService {
         }
 
         LocalDateTime startedAt = LocalDateTime.now();
-        LocalDate nextPaymentDate = LocalDate.now().plusMonths(1);
+        LocalDate nextPaymentDate = LocalDate.now().plusDays(SubscriptionProduct.SUBSCRIPTION_PERIOD_DAYS);
 
         Subscription subscription = Subscription.builder()
                 .user(user)
