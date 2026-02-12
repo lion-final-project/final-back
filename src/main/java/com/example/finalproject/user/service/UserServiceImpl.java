@@ -1,6 +1,6 @@
 package com.example.finalproject.user.service;
 
-import com.example.finalproject.auth.repository.RefreshTokenRepository;
+import com.example.finalproject.auth.service.RefreshTokenStore;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.security.CustomUserDetails;
@@ -36,7 +36,7 @@ public class UserServiceImpl implements UserService {
     private static final String ALREADY_INACTIVE_CODE = "ALREADY_INACTIVE";
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenStore refreshTokenStore;
     private final AddressRepository addressRepository;
     private final SocialLoginRepository socialLoginRepository;
     private final List<WithdrawalEligibilityRule> withdrawalEligibilityRules;
@@ -85,8 +85,8 @@ public class UserServiceImpl implements UserService {
         user.maskPersonalInfoForWithdrawal(now);
 
         addressRepository.deleteAllByUserId(user.getId());
-        socialLoginRepository.deleteAllByUserId(user.getId());
-        refreshTokenRepository.deleteByUser(user);
+        socialLoginRepository.softDeleteAllByUserId(user.getId(), now);
+        refreshTokenStore.deleteByUser(user);
 
         log.info("[회원탈퇴] 정상 회원탈퇴 완료 userId={}, deletedAt={}", user.getId(), user.getDeletedAt());
 
