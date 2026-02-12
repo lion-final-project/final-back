@@ -183,9 +183,11 @@ public class AdminLegacyController {
         Rider rider = riderRepository.findById(riderId)
                 .orElseThrow(() -> new IllegalArgumentException("rider not found"));
 
-        rider.setOperationStatus(Boolean.TRUE.equals(request.getIsActive())
-                ? RiderOperationStatus.ONLINE
-                : RiderOperationStatus.OFFLINE);
+        if (Boolean.TRUE.equals(request.getIsActive())) {
+            rider.goOnline();
+        } else {
+            rider.goOffline();
+        }
         riderRepository.save(rider);
         return ResponseEntity.ok(ApiResponse.success("updated"));
     }
