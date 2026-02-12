@@ -48,14 +48,14 @@ public class RiderLocationServiceImpl implements RiderLocationService {
         Rider rider = riderRepository.findByUserEmail(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RIDER_NOT_FOUND));
 
-        String riderId = String.valueOf(rider.getId());
+        String memberName = DeliveryRedisKeys.RIDER_KEY_PREFIX + rider.getId();
 
-        log.info("라이더 위치 업데이트 - riderId: {}, lon: {}, lat: {}",
-                riderId, request.getLongitude(), request.getLatitude());
+        log.info("라이더 위치 업데이트 - memberName: {}, lon: {}, lat: {}",
+                memberName, request.getLongitude(), request.getLatitude());
         try {
             // Redis GEO에 좌표 저장
             Point point = GeometryUtil.createPointForRedis(request.getLongitude(), request.getLatitude());
-            redisTemplate.opsForGeo().add(DeliveryRedisKeys.RIDER_LOC_KEY, point, riderId);
+            redisTemplate.opsForGeo().add(DeliveryRedisKeys.RIDER_LOC_KEY, point, memberName);
 
             // 위치 변경 시 주변 배달 목록 SSE 갱신
             deliveryMatchComponent.updateRiderNearbyDeliveries(

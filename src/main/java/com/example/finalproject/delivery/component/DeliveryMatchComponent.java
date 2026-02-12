@@ -53,8 +53,8 @@ public class DeliveryMatchComponent {
 
         Circle searchArea = GeometryUtil.createSearchCircle(marketLng, marketLat, SEARCH_RADIUS_KM);
 
-        GeoResults<GeoLocation<String>> results = redisTemplate.opsForGeo().search(RIDER_LOC_KEY,
-                searchArea);
+        GeoResults<GeoLocation<String>> results =
+                redisTemplate.opsForGeo().search(RIDER_LOC_KEY, searchArea);
 
         if (results == null)
             return;
@@ -71,8 +71,8 @@ public class DeliveryMatchComponent {
     public void updateRiderNearbyDeliveries(Long riderId, Double riderLng, Double riderLat) {
         Circle searchArea = GeometryUtil.createSearchCircle(riderLng, riderLat, SEARCH_RADIUS_KM);
 
-        GeoResults<GeoLocation<String>> results = redisTemplate.opsForGeo().search(DELIVERY_GEO_KEY,
-                searchArea);
+        GeoResults<GeoLocation<String>> results =
+                redisTemplate.opsForGeo().search(DELIVERY_GEO_KEY, searchArea);
 
         List<String> nearbyDeliveryIds = results != null ? results.getContent().stream()
                 .map(r -> r.getContent().getName())
