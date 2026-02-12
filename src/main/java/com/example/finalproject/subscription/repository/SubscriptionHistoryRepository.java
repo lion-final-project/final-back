@@ -5,6 +5,7 @@ import com.example.finalproject.subscription.domain.SubscriptionHistory;
 import com.example.finalproject.subscription.enums.SubHistoryStatus;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface SubscriptionHistoryRepository extends JpaRepository<SubscriptionHistory, Long> {
@@ -38,4 +39,13 @@ public interface SubscriptionHistoryRepository extends JpaRepository<Subscriptio
      */
     List<SubscriptionHistory> findBySubscription_Store_IdAndScheduledDateAndSubscription_DeliveryTimeSlotAndStatus(
             Long storeId, LocalDate scheduledDate, String deliveryTimeSlot, SubHistoryStatus status);
+
+    /**
+     * StoreOrder에 연결된 구독 이력을 조회한다 (배송 완료 시 subscription_history 상태를 COMPLETED로 변경할 때 사용).
+     * 구독 주문은 StoreOrder당 1건의 SubscriptionHistory만 가지므로 Optional로 반환한다.
+     *
+     * @param storeOrderId StoreOrder ID
+     * @return 해당 구독 이력 (없으면 empty)
+     */
+    Optional<SubscriptionHistory> findFirstByStoreOrderId(Long storeOrderId);
 }
