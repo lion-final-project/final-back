@@ -111,6 +111,18 @@ public class User extends BaseTimeEntity {
 
     }
 
+    public void activate() {
+        this.status = UserStatus.ACTIVE;
+    }
+
+    public void suspend() {
+        this.status = UserStatus.SUSPENDED;
+    }
+
+    public void inactivate() {
+        this.status = UserStatus.INACTIVE;
+    }
+
     public void maskPersonalInfoForWithdrawal(LocalDateTime deletedAt) {
         String timestamp = deletedAt.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String key = "deleted_" + this.id + "_" + timestamp;
