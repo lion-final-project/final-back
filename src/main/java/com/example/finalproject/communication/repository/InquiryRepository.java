@@ -2,6 +2,7 @@ package com.example.finalproject.communication.repository;
 
 import com.example.finalproject.communication.domain.Inquiry;
 import com.example.finalproject.communication.enums.InquiryStatus;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,4 +16,8 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     Page<Inquiry> findAll(Pageable pageable);
 
     Page<Inquiry> findAllByStatus(InquiryStatus status, Pageable pageable);
+
+    long countByUserId(Long userId);
+
+    List<Inquiry> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
 }
