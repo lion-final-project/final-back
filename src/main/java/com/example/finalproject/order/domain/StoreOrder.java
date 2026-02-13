@@ -35,13 +35,11 @@ public class StoreOrder extends BaseTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_store_orders_order"))
+    @JoinColumn(name = "order_id", nullable = false, foreignKey = @ForeignKey(name = "fk_store_orders_order"))
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "store_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_store_orders_store"))
+    @JoinColumn(name = "store_id", nullable = false, foreignKey = @ForeignKey(name = "fk_store_orders_store"))
     private Store store;
 
     @Enumerated(EnumType.STRING)
@@ -56,7 +54,7 @@ public class StoreOrder extends BaseTimeEntity {
     private StoreOrderStatus status = StoreOrderStatus.PENDING;
 
     @Column(name = "store_product_price", nullable = false)
-    private Integer  storeProductPrice;
+    private Integer storeProductPrice;
 
     @Column(name = "delivery_fee", nullable = false)
     private Integer deliveryFee;
@@ -75,8 +73,8 @@ public class StoreOrder extends BaseTimeEntity {
 
     @Builder
     public StoreOrder(Order order, Store store, OrderType orderType,
-                      Integer storeProductPrice, Integer deliveryFee,
-                      Integer finalPrice) {
+            Integer storeProductPrice, Integer deliveryFee,
+            Integer finalPrice) {
         this.order = order;
         this.store = store;
         this.orderType = orderType != null ? orderType : OrderType.REGULAR;
@@ -120,10 +118,25 @@ public class StoreOrder extends BaseTimeEntity {
     }
 
     public void markPickedUp() {
-        if (this.status != StoreOrderStatus.READY) {
+        if (this.status != StoreOrderStatus.READY && this.status != StoreOrderStatus.ACCEPTED) {
             throw new BusinessException(ErrorCode.STORE_ORDER_NOT_READY);
         }
         this.status = StoreOrderStatus.PICKED_UP;
         this.pickedUpAt = LocalDateTime.now();
+    }
+
+    public void markDelivering() {
+        if (this.status != StoreOrderStatus.PICKED_UP) {
+            throw new BusinessException(ErrorCode.STORE_ORDER_NOT_PICKED_UP);
+        }
+        this.status = StoreOrderStatus.DELIVERING;
+    }
+
+    public void markDelivered() {
+        if (this.status != StoreOrderStatus.DELIVERING) {
+            throw new BusinessException(ErrorCode.STORE_ORDER_NOT_DELIVERING);
+        }
+        this.status = StoreOrderStatus.DELIVERED;
+        this.deliveredAt = LocalDateTime.now();
     }
 }

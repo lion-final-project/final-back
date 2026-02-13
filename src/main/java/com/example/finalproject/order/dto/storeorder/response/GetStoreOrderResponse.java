@@ -1,5 +1,6 @@
 package com.example.finalproject.order.dto.storeorder.response;
 
+import com.example.finalproject.delivery.enums.DeliveryStatus;
 import com.example.finalproject.order.domain.OrderProduct;
 import com.example.finalproject.order.domain.StoreOrder;
 import com.example.finalproject.order.enums.StoreOrderStatus;
@@ -20,6 +21,7 @@ public class GetStoreOrderResponse {
     private String orderNumber;
     private String orderTitle;
     private StoreOrderStatus status;
+    private DeliveryStatus deliveryStatus;
     private Integer prepTime;
     private List<GetStoreOrderProductResponse> products;
     private Integer productPrice;
@@ -28,7 +30,8 @@ public class GetStoreOrderResponse {
     private LocalDateTime acceptedAt;
     private String deliveryAddress;
 
-    public static GetStoreOrderResponse from(StoreOrder storeOrder, List<OrderProduct> orderProducts) {
+    public static GetStoreOrderResponse from(StoreOrder storeOrder, List<OrderProduct> orderProducts,
+            DeliveryStatus deliveryStatus) {
         List<GetStoreOrderProductResponse> productResponses = orderProducts.stream()
                 .map(GetStoreOrderProductResponse::from)
                 .toList();
@@ -40,6 +43,7 @@ public class GetStoreOrderResponse {
                 .orderNumber(storeOrder.getOrder().getOrderNumber())
                 .orderTitle(orderTitle)
                 .status(storeOrder.getStatus())
+                .deliveryStatus(deliveryStatus)
                 .prepTime(storeOrder.getPrepTime())
                 .products(productResponses)
                 .productPrice(storeOrder.getStoreProductPrice())
