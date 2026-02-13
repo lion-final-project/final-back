@@ -47,6 +47,12 @@ public class PostSubscriptionProductRequest {
     private List<PostSubscriptionProductItemRequest> items;
 
     /**
+     * 구독 상품 대표 이미지 URL.
+     * 이미지 업로드 후 반환된 URL을 그대로 전달한다.
+     */
+    private String imageUrl;
+
+    /**
      * 구독 상품 구성 품목 요청 DTO.
      */
     @Getter

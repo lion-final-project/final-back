@@ -96,7 +96,7 @@ public class SubscriptionProductService {
                 .price(request.getPrice())
                 .totalDeliveryCount(request.getTotalDeliveryCount())
                 .deliveryCountOfWeek(deliveryCountOfWeek)
-                .subscriptionUrl(null)
+                .imageUrl(request.getImageUrl())
                 .build();
 
         SubscriptionProduct saved = subscriptionProductRepository.save(product);
@@ -172,7 +172,8 @@ public class SubscriptionProductService {
                 request.getDescription(),
                 request.getPrice(),
                 request.getTotalDeliveryCount(),
-                deliveryCountOfWeek
+                deliveryCountOfWeek,
+                request.getImageUrl()
         );
         subscriptionProductRepository.flush();
 
@@ -381,7 +382,7 @@ public class SubscriptionProductService {
                 .totalDeliveryCount(sp.getTotalDeliveryCount())
                 .status(sp.getStatus())
                 .subscriberCount(subscriberCount)
-                .imageUrl(sp.getSubscriptionUrl())
+                .imageUrl(sp.getImageUrl())
                 .daysOfWeek(daysOfWeek)
                 .createdAt(sp.getCreatedAt())
                 .items(itemResponses)
