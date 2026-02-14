@@ -135,7 +135,10 @@ public class PaymentService {
 
         for (StoreOrder storeOrder : storeOrders) {
             applicationEventPublisher.publishEvent(
-                    new StoreOrderCreatedEvent(storeOrder.getId())
+                    new StoreOrderCreatedEvent(
+                            storeOrder.getId(),
+                            storeOrder.getOrder().getOrderedAt()
+                    )
             );
         }
 

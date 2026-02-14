@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,4 +41,17 @@ public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long> {
            "JOIN FETCH o.user " +
            "WHERE so.id = :id")
     Optional<StoreOrder> findByIdWithOrderAndUser(@Param("id") Long id);
+
+    @Query("SELECT so FROM StoreOrder so " +
+           "JOIN FETCH so.store s " +
+           "JOIN FETCH s.owner " +
+           "WHERE so.id = :id")
+    Optional<StoreOrder> findByIdWithStoreAndOwner(@Param("id") Long id);
+
+    List<StoreOrder> findByStatus(StoreOrderStatus status);
+
+    List<StoreOrder> findByStatusAndCreatedAtBefore(
+            StoreOrderStatus status,
+            LocalDateTime createdAtBefore
+    );
 }

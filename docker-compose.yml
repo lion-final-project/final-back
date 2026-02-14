@@ -57,6 +57,9 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
+    command: >
+      redis-server
+      --notify-keyspace-events Ex
 volumes:
   pgdata:
   minio_data:
