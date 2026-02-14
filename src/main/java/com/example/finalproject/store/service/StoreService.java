@@ -127,6 +127,34 @@ public class StoreService {
         return GetStoreCategoryResponse.fromList(storeCategoryRepository.findAll());
     }
 
+    //영업시간 조회
+    @Transactional(readOnly = true)
+    public List<PostStoreBusinessHourRequest> getStoreBusinessHours(String userName) {
+        User user = findUserByUserName(userName);
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+
+        return store.getBusinessHours().stream()
+                .sorted(java.util.Comparator.comparing(StoreBusinessHour::getDayOfWeek))
+                .map(this::toBusinessHourRequest)
+                .toList();
+    }
+
+    //영업시간 수정
+    public void updateStoreBusinessHours(String userName, List<PostStoreBusinessHourRequest> businessHours) {
+        User user = findUserByUserName(userName);
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+
+        if (Boolean.TRUE.equals(store.getIsDeliveryAvailable())) {
+            throw new BusinessException(ErrorCode.STORE_BUSINESS_HOUR_UPDATE_NOT_ALLOWED);
+        }
+
+        validateBusinessHours(businessHours);
+        store.getBusinessHours().clear();
+        addBusinessHours(store, businessHours);
+    }
+
     private void validateRegistration(User user, PostStoreRegistrationRequest request) {
         if (storeRepository.existsBySubmittedDocumentInfo_BusinessNumber(request.getBusinessNumber())) {
             throw new BusinessException(ErrorCode.DUPLICATE_BUSINESS_NUMBER);
@@ -220,6 +248,16 @@ public class StoreService {
 
             store.addBusinessHour(businessHour);
         }
+    }
+
+
+    private PostStoreBusinessHourRequest toBusinessHourRequest(StoreBusinessHour businessHour) {
+        PostStoreBusinessHourRequest response = new PostStoreBusinessHourRequest();
+        response.setDayOfWeek(businessHour.getDayOfWeek());
+        response.setIsClosed(businessHour.getIsClosed());
+        response.setOpenTime(businessHour.getOpenTime() != null ? businessHour.getOpenTime().format(TIME_FORMATTER) : null);
+        response.setCloseTime(businessHour.getCloseTime() != null ? businessHour.getCloseTime().format(TIME_FORMATTER) : null);
+        return response;
     }
 
     private Approval createApproval(User user) {

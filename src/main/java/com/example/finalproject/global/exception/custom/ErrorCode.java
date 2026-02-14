@@ -30,6 +30,7 @@ public enum ErrorCode {
     DUPLICATE_PRODUCT_NAME(HttpStatus.CONFLICT, "STORE-011", "이미 마트에 등록된 상품명입니다."),
     STORE_NOT_ACTIVE(HttpStatus.BAD_REQUEST, "STORE-012", "현재 영업 중인 마트가 아닙니다."),
     STORE_OUTSIDE_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "STORE-013", "영업시간이 아닙니다."),
+    STORE_BUSINESS_HOUR_UPDATE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "STORE-014", "배달 불가능 상태에서만 영업시간 수정이 가능합니다."),
 
     // AUTH
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH-001", "인증이 필요합니다."),
