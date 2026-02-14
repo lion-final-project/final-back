@@ -27,6 +27,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SubscriptionProduct extends BaseTimeEntity {
 
+    /** 구독 주기: 7일 × 4주 = 28일 */
+    public static final int SUBSCRIPTION_PERIOD_DAYS = 28;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -55,20 +58,24 @@ public class SubscriptionProduct extends BaseTimeEntity {
     @Column(nullable = false)
     private SubscriptionProductStatus status = SubscriptionProductStatus.ACTIVE;
 
+    /**
+     * 구독 상품 대표 이미지 URL.
+     * DB 컬럼명은 하위 호환을 위해 subscription_url을 그대로 사용한다.
+     */
     @Column(name = "subscription_url", length = 500)
-    private String subscriptionUrl;
+    private String imageUrl;
 
     @Builder
     public SubscriptionProduct(Store store, String subscriptionProductName,
                               String description, Integer price, Integer totalDeliveryCount,
-                              Integer deliveryCountOfWeek, String subscriptionUrl) {
+                              Integer deliveryCountOfWeek, String imageUrl) {
         this.store = store;
         this.subscriptionProductName = subscriptionProductName;
         this.description = description;
         this.price = price;
         this.totalDeliveryCount = totalDeliveryCount;
         this.deliveryCountOfWeek = deliveryCountOfWeek != null ? deliveryCountOfWeek : 1;
-        this.subscriptionUrl = subscriptionUrl;
+        this.imageUrl = imageUrl;
     }
 
     /**
@@ -79,9 +86,11 @@ public class SubscriptionProduct extends BaseTimeEntity {
      * @param price                가격
      * @param totalDeliveryCount   월 총 배송 횟수
      * @param deliveryCountOfWeek  주당 배송 횟수 (null이면 totalDeliveryCount 기반 계산)
+     * @param imageUrl             대표 이미지 URL (null이면 기존 값 유지)
      */
     public void updateDetails(String name, String description, Integer price,
-                              Integer totalDeliveryCount, Integer deliveryCountOfWeek) {
+                              Integer totalDeliveryCount, Integer deliveryCountOfWeek,
+                              String imageUrl) {
         if (name != null) {
             this.subscriptionProductName = name;
         }
@@ -98,6 +107,9 @@ public class SubscriptionProduct extends BaseTimeEntity {
             this.deliveryCountOfWeek = deliveryCountOfWeek;
         } else if (totalDeliveryCount != null && totalDeliveryCount >= 4) {
             this.deliveryCountOfWeek = Math.max(1, totalDeliveryCount / 4);
+        }
+        if (imageUrl != null) {
+            this.imageUrl = imageUrl;
         }
     }
 
