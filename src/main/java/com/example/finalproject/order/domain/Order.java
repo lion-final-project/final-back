@@ -15,8 +15,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -69,6 +72,10 @@ public class Order extends BaseTimeEntity {
     @Column(name = "ordered_at", nullable = false)
     private LocalDateTime orderedAt;
 
+    @OneToMany(mappedBy = "order")
+    private List<StoreOrder> storeOrders = new ArrayList<>();
+
+
     @Builder
     public Order(String orderNumber, User user, OrderType orderType,
                  Integer totalProductPrice, Integer totalDeliveryFee,
@@ -89,5 +96,23 @@ public class Order extends BaseTimeEntity {
 
     public void markPaid() {
         this.status = OrderStatus.PAID;
+    }
+
+    public void cancel() {
+        this.status = OrderStatus.CANCELLED;
+    }
+
+    public void partialCancel() {
+        this.status = OrderStatus.PARTIAL_CANCELLED;
+    }
+
+    public void recalculateStatus() {
+        boolean allCancelled = storeOrders.stream().allMatch(StoreOrder::isCancelledOrRejected);
+
+        if (allCancelled) {
+            cancel();
+        } else {
+            partialCancel();
+        }
     }
 }
