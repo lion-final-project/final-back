@@ -1,6 +1,7 @@
 package com.example.finalproject.store.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
+import com.example.finalproject.store.dto.request.PatchDeliveryAvailableRequest;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
@@ -110,6 +111,19 @@ public class StoreController {
         String userName = authentication.getName();
         storeService.updateStoreBusinessHours(userName, businessHours);
         return ResponseEntity.ok(ApiResponse.success("영업시간이 수정되었습니다."));
+    }
+
+    /**
+     * 내 상점 배달 가능 on/off 수정
+     */
+    @PatchMapping("/my/delivery-available")
+    public ResponseEntity<ApiResponse<Void>> updateMyDeliveryAvailable(
+            Authentication authentication,
+            @Valid @RequestBody PatchDeliveryAvailableRequest request) {
+        String userName = authentication.getName();
+        storeService.updateDeliveryAvailable(userName, request);
+        return ResponseEntity.ok(ApiResponse.success(
+                Boolean.TRUE.equals(request.getDeliveryAvailable()) ? "배달 가능으로 변경되었습니다." : "배달 불가로 변경되었습니다."));
     }
 
 }

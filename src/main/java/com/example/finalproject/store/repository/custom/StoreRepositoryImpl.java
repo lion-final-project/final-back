@@ -60,7 +60,7 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
                         distanceExpr.coalesce(0.0),
                         store.reviewCount.coalesce(0),
                         store.storeImage,
-                        store.isActive.eq(StoreActiveStatus.ACTIVE),
+                        store.isActive.eq(StoreActiveStatus.ACTIVE).and(store.isDeliveryAvailable.eq(true)),
                         store.address.addressLine1,
                         store.address.addressLine2,
                         latitudeExpr,

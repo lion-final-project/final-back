@@ -102,6 +102,7 @@ public class StoreOrderService {
 
         validateStoreOwnership(storeOrder, store);
         validateActiveStore(store);
+        validateDeliveryAvailable(store);
         validateBusinessHour(store);
 
         OrderStatus orderStatus = storeOrder.getOrder().getStatus();
@@ -401,9 +402,16 @@ public class StoreOrderService {
         }
     }
 
+    private void validateDeliveryAvailable(Store store) {
+        if (!Boolean.TRUE.equals(store.getIsDeliveryAvailable())) {
+            throw new BusinessException(ErrorCode.STORE_DELIVERY_UNAVAILABLE);
+        }
+    }
+
     private void validateBusinessHour(Store store) {
         LocalDateTime now = LocalDateTime.now();
-        short dayOfWeek = (short) now.getDayOfWeek().getValue();
+        int v = now.getDayOfWeek().getValue();
+        short dayOfWeek = (short) (v == 7 ? 0 : v);
         LocalTime currentTime = now.toLocalTime();
 
         StoreBusinessHour businessHour = store.getBusinessHours().stream()

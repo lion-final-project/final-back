@@ -13,6 +13,7 @@ import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.domain.embedded.StoreAddress;
 import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
+import com.example.finalproject.store.dto.request.PatchDeliveryAvailableRequest;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
@@ -164,6 +165,14 @@ public class StoreService {
 
         validateBusinessHours(businessHours);
         updateExistingBusinessHours(store, businessHours);
+    }
+
+    /** 내 상점 배달 가능 여부 수정 */
+    public void updateDeliveryAvailable(String userName, PatchDeliveryAvailableRequest request) {
+        User user = findUserByUserName(userName);
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        store.setDeliveryAvailable(Boolean.TRUE.equals(request.getDeliveryAvailable()));
     }
 
     private void updateExistingBusinessHours(Store store, List<PostStoreBusinessHourRequest> businessHours) {

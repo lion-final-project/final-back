@@ -109,6 +109,13 @@ public class OrderCreateService {
             }
         }
 
+        // 장바구니에 포함된 마트가 모두 배달 가능 상태인지 검증
+        for (CartProduct cp : cartProducts) {
+            if (!Boolean.TRUE.equals(cp.getStore().getIsDeliveryAvailable())) {
+                throw new BusinessException(ErrorCode.STORE_DELIVERY_UNAVAILABLE);
+            }
+        }
+
         // 쿠폰 couponId가 있으면 해당 쿠폰 할인 적용, 없으면 0. 포인트 null 또는 0 허용
         int discount = resolveCouponDiscount(user.getId(), request.getCouponId());
         int points = request.getUsePointsOrZero();
