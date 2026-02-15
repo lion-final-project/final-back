@@ -1,6 +1,7 @@
 package com.example.finalproject.store.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
+import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
 import com.example.finalproject.store.dto.response.GetStoreRegistrationStatusResponse;
@@ -87,6 +88,28 @@ public class StoreController {
         return storeService.getMyStoreOptional(userName)
                 .map(response -> ResponseEntity.ok(ApiResponse.success("내 상점 정보 조회가 완료되었습니다.", response)))
                 .orElseGet(() -> ResponseEntity.ok(ApiResponse.success("내 상점 정보 조회가 완료되었습니다.", null)));
+    }
+
+    /**
+     * 내 상점 요일별 영업시간 조회
+     */
+    @GetMapping("/my/business-hours")
+    public ResponseEntity<ApiResponse<List<PostStoreBusinessHourRequest>>> getMyStoreBusinessHours(Authentication authentication) {
+        String userName = authentication.getName();
+        List<PostStoreBusinessHourRequest> list = storeService.getStoreBusinessHours(userName);
+        return ResponseEntity.ok(ApiResponse.success("영업시간 조회가 완료되었습니다.", list));
+    }
+
+    /**
+     * 내 상점 요일별 영업시간 수정 (배달 불가능 상태에서만 가능)
+     */
+    @PutMapping("/my/business-hours")
+    public ResponseEntity<ApiResponse<Void>> updateMyStoreBusinessHours(
+            Authentication authentication,
+            @Valid @RequestBody List<PostStoreBusinessHourRequest> businessHours) {
+        String userName = authentication.getName();
+        storeService.updateStoreBusinessHours(userName, businessHours);
+        return ResponseEntity.ok(ApiResponse.success("영업시간이 수정되었습니다."));
     }
 
 }

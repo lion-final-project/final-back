@@ -34,6 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -151,8 +153,39 @@ public class StoreService {
         }
 
         validateBusinessHours(businessHours);
-        store.getBusinessHours().clear();
-        addBusinessHours(store, businessHours);
+        updateExistingBusinessHours(store, businessHours);
+    }
+
+    private void updateExistingBusinessHours(Store store, List<PostStoreBusinessHourRequest> businessHours) {
+        Map<Short, StoreBusinessHour> byDay = store.getBusinessHours().stream()
+                .collect(Collectors.toMap(StoreBusinessHour::getDayOfWeek, bh -> bh));
+
+        for (PostStoreBusinessHourRequest req : businessHours) {
+            LocalTime openTime = null;
+            LocalTime closeTime = null;
+            if (!req.getIsClosed()) {
+                if (req.getOpenTime() != null && !req.getOpenTime().isEmpty()) {
+                    openTime = LocalTime.parse(req.getOpenTime(), TIME_FORMATTER);
+                }
+                if (req.getCloseTime() != null && !req.getCloseTime().isEmpty()) {
+                    closeTime = LocalTime.parse(req.getCloseTime(), TIME_FORMATTER);
+                }
+            }
+
+            StoreBusinessHour existing = byDay.get(req.getDayOfWeek());
+            if (existing != null) {
+                existing.update(openTime, closeTime, req.getIsClosed());
+            } else {
+                // 해당 요일이 없으면 새로 추가 (초기 데이터 부족 등)
+                StoreBusinessHour newOne = StoreBusinessHour.builder()
+                        .dayOfWeek(req.getDayOfWeek())
+                        .openTime(openTime)
+                        .closeTime(closeTime)
+                        .isClosed(req.getIsClosed())
+                        .build();
+                store.addBusinessHour(newOne);
+            }
+        }
     }
 
     private void validateRegistration(User user, PostStoreRegistrationRequest request) {
