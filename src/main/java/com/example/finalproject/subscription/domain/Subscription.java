@@ -66,7 +66,7 @@ public class Subscription extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private SubscriptionStatus status = SubscriptionStatus.ACTIVE;
+    private SubscriptionStatus status = SubscriptionStatus.PENDING;
 
     @Column(name = "next_payment_date")
     private LocalDate nextPaymentDate;
@@ -91,7 +91,8 @@ public class Subscription extends BaseTimeEntity {
     public Subscription(User user, Store store, SubscriptionProduct subscriptionProduct,
                         Address address, PaymentMethod paymentMethod,
                         Integer totalAmount, LocalDateTime startedAt,
-                        LocalDate nextPaymentDate, String deliveryTimeSlot) {
+                        LocalDate nextPaymentDate, String deliveryTimeSlot,
+                        SubscriptionStatus status) {
         this.user = user;
         this.store = store;
         this.subscriptionProduct = subscriptionProduct;
@@ -101,6 +102,7 @@ public class Subscription extends BaseTimeEntity {
         this.startedAt = startedAt;
         this.nextPaymentDate = nextPaymentDate;
         this.deliveryTimeSlot = deliveryTimeSlot;
+        this.status = status;
     }
 
     /**
@@ -126,8 +128,7 @@ public class Subscription extends BaseTimeEntity {
     }
 
     /**
-     * 구독 해지를 요청한다 (UC-C10). 다음 결제일 기준 해지 정책에 따라 해지 예정 상태로 전환한다.
-     * ACTIVE 또는 PAUSED 상태에서만 호출 가능.
+     * 구독 해지를 요청한다 (UC-C10). 다음 결제일 기준 해지 정책에 따라 해지 예정 상태로 전환한다. ACTIVE 또는 PAUSED 상태에서만 호출 가능.
      *
      * @param reason 해지 사유 (선택)
      */
@@ -150,5 +151,24 @@ public class Subscription extends BaseTimeEntity {
         this.status = SubscriptionStatus.ACTIVE;
         this.cancelReason = null;
         this.cancelledAt = null;
+    }
+
+    public void activate() {
+        this.status = SubscriptionStatus.ACTIVE;
+    }
+
+    public void markPaymentFailed() {
+        this.status = SubscriptionStatus.PAYMENT_FAILED;
+    }
+
+    public void moveNextBillingDate() {
+        this.nextPaymentDate = this.nextPaymentDate.plusDays(SubscriptionProduct.SUBSCRIPTION_PERIOD_DAYS);
+    }
+
+    /**
+     * 배송 완료 시 주기 차수를 1 증가시킨다 (구독 진행 상황 추적용).
+     */
+    public void incrementCycleCount() {
+        this.cycleCount = (this.cycleCount != null ? this.cycleCount : 1) + 1;
     }
 }

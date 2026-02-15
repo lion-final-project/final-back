@@ -1,12 +1,14 @@
 package com.example.finalproject.order.service;
 
+import com.example.finalproject.delivery.component.DeliveryMatchComponent;
 import com.example.finalproject.delivery.domain.Delivery;
+import com.example.finalproject.delivery.enums.DeliveryStatus;
 import com.example.finalproject.delivery.repository.DeliveryRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
+import com.example.finalproject.global.util.GeometryUtil;
 import com.example.finalproject.global.sse.Service.SseService;
 import com.example.finalproject.global.sse.enums.SseEventType;
-import com.example.finalproject.global.util.GeometryUtil;
 import com.example.finalproject.order.domain.OrderProduct;
 import com.example.finalproject.order.domain.StoreOrder;
 import com.example.finalproject.order.dto.storeorder.request.PatchStoreOrderAcceptRequest;
@@ -37,8 +39,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.geo.Point;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,22 +53,29 @@ public class StoreOrderService {
     private final OrderProductRepository orderProductRepository;
     private final StoreRepository storeRepository;
     private final DeliveryRepository deliveryRepository;
+    private final DeliveryMatchComponent deliveryMatchComponent;
     private final ApplicationEventPublisher eventPublisher;
     private final SseService sseService;
     private final StoreOrderTtlService storeOrderTtlService;
     // TODO: 환불 관련 서비스
 
-
     public List<GetStoreOrderResponse> getNewOrders(String userEmail) {
         log.info("신규 주문 조회 시작 - userEmail={}", userEmail);
         Store store = getStoreByOwner(userEmail);
-        List<StoreOrderStatus> statuses = List.of(StoreOrderStatus.PENDING, StoreOrderStatus.ACCEPTED, StoreOrderStatus.READY);
+        List<StoreOrderStatus> statuses = List.of(StoreOrderStatus.PENDING, StoreOrderStatus.ACCEPTED,
+                StoreOrderStatus.READY);
 
-        List<StoreOrder> storeOrdersBeforeReady = storeOrderRepository.findByStoreIdAndStatusIn(store.getId(), statuses);
+        List<StoreOrder> storeOrdersBeforeReady = storeOrderRepository.findByStoreIdAndStatusIn(store.getId(),
+                statuses);
         List<OrderProduct> orderProducts = orderProductRepository.findByStoreOrderIn(storeOrdersBeforeReady);
+        List<Delivery> deliveries = deliveryRepository.findByStoreOrderIdIn(
+                storeOrdersBeforeReady.stream().map(StoreOrder::getId).toList());
 
         Map<Long, List<OrderProduct>> orderProductsByStoreOrderId = orderProducts.stream()
                 .collect(Collectors.groupingBy(orderProduct -> orderProduct.getStoreOrder().getId()));
+
+        Map<Long, DeliveryStatus> deliveryStatusByStoreOrderId = deliveries.stream()
+                .collect(Collectors.toMap(d -> d.getStoreOrder().getId(), Delivery::getStatus));
 
         List<GetStoreOrderResponse> result = storeOrdersBeforeReady.stream()
                 .filter(storeOrder -> {
@@ -79,7 +86,9 @@ public class StoreOrderService {
                     }
                     return true;
                 })
-                .map(storeOrder -> GetStoreOrderResponse.from(storeOrder, orderProductsByStoreOrderId.get(storeOrder.getId())))
+                .map(storeOrder -> GetStoreOrderResponse.from(storeOrder,
+                        orderProductsByStoreOrderId.get(storeOrder.getId()),
+                        deliveryStatusByStoreOrderId.get(storeOrder.getId())))
                 .toList();
         log.info("신규 주문 조회 완료 - storeId={}, count={}", store.getId(), result.size());
         return result;
@@ -105,13 +114,30 @@ public class StoreOrderService {
 
         User customer = storeOrder.getOrder().getUser();
 
-        //배달 생성
-        Delivery delivery = new Delivery(storeOrder, storeOrder.getDeliveryFee());
+        // 배달 생성
+        Delivery delivery = Delivery.builder()
+                .storeOrder(storeOrder)
+                .deliveryFee(storeOrder.getDeliveryFee())
+                .storeLocation(store.getAddress().getLocation())
+                .customerLocation(storeOrder.getOrder().getDeliveryLocation())
+                .build();
+
+        if (delivery == null) {
+            throw new IllegalStateException("Delivery creation failed");
+        }
         deliveryRepository.save(delivery);
 
-        //접수 알림
-        eventPublisher.publishEvent(new StoreOrderAcceptedEvent(customer.getId(), storeOrder.getOrder().getOrderNumber(), store.getStoreName()));
-        log.info("주문 접수 완료 - storeOrderId={}, prepTime={}, deliveryId={}", storeOrderId, request.getPrepTime(), delivery.getId());
+        // 라이더 배달 알림 트리거 (Redis GEO 등록 및 SSE 알림)
+        deliveryMatchComponent.notifyNewDelivery(
+                String.valueOf(delivery.getId()),
+                GeometryUtil.getLongitude(delivery.getStoreLocation()),
+                GeometryUtil.getLatitude(delivery.getStoreLocation()));
+
+        // 접수 알림
+        eventPublisher.publishEvent(new StoreOrderAcceptedEvent(customer.getId(),
+                storeOrder.getOrder().getOrderNumber(), store.getStoreName()));
+        log.info("주문 접수 완료 - storeOrderId={}, prepTime={}, deliveryId={}", storeOrderId, request.getPrepTime(),
+                delivery.getId());
 
     }
 
@@ -164,10 +190,10 @@ public class StoreOrderService {
         log.info("완료 주문 조회 시작 - username={}", username);
         Store store = getStoreByOwner(username);
         List<StoreOrderStatus> statuses = List.of(
-                StoreOrderStatus.PICKED_UP, StoreOrderStatus.DELIVERING
-        );
+                StoreOrderStatus.PICKED_UP, StoreOrderStatus.DELIVERING);
 
-        List<StoreOrder> completedOrders = storeOrderRepository.findCompletedByStoreIdAndStatusIn(store.getId(), statuses);
+        List<StoreOrder> completedOrders = storeOrderRepository.findCompletedByStoreIdAndStatusIn(store.getId(),
+                statuses);
         List<OrderProduct> orderProducts = orderProductRepository.findByStoreOrderIn(completedOrders);
 
         Map<Long, List<OrderProduct>> orderProductsByStoreOrderId = orderProducts.stream()
@@ -182,7 +208,8 @@ public class StoreOrderService {
                     }
                     return true;
                 })
-                .map(storeOrder -> GetCompletedStoreOrderResponse.from(storeOrder, orderProductsByStoreOrderId.get(storeOrder.getId())))
+                .map(storeOrder -> GetCompletedStoreOrderResponse.from(storeOrder,
+                        orderProductsByStoreOrderId.get(storeOrder.getId())))
                 .toList();
         log.info("완료 주문 조회 완료 - storeId={}, count={}", store.getId(), result.size());
         return result;
@@ -278,7 +305,8 @@ public class StoreOrderService {
                 .collect(Collectors.groupingBy(op -> op.getStoreOrder().getId()));
 
         return storeOrderPage.map(storeOrder -> {
-            List<OrderProduct> products = orderProductsByStoreOrderId.getOrDefault(storeOrder.getId(), Collections.emptyList());
+            List<OrderProduct> products = orderProductsByStoreOrderId.getOrDefault(storeOrder.getId(),
+                    Collections.emptyList());
             if (products.isEmpty()) {
                 log.error("주문 상품 데이터 누락 - storeOrderId={}", storeOrder.getId());
             }
@@ -343,6 +371,9 @@ public class StoreOrderService {
     }
 
     private StoreOrder getStoreOrder(Long storeOrderId) {
+        if (storeOrderId == null) {
+            throw new BusinessException(ErrorCode.STORE_ORDER_NOT_FOUND);
+        }
         return storeOrderRepository.findById(storeOrderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_ORDER_NOT_FOUND));
     }
@@ -360,7 +391,7 @@ public class StoreOrderService {
 
     private void validateStoreOwnership(StoreOrder storeOrder, Store store) {
         if (!storeOrder.getStore().getId().equals(store.getId())) {
-            throw new BusinessException(ErrorCode.STORE_ORDER_FORBIDDEN);
+            throw new BusinessException(ErrorCode.STORE_ORDER_NOT_BELONG_TO_STORE);
         }
     }
 
@@ -387,6 +418,5 @@ public class StoreOrderService {
             throw new BusinessException(ErrorCode.STORE_OUTSIDE_BUSINESS_HOURS);
         }
     }
-
 
 }

@@ -13,4 +13,7 @@ public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Lo
     List<PaymentMethod> findByUserOrderByIsDefaultDesc(User user);
 
     Optional<PaymentMethod> findByIdAndUser_Id(Long id, Long userId);
+
+    boolean existsByUserAndIsDefaultTrue(User user);
+
 }

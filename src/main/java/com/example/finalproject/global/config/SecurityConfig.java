@@ -126,6 +126,10 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/riders", "/api/riders/register",
                                                                 "/api/riders/approvals/*")
                                                 .hasRole("CUSTOMER")
+                                                .requestMatchers(HttpMethod.PATCH,"/api/riders/status").hasRole("RIDER")
+                                                .requestMatchers(HttpMethod.POST,"/api/riders/locations").hasRole("RIDER")
+                                                .requestMatchers(HttpMethod.DELETE,"/api/riders/locations/{riderId}").hasRole("RIDER")
+                                                .requestMatchers(HttpMethod.GET,"/api/riders/locations/{riderId}").hasRole("RIDER")
                                                 .requestMatchers("/api/riders/status").hasRole("RIDER")
                                                 .requestMatchers(HttpMethod.GET, "/api/products/categories").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/products/{productId}")

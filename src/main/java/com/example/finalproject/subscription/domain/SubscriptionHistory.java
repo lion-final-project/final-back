@@ -67,4 +67,14 @@ public class SubscriptionHistory extends BaseTimeEntity {
         this.storeOrder = storeOrder;
         this.status = SubHistoryStatus.ORDERED;
     }
+
+    /**
+     * 배송 완료 시 상태를 COMPLETED로 변경한다. ORDERED 상태에서만 호출 가능.
+     */
+    public void markCompleted() {
+        if (this.status != SubHistoryStatus.ORDERED) {
+            throw new IllegalStateException("ORDERED 상태에서만 배송 완료 처리할 수 있습니다.");
+        }
+        this.status = SubHistoryStatus.COMPLETED;
+    }
 }

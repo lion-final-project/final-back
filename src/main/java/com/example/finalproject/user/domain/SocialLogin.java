@@ -60,5 +60,7 @@ public class SocialLogin extends BaseTimeEntity {
         this.providerUserId = providerUserId;
         this.connectedAt = connectedAt;
     }
-
+    public void softDelete(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
 }

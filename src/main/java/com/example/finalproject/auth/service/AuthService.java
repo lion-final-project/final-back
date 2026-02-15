@@ -1,6 +1,5 @@
 package com.example.finalproject.auth.service;
 
-import com.example.finalproject.auth.domain.RefreshToken;
 import com.example.finalproject.auth.dto.request.LoginRequest;
 import com.example.finalproject.auth.dto.request.SignupRequest;
 import com.example.finalproject.auth.dto.response.LoginResponse;
@@ -8,7 +7,6 @@ import com.example.finalproject.auth.dto.response.MeResponse;
 import com.example.finalproject.auth.dto.response.SendVerificationResponse;
 import com.example.finalproject.auth.dto.response.SignupResponse;
 import com.example.finalproject.auth.dto.response.TokenRefreshResponse;
-import com.example.finalproject.auth.repository.RefreshTokenRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.jwt.JwtTokenProvider;
@@ -21,7 +19,6 @@ import com.example.finalproject.global.security.CustomUserDetails;
 import com.example.finalproject.user.repository.UserRepository;
 import com.example.finalproject.user.repository.UserRoleRepository;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +37,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final UserRoleRepository userRoleRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenStore refreshTokenStore;
     private final SmsService smsService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
@@ -116,7 +113,7 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BusinessException(ErrorCode.PASSWORD_MISMATCH);
         }
-        if (user.getStatus() != null && user.getStatus() != UserStatus.ACTIVE) {
+        if (user.getStatus() != UserStatus.ACTIVE || user.getDeletedAt() != null) {
             throw new BusinessException(ErrorCode.USER_STATUS_FORBIDDEN);
         }
         List<String> roles = user.getUserRoles().stream()
@@ -125,7 +122,7 @@ public class AuthService {
                 .toList();
         String accessToken = jwtTokenProvider.generateAccessToken(user, roles);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user, roles);
-        refreshTokenRepository.deleteByUser(user);
+        refreshTokenStore.deleteByUser(user);
         saveRefreshToken(user, refreshToken);
         log.info("[로그인] 성공 email={}, userId={}, roles={}", user.getEmail(), user.getId(), roles);
 
@@ -145,16 +142,24 @@ public class AuthService {
         if (refreshToken == null || refreshToken.isBlank() || !jwtTokenProvider.validateToken(refreshToken)) {
             throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID); //refreshToken 유효성 검사
         }
-        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
+        Long userId = refreshTokenStore.findUserIdByToken(refreshToken)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID));
-        User user = storedToken.getUser();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID));
+
+        if (user.getStatus() != UserStatus.ACTIVE || user.getDeletedAt() != null) {
+            refreshTokenStore.deleteByToken(refreshToken);
+            throw new BusinessException(ErrorCode.USER_STATUS_FORBIDDEN);
+        }
+
         List<String> roles = user.getUserRoles().stream()
                 .map(UserRole::getRole)
                 .map(Role::getRoleName)
                 .toList();
         String newAccessToken = jwtTokenProvider.generateAccessToken(user, roles);
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user, roles);
-        storedToken.updateToken(newRefreshToken, extractExpiry(newRefreshToken));
+        refreshTokenStore.deleteByToken(refreshToken);
+        refreshTokenStore.save(user, newRefreshToken);
         return new TokenRefreshResponse(newAccessToken, newRefreshToken);
     }
 
@@ -167,10 +172,13 @@ public class AuthService {
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             throw new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID);
         }
-        RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken) 
+        Long userId = refreshTokenStore.findUserIdByToken(refreshToken)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID));
-        log.info("[로그아웃] 토큰 무효화 userId={}", storedToken.getUser().getId());
-        refreshTokenRepository.delete(storedToken); 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REFRESH_TOKEN_INVALID));
+        log.info("[로그아웃] 토큰 무효화 userId={}", user.getId());
+        user.increaseTokenVersion();
+        refreshTokenStore.deleteByToken(refreshToken);
     }
 
     // 소셜 회원가입 완료 등, 이미 생성된 User에 대해 JWT 발급 및 refresh 토큰 저장
@@ -178,7 +186,7 @@ public class AuthService {
     public LoginResponse issueTokensForUser(User user, List<String> roles) {
         String accessToken = jwtTokenProvider.generateAccessToken(user, roles);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user, roles);
-        refreshTokenRepository.deleteByUser(user);
+        refreshTokenStore.deleteByUser(user);
         saveRefreshToken(user, refreshToken);
         return new LoginResponse(
                 user.getId(),
@@ -241,16 +249,6 @@ public class AuthService {
     }
 
     private void saveRefreshToken(User user, String refreshToken) {
-        refreshTokenRepository.save(new RefreshToken(user, refreshToken, extractExpiry(refreshToken)));
+        refreshTokenStore.save(user, refreshToken);
     }
-
-    //토큰 만료 시간
-    private LocalDateTime extractExpiry(String token) {
-
-        return LocalDateTime.ofInstant(
-                jwtTokenProvider.parseClaims(token).getExpiration().toInstant(),
-                ZoneId.systemDefault()
-        );
-    }
-
 }

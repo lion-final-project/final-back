@@ -59,6 +59,7 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .setSubject(user.getEmail())
                 .claim("roles", roles)
+                .claim("ver", user.getTokenVersion())
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plusSeconds(validitySeconds)))
                 .signWith(key)

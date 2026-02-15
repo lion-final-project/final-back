@@ -2,6 +2,9 @@ package com.example.finalproject.global.security;
 
 import com.example.finalproject.global.config.CookieUtil;
 import com.example.finalproject.global.jwt.JwtTokenProvider;
+import com.example.finalproject.user.domain.User;
+import com.example.finalproject.user.enums.UserStatus;
+import com.example.finalproject.user.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,6 +30,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserAuthCache userAuthCache;
 
     @Override
     protected void doFilterInternal(
@@ -35,30 +39,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         try {
-            String token = extractToken(request); 
+            String token = extractToken(request);
             if (token != null && !token.isBlank() && jwtTokenProvider.validateToken(token)) {
-                Claims claims = jwtTokenProvider.parseClaims(token); 
-                String subject = claims.getSubject(); 
-                List<org.springframework.security.core.GrantedAuthority> authorities = new ArrayList<>();
-                Object rolesObj = claims.get("roles"); 
-                if (rolesObj instanceof List<?> rolesList) {
-                    for (Object o : rolesList) {
-                        String role = o == null ? "" : o.toString().trim();
-                        if (!role.isEmpty()) {
-                            authorities.add(new SimpleGrantedAuthority("ROLE_" + role)); 
+                Claims claims = jwtTokenProvider.parseClaims(token);
+                String subject = claims.getSubject();
+                Integer tokenVersion = claims.get("ver", Integer.class);
+                UserAuthCache.CachedUserAuth user = userAuthCache.get(subject).orElse(null);
+                if (user != null && isTokenVersionValid(tokenVersion, user.tokenVersion())) {
+                    List<org.springframework.security.core.GrantedAuthority> authorities = new ArrayList<>();
+                    Object rolesObj = claims.get("roles");
+                    if (rolesObj instanceof List<?> rolesList) {
+                        for (Object o : rolesList) {
+                            String role = o == null ? "" : o.toString().trim();
+                            if (!role.isEmpty()) {
+                                authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                            }
                         }
                     }
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(subject, null, authorities);
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(subject, null, authorities);
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Throwable ex) {
             // 토큰 파싱/검증/roles 실패 시 인증만 하지 않고 진행
             log.debug("JWT 인증 스킵: {}", ex.getMessage());
         }
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isTokenVersionValid(Integer tokenVersionInJwt, Integer currentTokenVersion) {
+        int jwtVersion = tokenVersionInJwt == null ? 0 : tokenVersionInJwt;
+        int userVersion = currentTokenVersion == null ? 0 : currentTokenVersion;
+        return jwtVersion == userVersion;
     }
 
     //Authorization : Bearer 헤더 or AT 쿠키에서 토큰 추출

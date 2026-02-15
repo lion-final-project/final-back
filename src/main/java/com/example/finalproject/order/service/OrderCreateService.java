@@ -5,6 +5,7 @@ import com.example.finalproject.checkout.service.PriceCalculationResult;
 import com.example.finalproject.checkout.service.PriceCalculator;
 import com.example.finalproject.coupon.domain.Coupon;
 import com.example.finalproject.coupon.repository.CouponRepository;
+import com.example.finalproject.delivery.service.DeliveryFeeService;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.Cart;
@@ -44,16 +45,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 주문 생성 서비스 (API-ORD-001).
- * BR-O03: PriceCalculator 공용화로 최종 결제 금액 계산.
- * 검증: 내 장바구니 소유, 수량>=1, 주소/결제수단 존재 및 본인 소유.
+ * 주문 생성 서비스 (API-ORD-001). BR-O03: PriceCalculator 공용화로 최종 결제 금액 계산. 검증: 내 장바구니 소유, 수량>=1, 주소/결제수단 존재 및 본인 소유.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderCreateService {
 
-    private static final int DEFAULT_DELIVERY_FEE = 3000;
     private static final int MAX_ORDER_NUMBER_RETRY = 3;
 
     private final UserRepository userRepository;
@@ -62,6 +60,7 @@ public class OrderCreateService {
     private final AddressRepository addressRepository;
     private final PaymentMethodRepository paymentMethodRepository;
     private final PriceCalculator priceCalculator;
+    private final DeliveryFeeService deliveryFeeService;
     private final OrderRepository orderRepository;
     private final StoreOrderRepository storeOrderRepository;
     private final OrderProductRepository orderProductRepository;
@@ -69,7 +68,7 @@ public class OrderCreateService {
     private final CouponRepository couponRepository;
     private final OrderPaidNotificationService orderPaidNotificationService;
 
-    //주문 생성
+    // 주문 생성
     @Transactional
     public PostOrderResponse createOrder(String email, PostOrderRequest request) {
         User user = userRepository.findByEmail(email)
@@ -81,7 +80,7 @@ public class OrderCreateService {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
-        //결제 수단 조회
+        // 결제 수단 조회
         PaymentMethod paymentMethod = paymentMethodRepository
                 .findByIdAndUser_Id(request.getPaymentMethodId(), user.getId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_METHOD_NOT_FOUND));
@@ -89,7 +88,7 @@ public class OrderCreateService {
         Cart cart = cartRepository.findByUser_Email(email)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_NOT_FOUND));
 
-        //장바구니 상품 조회
+        // 장바구니 상품 조회
         List<CartProduct> cartProducts = cartProductRepository.findAllByIdIn(request.getCartItemIds());
         if (cartProducts.size() != request.getCartItemIds().size()) {
             throw new BusinessException(ErrorCode.CART_PRODUCT_NOT_FOUND);
@@ -116,7 +115,7 @@ public class OrderCreateService {
         if (points < 0) {
             throw new BusinessException(ErrorCode.POINTS_MUST_BE_NON_NEGATIVE);
         }
-        //주문 생성 금액 계산
+        // 주문 생성 금액 계산
         List<PriceCalculator.CheckoutItem> items = cartProducts.stream()
                 .map(cp -> new PriceCalculator.CheckoutItem(
                         cp.getProduct().getId(),
@@ -124,8 +123,10 @@ public class OrderCreateService {
                         cp.getProduct().getEffectivePrice(),
                         cp.getQuantity()))
                 .toList();
+        Long addressIdForFee = address.getId();
         PriceCalculationResult priceResult = priceCalculator.calculate(
-                items, storeId -> DEFAULT_DELIVERY_FEE, discount, points);
+                items, storeId -> deliveryFeeService.calculateDeliveryFeeByAddress(addressIdForFee, storeId), discount,
+                points);
         int productTotal = priceResult.priceSummary().productTotal();
         int deliveryTotal = priceResult.priceSummary().deliveryTotal();
         if (discount > productTotal) {
@@ -143,7 +144,7 @@ public class OrderCreateService {
                 + (address.getAddressLine2() != null && !address.getAddressLine2().isBlank()
                 ? " " + address.getAddressLine2() : "");
 
-                //주문 생성
+        // 주문 생성
         Order order = Order.builder()
                 .orderNumber(orderNumber)
                 .user(user)
@@ -164,7 +165,7 @@ public class OrderCreateService {
                 if (attempt == MAX_ORDER_NUMBER_RETRY - 1) {
                     throw e;
                 }
-                //주문 번호 중복 시 재시도
+                // 주문 번호 중복 시 재시도
                 order = Order.builder()
                         .orderNumber(generateOrderNumber())
                         .user(user)
@@ -180,24 +181,24 @@ public class OrderCreateService {
             }
         }
 
-        //마트별 상품 조회
+        // 마트별 상품 조회
         Map<Long, List<CartProduct>> byStore = new LinkedHashMap<>();
         cartProducts.stream()
                 .sorted(Comparator.comparing(cp -> cp.getStore().getId()))
                 .forEach(cp -> byStore.computeIfAbsent(cp.getStore().getId(), k -> new ArrayList<>()).add(cp));
 
-        //마트별 상품 가격 계산
+        // 마트별 상품 가격 계산
         Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = priceResult.storeSummaries().stream()
                 .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s));
 
-        //마트별 상품 조회
+        // 마트별 상품 조회
         List<PostOrderResponse.StoreOrderSummary> storeOrderSummaries = new ArrayList<>();
         for (Map.Entry<Long, List<CartProduct>> entry : byStore.entrySet()) {
             List<CartProduct> group = entry.getValue();
             CartProduct first = group.get(0);
             PriceCalculationResult.StorePriceSummary storeSummary = summaryMap.get(first.getStore().getId());
 
-            //마트별 상품 주문 생성
+            // 마트별 상품 주문 생성
             StoreOrder storeOrder = StoreOrder.builder()
                     .order(order)
                     .store(first.getStore())
@@ -208,7 +209,7 @@ public class OrderCreateService {
                     .build();
             storeOrder = storeOrderRepository.save(storeOrder);
 
-            //마트별 상품 주문 상품 조회
+            // 마트별 상품 주문 상품 조회
             List<PostOrderResponse.ProductSummary> productSummaries = new ArrayList<>();
             for (CartProduct cp : group) {
                 Product p = cp.getProduct();
@@ -232,7 +233,7 @@ public class OrderCreateService {
                         .subtotal(unitPrice * qty)
                         .build());
             }
-            //마트별 상품 주문 상품 조회
+            // 마트별 상품 주문 상품 조회
             storeOrderSummaries.add(PostOrderResponse.StoreOrderSummary.builder()
                     .storeOrderId(storeOrder.getId())
                     .storeId(first.getStore().getId())
@@ -283,7 +284,7 @@ public class OrderCreateService {
                 .build();
     }
 
-    //couponId가 있으면 해당 사용자 쿠폰의 할인 금액 반환 없으면 0
+    // couponId가 있으면 해당 사용자 쿠폰의 할인 금액 반환 없으면 0
     private int resolveCouponDiscount(Long userId, Long couponId) {
         if (couponId == null) {
             return 0;
@@ -296,7 +297,7 @@ public class OrderCreateService {
         return coupon.getDiscountAmount() != null ? coupon.getDiscountAmount() : 0;
     }
 
-    //주문 번호 생성
+    // 주문 번호 생성
     private String generateOrderNumber() {
         LocalDate today = LocalDate.now();
         LocalDateTime start = today.atStartOfDay();

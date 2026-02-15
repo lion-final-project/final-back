@@ -47,6 +47,12 @@ public class PatchSubscriptionProductRequest {
     private List<PatchSubscriptionProductItemRequest> items;
 
     /**
+     * 구독 상품 대표 이미지 URL.
+     * null이면 기존 이미지를 유지한다.
+     */
+    private String imageUrl;
+
+    /**
      * 구독 상품 구성 품목 수정 요청 DTO.
      */
     @Getter

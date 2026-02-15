@@ -3,8 +3,10 @@ package com.example.finalproject.payment.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
 import com.example.finalproject.payment.enums.PaymentMethodType;
+import com.example.finalproject.payment.util.BillingKeyEncryptConverter;
 import com.example.finalproject.user.domain.User;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -37,7 +39,7 @@ public class PaymentMethod extends BaseTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false,
+    @JoinColumn(name = "user_id",
             foreignKey = @ForeignKey(name = "fk_payment_methods_user"))
     private User user;
 
@@ -45,8 +47,12 @@ public class PaymentMethod extends BaseTimeEntity {
     @Column(name = "method_type", nullable = false)
     private PaymentMethodType methodType;
 
+    @Convert(converter = BillingKeyEncryptConverter.class)
     @Column(name = "billing_key", nullable = false, length = 255)
     private String billingKey;
+
+    @Column(name = "customer_key")
+    private String customerKey;
 
     @Column(name = "card_company", length = 50)
     private String cardCompany;
@@ -58,11 +64,40 @@ public class PaymentMethod extends BaseTimeEntity {
     private Boolean isDefault = false;
 
     @Builder
-    public PaymentMethod(User user, PaymentMethodType methodType,
-                         String billingKey, Boolean isDefault) {
+    public PaymentMethod(
+            User user,
+            PaymentMethodType methodType,
+            String billingKey,
+            String customerKey,
+            String cardCompany,
+            String cardNumberMasked,
+            Boolean isDefault) {
         this.user = user;
         this.methodType = methodType;
         this.billingKey = billingKey;
+        this.customerKey = customerKey;
+        this.cardCompany = cardCompany;
+        this.cardNumberMasked = cardNumberMasked;
         this.isDefault = isDefault != null ? isDefault : false;
     }
+
+    /**
+     * 기본 결제 수단으로 설정
+     */
+    public void setAsDefault() {
+        this.isDefault = true;
+    }
+
+    /**
+     * 기본 결제 수단 해제
+     */
+    public void unsetAsDefault() {
+        this.isDefault = false;
+    }
+
+    public boolean isDefault() {
+        return this.isDefault;
+    }
+
+
 }

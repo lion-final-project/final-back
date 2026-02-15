@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -93,6 +94,34 @@ public class StorageController {
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(bytes);
+    }
+
+    /**
+     * S3/MinIO URL을 브라우저에서 바로 미리보기할 수 있도록 프록시 응답
+     * Content-Type을 파일 확장자로 추정해 inline 반환한다.
+     */
+    @GetMapping("/preview")
+    public ResponseEntity<byte[]> previewByUrl(@RequestParam("url") String url) {
+        byte[] bytes = storageService.downloadByUrl(url);
+        if (bytes == null || bytes.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String filename = "preview";
+        try {
+            String path = new java.net.URI(url).getPath();
+            if (path != null && path.contains("/")) {
+                filename = path.substring(path.lastIndexOf('/') + 1);
+            }
+        } catch (Exception ignored) {}
+
+        MediaType mediaType = MediaTypeFactory.getMediaType(filename)
+                .orElse(MediaType.APPLICATION_OCTET_STREAM);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "inline; filename=\"" + filename + "\"")
+                .contentType(mediaType)
                 .body(bytes);
     }
 }
