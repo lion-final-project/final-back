@@ -39,8 +39,8 @@ public class StoreOrderRepositoryImpl implements StoreOrderRepositoryCustom {
                 .join(storeOrder.order, order).fetchJoin()
                 .join(storeOrder.store, store).fetchJoin()
                 .where(order.user.id.eq(userId)
-                        .and(orderedAfter(startDate))
-                        .and(orderedBefore(endDate))
+                        .and(orderedAfter(startDate, order))
+                        .and(orderedBefore(endDate, order))
                         .and(keywordCondition(keyword, storeOrder)))
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
@@ -52,23 +52,23 @@ public class StoreOrderRepositoryImpl implements StoreOrderRepositoryCustom {
                 .from(storeOrder)
                 .join(storeOrder.order, order)
                 .where(order.user.id.eq(userId)
-                        .and(orderedAfter(startDate))
-                        .and(orderedBefore(endDate))
+                        .and(orderedAfter(startDate, order))
+                        .and(orderedBefore(endDate, order))
                         .and(keywordCondition(keyword, storeOrder)))
                 .fetchOne();
 
         return new PageImpl<>(content, pageable, total != null ? total : 0);
     }
 
-    private BooleanExpression orderedAfter(LocalDateTime startDate) {
+    private BooleanExpression orderedAfter(LocalDateTime startDate, QOrder order) {
         return startDate != null
-                ? QOrder.order.orderedAt.goe(startDate)
+                ? order.orderedAt.goe(startDate)
                 : null;
     }
 
-    private BooleanExpression orderedBefore(LocalDateTime endDate) {
+    private BooleanExpression orderedBefore(LocalDateTime endDate, QOrder order) {
         return endDate != null
-                ? QOrder.order.orderedAt.loe(endDate)
+                ? order.orderedAt.loe(endDate)
                 : null;
     }
 
