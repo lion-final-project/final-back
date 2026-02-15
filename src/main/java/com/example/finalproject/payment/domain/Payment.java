@@ -2,6 +2,8 @@ package com.example.finalproject.payment.domain;
 
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
+import com.example.finalproject.global.exception.custom.BusinessException;
+import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.Order;
 import com.example.finalproject.payment.enums.PaymentMethodType;
 import com.example.finalproject.payment.enums.PaymentStatus;
@@ -72,6 +74,8 @@ public class Payment extends BaseTimeEntity {
 
     private LocalDateTime paidAt;
 
+    private Integer refundedAmount = 0;
+
     @Builder
     public Payment(Order order, PaymentStatus paymentStatus, PaymentMethodType paymentMethod, Integer amount,
                    String pgOrderId, String pgProvider) {
@@ -94,8 +98,39 @@ public class Payment extends BaseTimeEntity {
         this.paidAt = LocalDateTime.now();
     }
 
-    public void fail(String reason) {
+    public void fail() {
         this.paymentStatus = PaymentStatus.FAILED;
     }
 
+    public void cancel() {
+        this.refundedAmount = this.amount;
+        this.paymentStatus = PaymentStatus.CANCELLED;
+    }
+
+    public void partialCancel(Integer refundAmount) {
+        this.refundedAmount = refundAmount;
+
+        if (this.refundedAmount >= this.amount) {
+            this.paymentStatus = PaymentStatus.CANCELLED;
+        } else {
+            this.paymentStatus = PaymentStatus.PARTIAL_REFUNDED;
+        }
+    }
+
+    public boolean isFullyRefunded() {
+        return this.refundedAmount != null && this.refundedAmount >= this.amount;
+    }
+
+    public void markCancelRequested() {
+        if (this.paymentStatus != PaymentStatus.APPROVED &&
+                this.paymentStatus != PaymentStatus.PARTIAL_REFUNDED) {
+            throw new BusinessException(ErrorCode.INVALID_PAYMENT_CANCEL_STATUS);
+        }
+
+        this.paymentStatus = PaymentStatus.CANCEL_REQUESTED;
+    }
+
+    public void revertToPaid() {
+        this.paymentStatus = PaymentStatus.APPROVED;
+    }
 }

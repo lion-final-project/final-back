@@ -1,5 +1,9 @@
 package com.example.finalproject.order.domain;
 
+import static com.example.finalproject.order.enums.StoreOrderStatus.CANCELLED;
+import static com.example.finalproject.order.enums.StoreOrderStatus.PENDING;
+import static com.example.finalproject.order.enums.StoreOrderStatus.REJECTED;
+
 import com.example.finalproject.global.domain.BaseTimeEntity;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
@@ -51,7 +55,7 @@ public class StoreOrder extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private StoreOrderStatus status = StoreOrderStatus.PENDING;
+    private StoreOrderStatus status = PENDING;
 
     @Column(name = "store_product_price", nullable = false)
     private Integer storeProductPrice;
@@ -73,8 +77,8 @@ public class StoreOrder extends BaseTimeEntity {
 
     @Builder
     public StoreOrder(Order order, Store store, OrderType orderType,
-            Integer storeProductPrice, Integer deliveryFee,
-            Integer finalPrice) {
+                      Integer storeProductPrice, Integer deliveryFee,
+                      Integer finalPrice) {
         this.order = order;
         this.store = store;
         this.orderType = orderType != null ? orderType : OrderType.REGULAR;
@@ -92,7 +96,7 @@ public class StoreOrder extends BaseTimeEntity {
     }
 
     public void accept(Integer prepTime) {
-        if (this.status != StoreOrderStatus.PENDING) {
+        if (this.status != PENDING) {
             throw new BusinessException(ErrorCode.STORE_ORDER_NOT_PENDING);
         }
         this.prepTime = prepTime;
@@ -101,10 +105,19 @@ public class StoreOrder extends BaseTimeEntity {
     }
 
     public void reject(String reason) {
-        if (this.status != StoreOrderStatus.PENDING) {
+        if (this.status != PENDING) {
             throw new BusinessException(ErrorCode.STORE_ORDER_NOT_PENDING);
         }
-        this.status = StoreOrderStatus.REJECTED;
+        this.status = REJECTED;
+        this.cancelReason = reason;
+        this.cancelledAt = LocalDateTime.now();
+    }
+
+    public void cancel(String reason) {
+        if (this.status != StoreOrderStatus.CANCEL_REQUESTED) {
+            throw new BusinessException(ErrorCode.ORDER_CANNOT_BE_CANCELLED);
+        }
+        this.status = CANCELLED;
         this.cancelReason = reason;
         this.cancelledAt = LocalDateTime.now();
     }
@@ -138,5 +151,36 @@ public class StoreOrder extends BaseTimeEntity {
         }
         this.status = StoreOrderStatus.DELIVERED;
         this.deliveredAt = LocalDateTime.now();
+    }
+
+    public void validateCancelable() {
+        if (status == StoreOrderStatus.CANCELLED
+                || status == StoreOrderStatus.REJECTED
+                || status == StoreOrderStatus.CANCEL_REQUESTED) {
+            throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
+        }
+
+        if (status != StoreOrderStatus.PENDING) {
+            throw new BusinessException(ErrorCode.ORDER_CANNOT_BE_CANCELLED);
+        }
+    }
+
+    public boolean isCancelledOrRejected() {
+        return status == StoreOrderStatus.CANCELLED
+                || status == StoreOrderStatus.REJECTED;
+    }
+
+    public void markCancelCancelRequested() {
+        if (this.status == StoreOrderStatus.CANCELLED
+                || this.status == StoreOrderStatus.REJECTED
+                || this.status == StoreOrderStatus.DELIVERED) {
+            throw new BusinessException(ErrorCode.ORDER_CANNOT_BE_CANCELLED);
+        }
+
+        if (this.status == StoreOrderStatus.CANCEL_REQUESTED) {
+            return;
+        }
+
+        this.status = StoreOrderStatus.CANCEL_REQUESTED;
     }
 }
