@@ -4,6 +4,7 @@ package com.example.finalproject.review.controller;
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.review.dto.request.PatchReviewUpdateRequest;
 import com.example.finalproject.review.dto.request.PostReviewCreateRequest;
+import com.example.finalproject.review.dto.request.PostReviewReplyRequest;
 import com.example.finalproject.review.dto.response.GetReviewDetailResponse;
 import com.example.finalproject.review.dto.response.GetReviewPageResponse;
 import com.example.finalproject.review.enums.ReviewSortType;
@@ -72,4 +73,14 @@ public class ReviewController {
         reviewService.deleteReview(email, reviewId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
+
+    @PostMapping("/{reviewId}/reply")
+    public ResponseEntity<ApiResponse<Void>> addOwnerReply(
+            @AuthenticationPrincipal String email,
+            @PathVariable Long reviewId,
+            @RequestBody @Valid PostReviewReplyRequest request) {
+        reviewService.addOwnerReply(email, reviewId, request);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
 }

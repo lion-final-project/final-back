@@ -60,7 +60,6 @@ public class PaymentTxService {
         }
 
         orderStatusService.cancelAfterPayment(storeOrderId, reason);
-
     }
 
     @Transactional

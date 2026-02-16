@@ -12,6 +12,7 @@ import com.example.finalproject.order.repository.StoreOrderRepository;
 import com.example.finalproject.review.domain.Review;
 import com.example.finalproject.review.dto.request.PatchReviewUpdateRequest;
 import com.example.finalproject.review.dto.request.PostReviewCreateRequest;
+import com.example.finalproject.review.dto.request.PostReviewReplyRequest;
 import com.example.finalproject.review.dto.response.GetReviewDetailResponse;
 import com.example.finalproject.review.dto.response.GetReviewListResponse;
 import com.example.finalproject.review.dto.response.GetReviewPageResponse;
@@ -48,16 +49,29 @@ public class ReviewService {
         StoreOrder storeOrder = storeOrderRepository.findById(storeOrderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_ORDER_NOT_FOUND));
 
-        validateReviewable(storeOrder, user);
+        validateReviewOwner(storeOrder, user);
+        validateDelivered(storeOrder);
+        validateWithinSevenDays(storeOrder);
 
-        Review review = Review.builder()
+        Review review = reviewRepository.findByStoreOrder_Id(storeOrderId).orElse(null);
+
+        if (review != null) {
+            if (review.getIsVisible()) {
+                throw new BusinessException(ErrorCode.REVIEW_ALREADY_EXISTS);
+            }
+
+            review.restore(request.getContent(), request.getRating());
+            return;
+        }
+
+        Review newReview = Review.builder()
                 .storeOrder(storeOrder)
                 .user(user)
                 .rating(request.getRating())
                 .content(request.getContent())
                 .build();
 
-        reviewRepository.save(review);
+        reviewRepository.save(newReview);
     }
 
     @Transactional(readOnly = true)
@@ -122,6 +136,24 @@ public class ReviewService {
         validateWithinSevenDays(review);
 
         review.delete();
+    }
+
+    @Transactional
+    public void addOwnerReply(
+            String email,
+            Long reviewId,
+            PostReviewReplyRequest request) {
+
+        User owner = userLoader.loadUserByUsername(email);
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+
+        validateReviewVisible(review);
+        validateStoreOwner(review, owner);
+        validateReplyNotExists(review);
+
+        review.addOwnerReply(request.getContent());
     }
 
 
@@ -246,10 +278,33 @@ public class ReviewService {
 
     private void validateNotAlreadyReviewed(StoreOrder storeOrder) {
 
-        if (reviewRepository.existsByStoreOrder_Id(storeOrder.getId())) {
+        if (reviewRepository.existsByStoreOrder_IdAndIsVisibleTrue(storeOrder.getId())) {
             throw new BusinessException(ErrorCode.REVIEW_ALREADY_EXISTS);
         }
     }
+
+    private void validateReviewVisible(Review review) {
+        if (!review.getIsVisible()) {
+            throw new BusinessException(ErrorCode.REVIEW_NOT_FOUND);
+        }
+    }
+
+    private void validateStoreOwner(Review review, User owner) {
+
+        Long storeOwnerId = review.getStoreOrder().getStore().getOwner().getId();
+
+        if (!storeOwnerId.equals(owner.getId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void validateReplyNotExists(Review review) {
+
+        if (review.getOwnerReply() != null) {
+            throw new BusinessException(ErrorCode.REVIEW_REPLY_ALREADY_EXISTS);
+        }
+    }
+
 
 }
 

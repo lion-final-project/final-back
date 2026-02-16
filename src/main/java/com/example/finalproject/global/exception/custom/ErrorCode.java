@@ -179,6 +179,7 @@ public enum ErrorCode {
     REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-002", "이미 리뷰가 존재합니다."),
     REVIEW_NOT_FOUND(HttpStatus.BAD_REQUEST, "REVIEW-003", "리뷰를 찾을 수 없습니다."),
     REVIEW_MODIFICATION_PERIOD_EXPIRED(HttpStatus.BAD_REQUEST, "REVIEW-004", "리뷰 수정/삭제 가능 기간이 지났습니다."),
+    REVIEW_REPLY_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-005", "이미 답글이 존재합니다."),
 
     ;
 

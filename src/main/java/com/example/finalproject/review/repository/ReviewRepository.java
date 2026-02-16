@@ -2,6 +2,7 @@ package com.example.finalproject.review.repository;
 
 import com.example.finalproject.review.domain.Review;
 import com.example.finalproject.review.dto.response.GetReviewStatisticsResponse;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,7 +13,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
-    boolean existsByStoreOrder_Id(Long storeOrderId);
+    boolean existsByStoreOrder_IdAndIsVisibleTrue(Long storeOrderId);
+
+    Optional<Review> findByStoreOrder_Id(Long storeOrderId);
 
     @EntityGraph(attributePaths = {"user"})
     Optional<Review> findDetailById(Long id);
@@ -34,5 +37,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     GetReviewStatisticsResponse getReviewStatistics(@Param("storeId") Long storeId);
 
 
-    Optional<Review> findByStoreOrder_Id(Long storeOrderId);
+    @EntityGraph(attributePaths = {"storeOrder"})
+    List<Review> findByStoreOrder_IdInAndIsVisibleTrue(List<Long> storeOrderIds);
+
 }

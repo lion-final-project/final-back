@@ -72,4 +72,20 @@ public class Review extends BaseTimeEntity {
         this.isVisible = false;
     }
 
+    public void addOwnerReply(String reply) {
+
+        if (this.ownerReply != null) {
+            throw new IllegalStateException("이미 답글이 존재합니다.");
+        }
+
+        this.ownerReply = reply;
+        this.ownerReplyAt = LocalDateTime.now();
+    }
+
+    public void restore(String content, short rating) {
+        this.isVisible = true;
+        this.content = content;
+        this.rating = rating;
+    }
+
 }
