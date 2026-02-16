@@ -18,10 +18,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/store-orders")
-public class CustomerStoreOrderController {
+public class StoreOrderCancelController {
 
     private final StoreOrderCancelService storeOrderCancelService;
 
+
+    /**
+     * 스토어 주문 취소 요청
+     *
+     * @param authentication 현재 로그인한 사용자 인증 정보
+     * @param storeOrderId   취소 대상 스토어 주문 ID
+     * @param request        취소 사유를 포함한 요청 DTO
+     * @return 200 OK
+     */
     @PostMapping("/{storeOrderId}/cancel")
     public ResponseEntity<ApiResponse<Void>> cancelStoreOrder(
             Authentication authentication,
