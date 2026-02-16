@@ -45,7 +45,7 @@ public class AuthController {
     private final KakaoService kakaoService;
     private final JwtProperties jwtProperties;
 
-    //현재 로그인 사용자 카카오 로그인 후 프론트에서 호출
+    /** 프로필 조회: 로그인 사용자 본인만 조회 가능. 미로그인 시 401. 이메일은 읽기 전용. */
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<MeResponse>> me(Authentication authentication) {
         MeResponse me = authService.getCurrentUser(authentication);
@@ -155,6 +155,8 @@ public class AuthController {
                 result.getUser().getId(),
                 result.getUser().getEmail(),
                 result.getUser().getName(),
+                result.getUser().getPhone(),
+                result.getUser().getCreatedAt(),
                 result.getRoles());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .headers(headers)
