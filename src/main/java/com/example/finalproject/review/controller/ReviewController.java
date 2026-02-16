@@ -4,12 +4,22 @@ package com.example.finalproject.review.controller;
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.review.dto.request.PostReviewCreateRequest;
 import com.example.finalproject.review.dto.response.GetReviewDetailResponse;
+import com.example.finalproject.review.dto.response.GetReviewPageResponse;
+import com.example.finalproject.review.enums.ReviewSortType;
 import com.example.finalproject.review.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,4 +44,13 @@ public class ReviewController {
             @PathVariable Long reviewId) {
         return ResponseEntity.ok(ApiResponse.success(reviewService.getReviewDetail(reviewId)));
     }
+
+    @GetMapping("/stores/{storeId}")
+    public ResponseEntity<ApiResponse<GetReviewPageResponse>> getStoreReviews(
+            @PathVariable Long storeId,
+            @RequestParam(defaultValue = "LATEST") ReviewSortType sortType,
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(ApiResponse.success(reviewService.getStoreReviews(storeId, sortType, pageable)));
+    }
+
 }

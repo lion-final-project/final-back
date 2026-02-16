@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -47,6 +48,12 @@ public class Review extends BaseTimeEntity {
 
     @Column(name = "is_visible", nullable = false)
     private Boolean isVisible = true;
+
+    @Column(name = "owner_reply", length = 500)
+    private String ownerReply;
+
+    @Column(name = "owner_reply_at")
+    private LocalDateTime ownerReplyAt;
 
     @Builder
     public Review(StoreOrder storeOrder, User user, Short rating, String content) {
