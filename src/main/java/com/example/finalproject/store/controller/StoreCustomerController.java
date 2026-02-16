@@ -1,16 +1,17 @@
 package com.example.finalproject.store.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
+import com.example.finalproject.product.dto.response.GetProductResponse;
+import com.example.finalproject.product.service.ProductService;
 import com.example.finalproject.subscription.dto.response.GetSubscriptionProductResponse;
 import com.example.finalproject.subscription.service.SubscriptionProductService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * 고객용 마트 API (API-STO-002 ~ STO-005).
@@ -22,6 +23,22 @@ import java.util.List;
 public class StoreCustomerController {
 
     private final SubscriptionProductService subscriptionProductService;
+    private final ProductService productService;
+
+    /**
+     * 마트 일반 상품 목록 조회 (고객 메뉴 탭용). 삭제되지 않고 판매 중인 상품만 반환.
+     *
+     * @param storeId 마트 ID
+     * @return 200 OK, 상품 응답 목록
+     */
+    @GetMapping("/{storeId}/products")
+    public ResponseEntity<ApiResponse<List<GetProductResponse>>> listProducts(
+            @PathVariable Long storeId) {
+
+        //todo: 리뷰, 평점 아직 만들어지지 않아서 반영 안되어있음!
+        List<GetProductResponse> list = productService.getProductsByStoreIdForCustomer(storeId);
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
 
     /**
      * API-STO-005: 마트 구독 상품 목록 조회.

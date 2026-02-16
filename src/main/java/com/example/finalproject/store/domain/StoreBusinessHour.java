@@ -62,4 +62,11 @@ public class StoreBusinessHour extends BaseTimeEntity {
     public void assignStore(Store store) {
         this.store = store;
     }
+
+
+    public void update(LocalTime openTime, LocalTime closeTime, Boolean isClosed) {
+        this.openTime = openTime;
+        this.closeTime = closeTime;
+        this.isClosed = isClosed != null ? isClosed : false;
+    }
 }
