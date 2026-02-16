@@ -10,6 +10,7 @@ import com.example.finalproject.order.enums.StoreOrderStatus;
 import com.example.finalproject.order.repository.OrderProductRepository;
 import com.example.finalproject.order.repository.StoreOrderRepository;
 import com.example.finalproject.review.domain.Review;
+import com.example.finalproject.review.dto.request.PatchReviewUpdateRequest;
 import com.example.finalproject.review.dto.request.PostReviewCreateRequest;
 import com.example.finalproject.review.dto.response.GetReviewDetailResponse;
 import com.example.finalproject.review.dto.response.GetReviewListResponse;
@@ -47,21 +48,7 @@ public class ReviewService {
         StoreOrder storeOrder = storeOrderRepository.findById(storeOrderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_ORDER_NOT_FOUND));
 
-        if (storeOrder.getOrder().getOrderedAt().plusDays(7).isBefore(LocalDateTime.now())) {
-            throw new BusinessException(ErrorCode.REVIEW_NOT_ALLOWED);
-        }
-
-        if (!storeOrder.getOrder().getUser().getId().equals(user.getId())) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
-
-        if (storeOrder.getStatus() != StoreOrderStatus.DELIVERED) {
-            throw new BusinessException(ErrorCode.REVIEW_NOT_ALLOWED);
-        }
-
-        if (reviewRepository.existsByStoreOrder_Id(storeOrderId)) {
-            throw new BusinessException(ErrorCode.REVIEW_ALREADY_EXISTS);
-        }
+        validateReviewable(storeOrder, user);
 
         Review review = Review.builder()
                 .storeOrder(storeOrder)
@@ -94,24 +81,49 @@ public class ReviewService {
 
         Pageable sortedPageable = createSortedPageable(sortType, pageable);
 
-        Page<Review> reviewPage =
-                reviewRepository.findByStoreOrder_Store_IdAndIsVisibleTrue(
-                        storeId, sortedPageable);
+        Page<Review> reviewPage = reviewRepository.findByStoreOrder_Store_IdAndIsVisibleTrue(storeId, sortedPageable);
 
-        Map<Long, List<OrderProduct>> productMap =
-                loadProductsGroupedByStoreOrder(reviewPage);
+        Map<Long, List<OrderProduct>> productMap = loadProductsGroupedByStoreOrder(reviewPage);
 
-        Page<GetReviewListResponse> responsePage =
-                reviewPage.map(review -> toReviewListResponse(review, productMap));
+        Page<GetReviewListResponse> responsePage = reviewPage.map(review -> toReviewListResponse(review, productMap));
 
-        GetReviewStatisticsResponse statistics =
-                getSafeStatistics(storeId);
+        GetReviewStatisticsResponse statistics = getSafeStatistics(storeId);
 
         return GetReviewPageResponse.builder()
                 .reviews(responsePage)
                 .statistics(statistics)
                 .build();
     }
+
+    @Transactional
+    public void updateReview(
+            String email,
+            Long reviewId,
+            PatchReviewUpdateRequest request) {
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+
+        validateReviewOwner(email, review);
+        validateWithinSevenDays(review);
+
+        review.update(request.getContent(), request.getRating());
+    }
+
+    @Transactional
+    public void deleteReview(
+            String email,
+            Long reviewId) {
+
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.REVIEW_NOT_FOUND));
+
+        validateReviewOwner(email, review);
+        validateWithinSevenDays(review);
+
+        review.delete();
+    }
+
 
     private Pageable createSortedPageable(
             ReviewSortType sortType,
@@ -179,6 +191,64 @@ public class ReviewService {
         }
 
         return stats;
+    }
+
+    private void validateReviewOwner(String email, Review review) {
+
+        User user = userLoader.loadUserByUsername(email);
+
+        if (!review.getUser().getId().equals(user.getId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void validateWithinSevenDays(Review review) {
+
+        LocalDateTime orderedAt = review.getStoreOrder().getOrder().getOrderedAt();
+
+        LocalDateTime deadline = orderedAt.plusDays(7);
+
+        if (LocalDateTime.now().isAfter(deadline)) {
+            throw new BusinessException(ErrorCode.REVIEW_MODIFICATION_PERIOD_EXPIRED);
+        }
+    }
+
+    private void validateReviewable(StoreOrder storeOrder, User user) {
+
+        validateReviewOwner(storeOrder, user);
+        validateDelivered(storeOrder);
+        validateWithinSevenDays(storeOrder);
+        validateNotAlreadyReviewed(storeOrder);
+    }
+
+    private void validateReviewOwner(StoreOrder storeOrder, User user) {
+        if (!storeOrder.getOrder().getUser().getId().equals(user.getId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+    }
+
+    private void validateWithinSevenDays(StoreOrder storeOrder) {
+
+        LocalDateTime deadline =
+                storeOrder.getOrder().getOrderedAt().plusDays(7);
+
+        if (LocalDateTime.now().isAfter(deadline)) {
+            throw new BusinessException(ErrorCode.REVIEW_NOT_ALLOWED);
+        }
+    }
+
+
+    private void validateDelivered(StoreOrder storeOrder) {
+        if (storeOrder.getStatus() != StoreOrderStatus.DELIVERED) {
+            throw new BusinessException(ErrorCode.REVIEW_NOT_ALLOWED);
+        }
+    }
+
+    private void validateNotAlreadyReviewed(StoreOrder storeOrder) {
+
+        if (reviewRepository.existsByStoreOrder_Id(storeOrder.getId())) {
+            throw new BusinessException(ErrorCode.REVIEW_ALREADY_EXISTS);
+        }
     }
 
 }
