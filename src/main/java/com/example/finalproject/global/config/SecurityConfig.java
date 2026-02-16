@@ -135,6 +135,7 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/products/{productId}")
                                                 .permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/stores/*/products").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/users/stores").permitAll()
                                                 .requestMatchers("/api/store/subscription-products",
                                                                 "/api/store/subscription-products/**")

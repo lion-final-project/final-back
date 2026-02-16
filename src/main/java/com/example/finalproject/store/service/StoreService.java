@@ -13,6 +13,7 @@ import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.domain.embedded.StoreAddress;
 import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
+import com.example.finalproject.store.dto.request.PatchDeliveryAvailableRequest;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
@@ -34,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -137,6 +140,73 @@ public class StoreService {
         return GetStoreCategoryResponse.fromList(storeCategoryRepository.findAll());
     }
 
+    //영업시간 조회
+    @Transactional(readOnly = true)
+    public List<PostStoreBusinessHourRequest> getStoreBusinessHours(String userName) {
+        User user = findUserByUserName(userName);
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+
+        return store.getBusinessHours().stream()
+                .sorted(java.util.Comparator.comparing(StoreBusinessHour::getDayOfWeek))
+                .map(this::toBusinessHourRequest)
+                .toList();
+    }
+
+    //영업시간 수정
+    public void updateStoreBusinessHours(String userName, List<PostStoreBusinessHourRequest> businessHours) {
+        User user = findUserByUserName(userName);
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+
+        if (Boolean.TRUE.equals(store.getIsDeliveryAvailable())) {
+            throw new BusinessException(ErrorCode.STORE_BUSINESS_HOUR_UPDATE_NOT_ALLOWED);
+        }
+
+        validateBusinessHours(businessHours);
+        updateExistingBusinessHours(store, businessHours);
+    }
+
+    /** 내 상점 배달 가능 여부 수정 */
+    public void updateDeliveryAvailable(String userName, PatchDeliveryAvailableRequest request) {
+        User user = findUserByUserName(userName);
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        store.setDeliveryAvailable(Boolean.TRUE.equals(request.getDeliveryAvailable()));
+    }
+
+    private void updateExistingBusinessHours(Store store, List<PostStoreBusinessHourRequest> businessHours) {
+        Map<Short, StoreBusinessHour> byDay = store.getBusinessHours().stream()
+                .collect(Collectors.toMap(StoreBusinessHour::getDayOfWeek, bh -> bh));
+
+        for (PostStoreBusinessHourRequest req : businessHours) {
+            LocalTime openTime = null;
+            LocalTime closeTime = null;
+            if (!req.getIsClosed()) {
+                if (req.getOpenTime() != null && !req.getOpenTime().isEmpty()) {
+                    openTime = LocalTime.parse(req.getOpenTime(), TIME_FORMATTER);
+                }
+                if (req.getCloseTime() != null && !req.getCloseTime().isEmpty()) {
+                    closeTime = LocalTime.parse(req.getCloseTime(), TIME_FORMATTER);
+                }
+            }
+
+            StoreBusinessHour existing = byDay.get(req.getDayOfWeek());
+            if (existing != null) {
+                existing.update(openTime, closeTime, req.getIsClosed());
+            } else {
+                // 해당 요일이 없으면 새로 추가 (초기 데이터 부족 등)
+                StoreBusinessHour newOne = StoreBusinessHour.builder()
+                        .dayOfWeek(req.getDayOfWeek())
+                        .openTime(openTime)
+                        .closeTime(closeTime)
+                        .isClosed(req.getIsClosed())
+                        .build();
+                store.addBusinessHour(newOne);
+            }
+        }
+    }
+
     private void validateRegistration(User user, PostStoreRegistrationRequest request) {
         if (storeRepository.existsBySubmittedDocumentInfo_BusinessNumber(request.getBusinessNumber())) {
             throw new BusinessException(ErrorCode.DUPLICATE_BUSINESS_NUMBER);
@@ -230,6 +300,16 @@ public class StoreService {
 
             store.addBusinessHour(businessHour);
         }
+    }
+
+
+    private PostStoreBusinessHourRequest toBusinessHourRequest(StoreBusinessHour businessHour) {
+        PostStoreBusinessHourRequest response = new PostStoreBusinessHourRequest();
+        response.setDayOfWeek(businessHour.getDayOfWeek());
+        response.setIsClosed(businessHour.getIsClosed());
+        response.setOpenTime(businessHour.getOpenTime() != null ? businessHour.getOpenTime().format(TIME_FORMATTER) : null);
+        response.setCloseTime(businessHour.getCloseTime() != null ? businessHour.getCloseTime().format(TIME_FORMATTER) : null);
+        return response;
     }
 
     private Approval createApproval(User user) {
