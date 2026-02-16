@@ -10,5 +10,6 @@ public enum PaymentStatus {
 
     CANCELLED,          // 승인 전 취소
     PARTIAL_REFUNDED,   // 부분 환불
-    REFUNDED            // 전액 환불
+    REFUNDED,            // 전액 환불
+    CANCEL_REQUESTED
 }

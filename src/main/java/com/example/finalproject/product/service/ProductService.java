@@ -61,12 +61,6 @@ public class ProductService {
         log.info("상품 등록 신청. userId ={}, categoryId = {} ",  user.getId(), request.getCategoryId());
         Store store = findStoreByUser(user);
 
-        //로직이 승인 후 role 부여해주면 컨트롤러 레벨에서 역할 검증처리하면 없어도 되지 않을까...?
-/*        // 승인된 마트만 상품 등록 가능
-        if (store.getStatus() != StoreStatus.APPROVED) {
-            throw new BusinessException(ErrorCode.STORE_NOT_APPROVED);
-        }*/
-
         // 동일 상품명 중복 체크
         if (productRepository.existsByStoreAndProductNameAndDeletedAtIsNull(store, request.getProductName())) {
             throw new BusinessException(ErrorCode.DUPLICATE_PRODUCT_NAME);
@@ -90,6 +84,18 @@ public class ProductService {
         Product product = findActiveProduct(productId);
 
         return GetProductResponse.from(product);
+    }
+
+    /**
+     * 고객용: 마트 상세 메뉴 탭에서 보여줄 일반 상품 목록 (삭제 안 됨, 판매 중인 것만).
+     */
+    @Transactional(readOnly = true)
+    public List<GetProductResponse> getProductsByStoreIdForCustomer(Long storeId) {
+        if (storeId == null || !storeRepository.existsById(storeId)) {
+            return List.of();
+        }
+        List<Product> products = productRepository.findByStore_IdAndDeletedAtIsNullAndIsActiveTrueOrderByProductNameAsc(storeId);
+        return products.stream().map(GetProductResponse::from).toList();
     }
 
     @Transactional(readOnly = true)
@@ -279,7 +285,6 @@ public class ProductService {
         return store;
     }
 
-    //todo: 해당 에러코드 생성할것
     private User findUserByUserName(String userName){
         User user = userRepository.findByEmail(userName).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         return user;

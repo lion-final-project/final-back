@@ -54,5 +54,6 @@ public class PaymentRefund extends BaseTimeEntity {
         this.storeOrder = storeOrder;
         this.refundAmount = refundAmount;
         this.refundReason = refundReason;
+        this.refundedAt = LocalDateTime.now();
     }
 }
