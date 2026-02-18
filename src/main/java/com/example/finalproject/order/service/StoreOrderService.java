@@ -11,20 +11,25 @@ import com.example.finalproject.order.domain.OrderProduct;
 import com.example.finalproject.order.domain.StoreOrder;
 import com.example.finalproject.order.dto.storeorder.request.PatchStoreOrderAcceptRequest;
 import com.example.finalproject.order.dto.storeorder.response.GetCompletedStoreOrderResponse;
+import com.example.finalproject.order.dto.storeorder.response.GetStoreSalesResponse;
 import com.example.finalproject.order.dto.storeorder.response.GetStoreOrderResponse;
 import com.example.finalproject.order.enums.OrderStatus;
+import com.example.finalproject.order.enums.OrderType;
 import com.example.finalproject.order.enums.StoreOrderStatus;
 import com.example.finalproject.order.event.StoreOrderAcceptedEvent;
 import com.example.finalproject.order.event.StoreOrderRejectedEvent;
 import com.example.finalproject.order.repository.OrderProductRepository;
 import com.example.finalproject.order.repository.StoreOrderRepository;
+import com.example.finalproject.payment.repository.PaymentRefundRepository;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.enums.StoreActiveStatus;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.User;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -48,8 +53,8 @@ public class StoreOrderService {
     private final StoreRepository storeRepository;
     private final DeliveryRepository deliveryRepository;
     private final DeliveryMatchComponent deliveryMatchComponent;
+    private final PaymentRefundRepository paymentRefundRepository;
     private final ApplicationEventPublisher eventPublisher;
-    // TODO: 환불 관련 서비스
 
     public List<GetStoreOrderResponse> getNewOrders(String userEmail) {
         log.info("신규 주문 조회 시작 - userEmail={}", userEmail);
@@ -221,6 +226,79 @@ public class StoreOrderService {
             }
             return GetCompletedStoreOrderResponse.from(storeOrder, products);
         });
+    }
+
+    public GetStoreSalesResponse getMonthlySales(String userEmail, int year, int month) {
+        log.info("월별 매출 조회 시작 - userEmail={}, year={}, month={}", userEmail, year, month);
+        Store store = getStoreByOwner(userEmail);
+        Long storeId = store.getId();
+
+        // 해당 월 범위
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDateTime monthStart = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd = yearMonth.atEndOfMonth().atTime(LocalTime.MAX);
+
+        // 전월 범위
+        YearMonth prevMonth = yearMonth.minusMonths(1);
+        LocalDateTime prevMonthStart = prevMonth.atDay(1).atStartOfDay();
+        LocalDateTime prevMonthEnd = prevMonth.atEndOfMonth().atTime(LocalTime.MAX);
+
+        // 오늘/어제 범위
+        LocalDate today = LocalDate.now();
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime todayEnd = today.atTime(LocalTime.MAX);
+        LocalDateTime yesterdayStart = today.minusDays(1).atStartOfDay();
+        LocalDateTime yesterdayEnd = today.minusDays(1).atTime(LocalTime.MAX);
+
+        // 주문 유형별 건수
+        long regularCount = storeOrderRepository.countByStoreIdAndStatusAndOrderTypeAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, OrderType.REGULAR, monthStart, monthEnd);
+        long subscriptionCount = storeOrderRepository.countByStoreIdAndStatusAndOrderTypeAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, OrderType.SUBSCRIPTION, monthStart, monthEnd);
+
+        // 총 매출 (해당 월)
+        long totalSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, monthStart, monthEnd);
+
+        // 전월 매출 → 전월 대비 증감률
+        long prevMonthSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, prevMonthStart, prevMonthEnd);
+        double monthOverMonthRate = prevMonthSales == 0 ? 0.0 : ((double) (totalSales - prevMonthSales) / prevMonthSales) * 100;
+
+        // 환불 금액
+        long refundAmount = paymentRefundRepository.sumRefundAmountByStoreOrderStoreIdAndRefundedAtBetween(storeId, monthStart, monthEnd);
+
+        // 환불 건수 (CANCELLED + REJECTED)
+        List<StoreOrderStatus> refundStatuses = List.of(StoreOrderStatus.CANCELLED, StoreOrderStatus.REJECTED);
+        long refundCount = storeOrderRepository.countByStoreIdAndStatusInAndCancelledAtBetween(storeId, refundStatuses, monthStart, monthEnd);
+
+        // 총 주문 건수
+        long totalOrderCount = regularCount + subscriptionCount;
+
+        // 평균 주문 금액
+        long averageOrderAmount = totalOrderCount == 0 ? 0 : totalSales / totalOrderCount;
+
+        // 플랫폼 수수료 (8%)
+        long platformFee = (long) (totalSales * 0.08);
+
+        // 오늘/어제 매출 → 일간 증감률
+        long todaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, todayStart, todayEnd);
+        long yesterdaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, yesterdayStart, yesterdayEnd);
+        double dayOverDayRate = yesterdaySales == 0 ? 0.0 : ((double) (todaySales - yesterdaySales) / yesterdaySales) * 100;
+
+        log.info("월별 매출 조회 완료 - storeId={}, totalSales={}, totalOrderCount={}",
+                storeId, totalSales, totalOrderCount);
+
+        return GetStoreSalesResponse.builder()
+                .year(year)
+                .month(month)
+                .regularOrderCount(regularCount)
+                .subscriptionOrderCount(subscriptionCount)
+                .totalSales(totalSales)
+                .monthOverMonthRate(Math.round(monthOverMonthRate * 10) / 10.0)
+                .platformFee(platformFee)
+                .refundAmount(refundAmount)
+                .refundCount(refundCount)
+                .totalOrderCount(totalOrderCount)
+                .averageOrderAmount(averageOrderAmount)
+                .dayOverDayRate(Math.round(dayOverDayRate * 10) / 10.0)
+                .build();
     }
 
     private Store getStoreByOwner(String userEmail) {
