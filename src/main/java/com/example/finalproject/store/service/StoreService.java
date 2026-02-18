@@ -180,9 +180,14 @@ public class StoreService {
 
         Point location = GeometryUtil.createPoint(request.getLongitude(), request.getLatitude());
 
+        String addressLine2 = (request.getAddressLine2() != null && !request.getAddressLine2().isBlank())
+                ? request.getAddressLine2() : null;
+        String postalCode = (request.getPostalCode() != null && !request.getPostalCode().isBlank())
+                ? request.getPostalCode() : "";
         StoreAddress address = StoreAddress.builder()
-                .postalCode("00000")
+                .postalCode(postalCode)
                 .addressLine1(request.getAddressLine())
+                .addressLine2(addressLine2)
                 .location(location)
                 .build();
 

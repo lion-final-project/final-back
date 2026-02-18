@@ -29,6 +29,12 @@ public class PostStoreRegistrationRequest {
     @Size(max = 255, message = "매장 주소는 255자를 초과할 수 없습니다.")
     private String addressLine;
 
+    @Size(max = 255, message = "상세주소는 255자를 초과할 수 없습니다.")
+    private String addressLine2;
+
+    @Size(max = 10, message = "우편번호는 10자를 초과할 수 없습니다.")
+    private String postalCode;
+
     @NotNull(message = "위치 정보는 필수입니다.")
     private Double latitude;
 
