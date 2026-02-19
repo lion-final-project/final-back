@@ -1,9 +1,11 @@
 package com.example.finalproject.global.config;
 
 import com.example.finalproject.auth.config.KakaoProperties;
+import com.example.finalproject.auth.config.NaverProperties;
 import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
 import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
 import com.example.finalproject.auth.service.KakaoService;
+import com.example.finalproject.auth.social.SocialLoginStrategyRegistry;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,21 +41,18 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties({ JwtProperties.class, KakaoProperties.class })
+@EnableConfigurationProperties({ JwtProperties.class, KakaoProperties.class, NaverProperties.class })
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
-        private final KakaoService kakaoService;
-        private final KakaoProperties kakaoProperties;
+        private final SocialLoginStrategyRegistry socialLoginStrategyRegistry;
         private final ClientRegistrationRepository clientRegistrationRepository;
 
         public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                        @Lazy KakaoService kakaoService,
-                        @Lazy KakaoProperties kakaoProperties,
+                        @Lazy SocialLoginStrategyRegistry socialLoginStrategyRegistry,
                         ClientRegistrationRepository clientRegistrationRepository) {
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-                this.kakaoService = kakaoService;
-                this.kakaoProperties = kakaoProperties;
+                this.socialLoginStrategyRegistry = socialLoginStrategyRegistry;
                 this.clientRegistrationRepository = clientRegistrationRepository;
         }
 
@@ -145,8 +144,7 @@ public class SecurityConfig {
                                                 .authorizationEndpoint(auth -> auth
                                                                 .authorizationRequestResolver(
                                                                                 kakaoAuthorizationRequestResolver()))
-                                                .successHandler(new OAuth2LoginSuccessHandler(kakaoService,
-                                                                kakaoProperties)))
+                                                .successHandler(new OAuth2LoginSuccessHandler(socialLoginStrategyRegistry)))
                                 .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(),
                                                 OAuth2AuthorizationRequestRedirectFilter.class)
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
