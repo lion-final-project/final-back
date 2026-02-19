@@ -81,6 +81,9 @@ public class Delivery extends BaseTimeEntity {
     @Column(name = "cancel_reason", length = 500)
     private String cancelReason;
 
+    @Column(name = "img_url")
+    private String imgUrl;
+
     @Builder
     public Delivery(StoreOrder storeOrder,
             Point storeLocation,
@@ -142,6 +145,9 @@ public class Delivery extends BaseTimeEntity {
         this.status = DeliveryStatus.CANCELLED;
         this.cancelledAt = LocalDateTime.now();
         this.cancelReason = reason;
+    }
+
+    public void uploadImg(String imgUrl) {
     }
 
     /**
