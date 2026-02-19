@@ -43,6 +43,8 @@ public class GetOrderListResponse {
         private String storeImageUrl;
         private OrderInfo order;
         private List<ProductSummary> products;
+        private boolean reviewWritten;
+        private Long reviewId;
     }
 
     // ================= PRODUCT =================
