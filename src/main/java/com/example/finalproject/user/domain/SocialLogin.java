@@ -50,6 +50,7 @@ public class SocialLogin extends BaseTimeEntity {
     @Column(nullable = false)
     private LocalDateTime connectedAt;
 
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     @Builder
