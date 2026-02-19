@@ -13,7 +13,7 @@ public interface OrderProductRepository extends JpaRepository<OrderProduct, Long
     List<OrderProduct> findAllByStoreOrderOrderId(Long orderId);
 
     List<OrderProduct> findByStoreOrderIn(Collection<StoreOrder> storeOrders);
-    
+
     @Query("select op "
             + "from OrderProduct op "
             + "join fetch op.product "
@@ -21,4 +21,6 @@ public interface OrderProductRepository extends JpaRepository<OrderProduct, Long
     List<OrderProduct> findByStoreOrderIdInWithProduct(@Param("ids") List<Long> ids);
 
     List<OrderProduct> findAllByStoreOrderId(Long storeOrderId);
+
+    List<OrderProduct> findByStoreOrder_IdIn(List<Long> storeOrderIds);
 }
