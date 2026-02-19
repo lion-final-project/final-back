@@ -6,6 +6,9 @@ import com.example.finalproject.auth.dto.response.MeResponse;
 import com.example.finalproject.auth.dto.response.*;
 import com.example.finalproject.auth.service.AuthService;
 import com.example.finalproject.auth.service.KakaoService;
+import com.example.finalproject.auth.social.SocialLoginSessionConstants;
+import com.example.finalproject.auth.social.SocialLoginStrategy;
+import com.example.finalproject.auth.social.SocialLoginStrategyRegistry;
 import com.example.finalproject.global.config.CookieUtil;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
@@ -42,10 +45,10 @@ public class AuthController {
     private static final String SESSION_KAKAO_PENDING_PROVIDER_USER_ID = "kakao_pending_provider_user_id";
 
     private final AuthService authService;
-    private final KakaoService kakaoService;
+    private final SocialLoginStrategyRegistry socialLoginStrategyRegistry;
     private final JwtProperties jwtProperties;
 
-    //현재 로그인 사용자 카카오 로그인 후 프론트에서 호출
+    /** 프로필 조회: 로그인 사용자 본인만 조회 가능. 미로그인 시 401. 이메일은 읽기 전용. */
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<MeResponse>> me(Authentication authentication) {
         MeResponse me = authService.getCurrentUser(authentication);
@@ -129,15 +132,20 @@ public class AuthController {
             @Valid @RequestBody SocialSignupCompleteRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
-        String providerUserId = (String) httpRequest.getSession().getAttribute(SESSION_KAKAO_PENDING_PROVIDER_USER_ID);
-        if (providerUserId == null || providerUserId.isBlank()) {
-            log.warn("[소셜 가입 완료] 세션에 kakao_pending_provider_user_id 없음");
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE); // 카카오 로그인 후 회원가입 단계가 아님
+        String registrationId = (String) httpRequest.getSession().getAttribute(SocialLoginSessionConstants.PENDING_PROVIDER);
+        String providerUserId = (String) httpRequest.getSession().getAttribute(SocialLoginSessionConstants.PENDING_PROVIDER_USER_ID);
+
+        if (registrationId == null || registrationId.isBlank() || providerUserId == null || providerUserId.isBlank()) {
+            log.warn("[소셜 가입 완료] 세션에 소셜 가입 대기 정보 없음");
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
-        log.info("[소셜 가입 완료] API 호출 providerUserId={}", providerUserId);
-        OAuthLoginSessionResult result = kakaoService.completeKakaoSignup(providerUserId, request);
-        httpRequest.getSession().removeAttribute(SESSION_KAKAO_PENDING_PROVIDER_USER_ID);
-        httpRequest.getSession().removeAttribute("kakao_pending_nickname");
+        SocialLoginStrategy strategy = socialLoginStrategyRegistry.getRequiredStrategy(registrationId);
+        log.info("[소셜 가입 완료] API 호출 provider={}, providerUserId={}", registrationId, providerUserId);
+        OAuthLoginSessionResult result = strategy.completeSignup(providerUserId, request);
+
+        httpRequest.getSession().removeAttribute(SocialLoginSessionConstants.PENDING_PROVIDER);
+        httpRequest.getSession().removeAttribute(SocialLoginSessionConstants.PENDING_PROVIDER_USER_ID);
+        httpRequest.getSession().removeAttribute(SocialLoginSessionConstants.PENDING_NICKNAME);
 
         LoginResponse loginResponse = authService.issueTokensForUser(result.getUser(), result.getRoles());
 
@@ -155,6 +163,8 @@ public class AuthController {
                 result.getUser().getId(),
                 result.getUser().getEmail(),
                 result.getUser().getName(),
+                result.getUser().getPhone(),
+                result.getUser().getCreatedAt(),
                 result.getRoles());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .headers(headers)

@@ -15,6 +15,8 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+
 public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long>, StoreOrderRepositoryCustom {
 
     List<StoreOrder> findAllByOrderId(Long orderId);
@@ -56,6 +58,16 @@ public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long>, S
             + "join fetch o.user u "
             + "where so.id = :id")
     Optional<StoreOrder> findByIdWithLock(@Param("id") Long id);
+
+    @Query("SELECT so FROM StoreOrder so " +
+           "JOIN FETCH so.store s " +
+           "JOIN FETCH s.owner " +
+           "WHERE so.id = :id")
+    Optional<StoreOrder> findByIdWithStoreAndOwner(@Param("id") Long id);
+
+    List<StoreOrder> findByStatus(StoreOrderStatus status);
+
+    List<StoreOrder> findByStatusAndCreatedAtBefore(StoreOrderStatus status, LocalDateTime createdAtBefore);
 
     // 매출 조회: 주문 유형별 DELIVERED 건수
     @Query("SELECT COUNT(so) FROM StoreOrder so "

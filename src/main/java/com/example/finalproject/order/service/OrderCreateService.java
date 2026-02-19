@@ -109,6 +109,13 @@ public class OrderCreateService {
             }
         }
 
+        // 장바구니에 포함된 마트가 모두 배달 가능 상태인지 검증
+        for (CartProduct cp : cartProducts) {
+            if (!Boolean.TRUE.equals(cp.getStore().getIsDeliveryAvailable())) {
+                throw new BusinessException(ErrorCode.STORE_DELIVERY_UNAVAILABLE);
+            }
+        }
+
         // 쿠폰 couponId가 있으면 해당 쿠폰 할인 적용, 없으면 0. 포인트 null 또는 0 허용
         int discount = resolveCouponDiscount(user.getId(), request.getCouponId());
         int points = request.getUsePointsOrZero();
@@ -189,7 +196,7 @@ public class OrderCreateService {
 
         // 마트별 상품 가격 계산
         Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = priceResult.storeSummaries().stream()
-                .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s));
+                .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s, (v1, v2) -> v1));
 
         // 마트별 상품 조회
         List<PostOrderResponse.StoreOrderSummary> storeOrderSummaries = new ArrayList<>();

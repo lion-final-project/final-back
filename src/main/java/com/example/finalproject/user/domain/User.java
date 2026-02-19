@@ -57,6 +57,7 @@ public class User extends BaseTimeEntity {
 
     private LocalDateTime privacyAgreedAt;
 
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     @Column(nullable = false, columnDefinition = "integer not null default 0")
@@ -92,7 +93,7 @@ public class User extends BaseTimeEntity {
                 .anyMatch(ur -> ur.getRole().getRoleName().equals("ADMIN"));
     }
 
-    //보유 포인트 설정 시드/추가 기능(적립,차감) 확장용
+    // 보유 포인트 설정 시드/추가 기능(적립,차감) 확장용
     public void setPoints(int points) {
         this.points = points >= 0 ? points : 0;
     }
@@ -100,6 +101,7 @@ public class User extends BaseTimeEntity {
     public void deactive() {
         deactive(LocalDateTime.now());
     }
+
     public void deactive(LocalDateTime deletedAt) {
         this.status = UserStatus.INACTIVE;
         this.deletedAt = deletedAt;
@@ -130,5 +132,9 @@ public class User extends BaseTimeEntity {
         String maskedPhone = "del" + this.id + timestamp;
         this.phone = maskedPhone.length() > 20 ? maskedPhone.substring(0, 20) : maskedPhone;
         this.name = "탈퇴회원_" + this.id;
+    }
+
+    public void changePassword(String newpassword) {
+        this.password = newpassword;
     }
 }

@@ -17,6 +17,8 @@ import com.example.finalproject.order.repository.OrderRepository;
 import com.example.finalproject.order.repository.StoreOrderRepository;
 import com.example.finalproject.payment.domain.Payment;
 import com.example.finalproject.payment.repository.PaymentRepository;
+import com.example.finalproject.review.domain.Review;
+import com.example.finalproject.review.repository.ReviewRepository;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.repository.UserRepository;
 import java.time.LocalDateTime;
@@ -47,6 +49,7 @@ public class OrderQueryService {
     private final OrderDetailMapper orderDetailMapper;
     private final StoreOrderDetailMapper storeOrderDetailMapper;
     private final OrderListMapper orderListMapper;
+    private final ReviewRepository reviewRepository;
 
     // 주문 상세 조회
     public GetOrderDetailResponse getOrderDetail(String email, Long orderId) {
@@ -133,12 +136,7 @@ public class OrderQueryService {
         User user = userLoader.loadUserByUsername(email);
 
         Page<StoreOrder> page =
-                storeOrderRepository.findUserStoreOrders(
-                        user.getId(),
-                        startDate,
-                        endDate,
-                        keyword,
-                        pageable);
+                storeOrderRepository.findUserStoreOrders(user.getId(), startDate, endDate, keyword, pageable);
 
         List<StoreOrder> storeOrders = page.getContent();
 
@@ -158,6 +156,13 @@ public class OrderQueryService {
                         .collect(Collectors.groupingBy(
                                 p -> p.getStoreOrder().getId()));
 
+        List<Review> reviews = reviewRepository.findByStoreOrder_IdInAndIsVisibleTrue(storeOrderIds);
+        Map<Long, Long> reviewIdMap = reviews.stream()
+                .collect(Collectors.toMap(
+                        review -> review.getStoreOrder().getId(),
+                        Review::getId
+                ));
+
         List<GetOrderListResponse.StoreOrderSummary> summaries = new ArrayList<>();
 
         for (StoreOrder storeOrder : storeOrders) {
@@ -170,9 +175,18 @@ public class OrderQueryService {
                             .map(orderListMapper::toProductSummary)
                             .toList();
 
-            summaries.add(orderListMapper.toStoreOrderSummary(storeOrder, productSummaries));
-        }
+            Long reviewId = reviewIdMap.get(storeOrder.getId());
+            boolean reviewWritten = reviewId != null;
 
+            summaries.add(
+                    orderListMapper.toStoreOrderSummary(
+                            storeOrder,
+                            productSummaries,
+                            reviewWritten,
+                            reviewId
+                    )
+            );
+        }
         return orderListMapper.buildResponse(page, summaries);
     }
 }

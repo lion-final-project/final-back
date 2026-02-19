@@ -30,6 +30,8 @@ public enum ErrorCode {
     DUPLICATE_PRODUCT_NAME(HttpStatus.CONFLICT, "STORE-011", "이미 마트에 등록된 상품명입니다."),
     STORE_NOT_ACTIVE(HttpStatus.BAD_REQUEST, "STORE-012", "현재 영업 중인 마트가 아닙니다."),
     STORE_OUTSIDE_BUSINESS_HOURS(HttpStatus.BAD_REQUEST, "STORE-013", "영업시간이 아닙니다."),
+    STORE_BUSINESS_HOUR_UPDATE_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "STORE-014", "배달 불가능 상태에서만 영업시간 수정이 가능합니다."),
+    STORE_DELIVERY_UNAVAILABLE(HttpStatus.BAD_REQUEST, "STORE-015", "현재 배달이 불가능한 마트가 포함되어 있습니다."),
 
     // AUTH
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH-001", "인증이 필요합니다."),
@@ -47,6 +49,8 @@ public enum ErrorCode {
     USER_STATUS_FORBIDDEN(HttpStatus.FORBIDDEN, "AUTH-013", "정지되었거나 비활성화된 계정입니다."),
     REFRESH_TOKEN_MISSING(HttpStatus.BAD_REQUEST, "AUTH-014", "refresh token이 필요합니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH-015", "사용자를 찾을 수 없습니다."),
+    PASSWORD_RESET_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "AUTH-016", "유효하지 않거나 만료된 비밀번호 재설정 토큰입니다."),
+    PASSWORD_RESET_TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "AUTH-017", "비밀번호 재설정 요청이 너무 많습니다. 잠시 후 다시 시도해주세요."),
 
     // STORAGE
     FILE_UPLOAD_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "STORAGE-001", "파일 업로드에 실패했습니다."),
@@ -141,6 +145,8 @@ public enum ErrorCode {
     // NOTIFICATION
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION-001", "알림을 조회할 수 없습니다."),
     NOTIFICATION_OWNER_MISMATCH(HttpStatus.FORBIDDEN, "NOTIFICATION-002", "자신의 알림만 접근할 수 있습니다."),
+    UNSUPPORTED_EMAIL_TYPE(HttpStatus.INTERNAL_SERVER_ERROR, "NOTIFICATION-003", "이메일 전송에 있어서 서버 에러가 터졌습니다."),
+
 
     // PAYMENT
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT-001", "결제를 조회할 수 없습니다."),
@@ -173,6 +179,15 @@ public enum ErrorCode {
     STORE_ORDER_NOT_PICKED_UP(HttpStatus.BAD_REQUEST, "STORE-ORDER-006", "픽업 완료된 주문이 아닙니다."),
     STORE_ORDER_NOT_DELIVERING(HttpStatus.BAD_REQUEST, "STORE-ORDER-007", "배송 중인 주문이 아닙니다."),
     STORE_ORDER_ALREADY_PROCESSED(HttpStatus.CONFLICT, "STORE-ORDER-008", "이미 처리된 주문입니다."),
+    INVALID_STORE_ORDER_REFUND_STATUS(HttpStatus.CONFLICT, "STORE-ORDER-009", "환불 과정에서 문제가 발생했습니다."),
+
+    // REVIEW
+    REVIEW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "REVIEW-001", "리뷰 작성이 불가능한 주문 상태입니다."),
+    REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-002", "이미 리뷰가 존재합니다."),
+    REVIEW_NOT_FOUND(HttpStatus.BAD_REQUEST, "REVIEW-003", "리뷰를 찾을 수 없습니다."),
+    REVIEW_MODIFICATION_PERIOD_EXPIRED(HttpStatus.BAD_REQUEST, "REVIEW-004", "리뷰 수정/삭제 가능 기간이 지났습니다."),
+    REVIEW_REPLY_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-005", "이미 답글이 존재합니다."),
+
     ;
 
     private final HttpStatus status;

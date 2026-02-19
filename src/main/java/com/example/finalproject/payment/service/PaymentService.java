@@ -25,7 +25,6 @@ import com.example.finalproject.payment.dto.response.TossCancelResponse;
 import com.example.finalproject.payment.dto.response.TossConfirmResponse;
 import com.example.finalproject.payment.enums.PaymentStatus;
 import com.example.finalproject.payment.event.StoreOrderCreatedEvent;
-import com.example.finalproject.payment.repository.PaymentRefundRepository;
 import com.example.finalproject.payment.repository.PaymentRepository;
 import com.example.finalproject.product.domain.Product;
 import com.example.finalproject.product.repository.ProductRepository;
@@ -59,8 +58,6 @@ public class PaymentService {
     private final StoreRepository storeRepository;
     private final OrderProductRepository orderProductRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final PaymentRefundRepository paymentRefundRepository;
-    private final PaymentTxService paymentTxService;
 
 
     @Transactional
@@ -140,7 +137,10 @@ public class PaymentService {
 
         for (StoreOrder storeOrder : storeOrders) {
             applicationEventPublisher.publishEvent(
-                    new StoreOrderCreatedEvent(storeOrder.getId())
+                    new StoreOrderCreatedEvent(
+                            storeOrder.getId(),
+                            storeOrder.getOrder().getOrderedAt()
+                    )
             );
         }
 
@@ -160,43 +160,6 @@ public class PaymentService {
                 payment.getReceiptUrl()
         );
     }
-
-    public void cancelPayment(StoreOrder storeOrder, Integer cancelAmount, String reason) {
-
-        if (cancelAmount == null || cancelAmount <= 0) {
-            throw new BusinessException(ErrorCode.INVALID_CANCEL_AMOUNT);
-        }
-
-        Long orderId = storeOrder.getOrder().getId();
-
-        Payment payment = paymentRepository.findByOrder_Id(orderId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        paymentTxService.markCancelRequested(orderId);
-
-        TossCancelResponse response;
-        try {
-            response = tossPaymentsClient.cancel(
-                    payment.getPaymentKey(),
-                    new TossCancelRequest(reason, cancelAmount)
-            );
-        } catch (Exception e) {
-            paymentTxService.revertCancelRequest(orderId);
-
-            throw new BusinessException(ErrorCode.PAYMENT_CANCEL_FAILED);
-        }
-
-        int cumulativeCanceledAmount = response.getCumulativeCanceledAmount();
-
-        paymentTxService.applyRefund(
-                orderId,
-                storeOrder.getId(),
-                cancelAmount,
-                reason,
-                cumulativeCanceledAmount
-        );
-    }
-
 
     private List<StoreOrder> createStoreOrdersAndOrderProducts(
             Order order,

@@ -24,7 +24,9 @@ public class OrderListMapper {
 
     public GetOrderListResponse.StoreOrderSummary toStoreOrderSummary(
             StoreOrder storeOrder,
-            List<GetOrderListResponse.ProductSummary> productSummaries) {
+            List<GetOrderListResponse.ProductSummary> productSummaries,
+            boolean reviewWritten,
+            Long reviewId) {
 
         return GetOrderListResponse.StoreOrderSummary.builder()
                 .storeOrderId(storeOrder.getId())
@@ -43,6 +45,8 @@ public class OrderListMapper {
                                 .build()
                 )
                 .products(productSummaries)
+                .reviewWritten(reviewWritten)
+                .reviewId(reviewId)
                 .build();
     }
 

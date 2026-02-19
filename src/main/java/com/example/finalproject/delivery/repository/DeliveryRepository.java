@@ -3,9 +3,12 @@ package com.example.finalproject.delivery.repository;
 import com.example.finalproject.delivery.domain.Delivery;
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.enums.DeliveryStatus;
+import com.example.finalproject.payment.enums.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
@@ -32,4 +35,34 @@ public interface DeliveryRepository extends JpaRepository<Delivery, Long> {
 
     /** 라이더의 특정 상태 배달 건수를 조회 (동시 배달 제한 확인용) */
     long countByRiderAndStatusIn(Rider rider, java.util.List<DeliveryStatus> statuses);
+
+    @Query(value = """
+            SELECT d
+            FROM Delivery d
+            JOIN d.storeOrder so
+            JOIN so.order o
+            JOIN o.user u
+            JOIN Payment p ON p.order = o
+            WHERE u.id = :userId
+              AND p.paymentStatus = :paymentStatus
+              AND d.status IN :statuses
+            ORDER BY d.createdAt DESC
+            """,
+            countQuery = """
+                    SELECT COUNT(d)
+                    FROM Delivery d
+                    JOIN d.storeOrder so
+                    JOIN so.order o
+                    JOIN o.user u
+                    JOIN Payment p ON p.order = o
+                    WHERE u.id = :userId
+                      AND p.paymentStatus = :paymentStatus
+                      AND d.status IN :statuses
+                    """)
+    Page<Delivery> findTrackableByUserIdAndStatuses(@Param("userId") Long userId,
+                                                    @Param("paymentStatus") PaymentStatus paymentStatus,
+                                                    @Param("statuses") java.util.List<DeliveryStatus> statuses,
+                                                    Pageable pageable);
+
+    Optional<Delivery> findByIdAndStoreOrderOrderUserId(Long deliveryId, Long userId);
 }

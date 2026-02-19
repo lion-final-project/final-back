@@ -13,6 +13,7 @@ public class GetCartStoreGroupResponse {
     private Long storeId;
     private String storeName;
     private Integer deliveryFee = 3000;
+    private Boolean isDeliveryAvailable = true;
     private List<GetCartItemResponse> items;
     private Integer storeProductPrice;
 
@@ -20,11 +21,13 @@ public class GetCartStoreGroupResponse {
             Long storeId,
             String storeName,
             Integer deliveryFee,
+            Boolean isDeliveryAvailable,
             List<GetCartItemResponse> items,
             Integer storeProductPrice) {
         this.storeId = storeId;
         this.storeName = storeName;
         this.deliveryFee = deliveryFee;
+        this.isDeliveryAvailable = isDeliveryAvailable != null ? isDeliveryAvailable : false;
         this.items = items;
         this.storeProductPrice = storeProductPrice;
     }
@@ -32,9 +35,11 @@ public class GetCartStoreGroupResponse {
     public static GetCartStoreGroupResponse from(List<CartProduct> group,
                                                  int deliveryFee) {
         CartProduct first = group.get(0);
+        var store = first.getStore();
 
-        Long storeId = first.getStore().getId();
-        String storeName = first.getStore().getStoreName();
+        Long storeId = store.getId();
+        String storeName = store.getStoreName();
+        Boolean isDeliveryAvailable = Boolean.TRUE.equals(store.getIsDeliveryAvailable());
 
         List<GetCartItemResponse> items = group.stream()
                 .map(GetCartItemResponse::from)
@@ -48,6 +53,7 @@ public class GetCartStoreGroupResponse {
                 storeId,
                 storeName,
                 deliveryFee,
+                isDeliveryAvailable,
                 items,
                 storeTotal
         );
