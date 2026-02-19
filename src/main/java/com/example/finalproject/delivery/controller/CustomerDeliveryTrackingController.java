@@ -2,6 +2,7 @@ package com.example.finalproject.delivery.controller;
 
 import com.example.finalproject.delivery.dto.response.GetCustomerDeliveryTrackingDetailResponse;
 import com.example.finalproject.delivery.dto.response.GetCustomerDeliveryTrackingItemResponse;
+import com.example.finalproject.delivery.dto.response.GetDeliveryHistoryItemResponse;
 import com.example.finalproject.delivery.service.interfaces.CustomerDeliveryTrackingService;
 import com.example.finalproject.global.response.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,13 +18,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/deliveries/tracking")
+@RequestMapping("/api/deliveries")
 @RequiredArgsConstructor
 public class CustomerDeliveryTrackingController {
 
     private final CustomerDeliveryTrackingService customerDeliveryTrackingService;
 
-    @GetMapping
+    /**
+     * 배달 추적 목록 조회 (진행 중: REQUESTED ~ DELIVERING)
+     */
+    @GetMapping("/tracking")
     public ResponseEntity<ApiResponse<Page<GetCustomerDeliveryTrackingItemResponse>>> getTrackableDeliveries(
             @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
             Authentication authentication
@@ -33,7 +37,10 @@ public class CustomerDeliveryTrackingController {
         return ResponseEntity.ok(ApiResponse.success("배달 추적 목록 조회가 완료되었습니다.", response));
     }
 
-    @GetMapping("/{deliveryId}")
+    /**
+     * 배달 추적 상세 조회
+     */
+    @GetMapping("/tracking/{deliveryId}")
     public ResponseEntity<ApiResponse<GetCustomerDeliveryTrackingDetailResponse>> getTrackingDetail(
             @PathVariable Long deliveryId,
             Authentication authentication
@@ -41,5 +48,18 @@ public class CustomerDeliveryTrackingController {
         GetCustomerDeliveryTrackingDetailResponse response =
                 customerDeliveryTrackingService.getMyDeliveryTrackingDetail(authentication.getName(), deliveryId);
         return ResponseEntity.ok(ApiResponse.success("배달 추적 상세 조회가 완료되었습니다.", response));
+    }
+
+    /**
+     * 배달 이력 목록 조회 (완료: DELIVERED + 취소: CANCELLED)
+     */
+    @GetMapping("/history")
+    public ResponseEntity<ApiResponse<Page<GetDeliveryHistoryItemResponse>>> getDeliveryHistory(
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication authentication
+    ) {
+        Page<GetDeliveryHistoryItemResponse> response =
+                customerDeliveryTrackingService.getMyDeliveryHistory(authentication.getName(), pageable);
+        return ResponseEntity.ok(ApiResponse.success("배달 이력 조회가 완료되었습니다.", response));
     }
 }

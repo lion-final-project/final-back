@@ -5,6 +5,7 @@ import com.example.finalproject.delivery.domain.Delivery;
 import com.example.finalproject.delivery.domain.DeliveryPhoto;
 import com.example.finalproject.delivery.dto.response.GetCustomerDeliveryTrackingDetailResponse;
 import com.example.finalproject.delivery.dto.response.GetCustomerDeliveryTrackingItemResponse;
+import com.example.finalproject.delivery.dto.response.GetDeliveryHistoryItemResponse;
 import com.example.finalproject.delivery.enums.DeliveryStatus;
 import com.example.finalproject.delivery.repository.DeliveryPhotoRepository;
 import com.example.finalproject.delivery.repository.DeliveryRepository;
@@ -37,6 +38,11 @@ public class CustomerDeliveryTrackingServiceImpl implements CustomerDeliveryTrac
             DeliveryStatus.DELIVERING
     );
 
+    private static final List<DeliveryStatus> HISTORY_STATUSES = List.of(
+            DeliveryStatus.DELIVERED,
+            DeliveryStatus.CANCELLED
+    );
+
     private final UserRepository userRepository;
     private final DeliveryRepository deliveryRepository;
     private final PaymentRepository paymentRepository;
@@ -55,6 +61,20 @@ public class CustomerDeliveryTrackingServiceImpl implements CustomerDeliveryTrac
         );
 
         return deliveries.map(this::toTrackingItem);
+    }
+
+    @Override
+    public Page<GetDeliveryHistoryItemResponse> getMyDeliveryHistory(String username, Pageable pageable) {
+        User user = findUserByEmail(username);
+
+        Page<Delivery> deliveries = deliveryRepository.findTrackableByUserIdAndStatuses(
+                user.getId(),
+                PaymentStatus.APPROVED,
+                HISTORY_STATUSES,
+                pageable
+        );
+
+        return deliveries.map(GetDeliveryHistoryItemResponse::from);
     }
 
     @Override

@@ -2,6 +2,7 @@ package com.example.finalproject.global.storage.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.global.storage.enums.StoreImageType;
+import com.example.finalproject.global.storage.service.interfaces.DeliveryStorageService;
 import com.example.finalproject.global.storage.service.interfaces.DocumentStorageService;
 import com.example.finalproject.global.storage.service.interfaces.StorageService;
 import com.example.finalproject.moderation.enums.ApplicantType;
@@ -26,6 +27,7 @@ public class StorageController {
 
     private final StorageService storageService;
     private final DocumentStorageService documentStorageService;
+    private final DeliveryStorageService deliveryStorageService;
     private final UserRepository userRepository;
 
     @PostMapping("/{userId}/{applicantType}/{documentType}")
@@ -123,5 +125,22 @@ public class StorageController {
                 .header("Content-Disposition", "inline; filename=\"" + filename + "\"")
                 .contentType(mediaType)
                 .body(bytes);
+    }
+
+
+    @PostMapping("delivery/{orderId}/{deliveryId}")
+    public ResponseEntity<ApiResponse<String>> uploadDeliveryImage(
+            @PathVariable("orderId") String orderId,
+            @PathVariable("deliveryId") Long deliveryId,
+            @RequestPart("file") MultipartFile file
+    ){
+        log.info("File order : {}, delivery: {}" , deliveryId, orderId);
+
+        String fileUrl = deliveryStorageService.uploadDeliveryProofImg(file, orderId, deliveryId);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("파일 업로드 성공", fileUrl)
+                );
     }
 }

@@ -6,7 +6,7 @@ import com.example.finalproject.delivery.enums.DeliveryStatus;
 import com.example.finalproject.delivery.repository.DeliveryRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
-import com.example.finalproject.global.util.GeometryUtil;
+
 import com.example.finalproject.global.sse.Service.SseService;
 import com.example.finalproject.global.sse.enums.SseEventType;
 import com.example.finalproject.order.domain.OrderProduct;
@@ -132,10 +132,7 @@ public class StoreOrderService {
         deliveryRepository.save(delivery);
 
         // 라이더 배달 알림 트리거 (Redis GEO 등록 및 SSE 알림)
-        deliveryMatchComponent.notifyNewDelivery(
-                String.valueOf(delivery.getId()),
-                GeometryUtil.getLongitude(delivery.getStoreLocation()),
-                GeometryUtil.getLatitude(delivery.getStoreLocation()));
+        deliveryMatchComponent.notifyNewDelivery(delivery);
 
         // 접수 알림
         eventPublisher.publishEvent(new StoreOrderAcceptedEvent(customer.getId(),
@@ -232,7 +229,8 @@ public class StoreOrderService {
     private void autoRejectExpiredPendingOrders(LocalDateTime now) {
         LocalDateTime pendingCutoff = now.minusMinutes(5);
 
-        List<StoreOrder> expiredPendingOrders = storeOrderRepository.findByStatusAndCreatedAtBefore(StoreOrderStatus.PENDING, pendingCutoff);
+        List<StoreOrder> expiredPendingOrders = storeOrderRepository
+                .findByStatusAndCreatedAtBefore(StoreOrderStatus.PENDING, pendingCutoff);
 
         if (expiredPendingOrders.isEmpty()) {
             return;
@@ -252,8 +250,7 @@ public class StoreOrderService {
     }
 
     private void autoMarkReadyAcceptedOrders(LocalDateTime now) {
-        List<StoreOrder> acceptedOrders =
-                storeOrderRepository.findByStatus(StoreOrderStatus.ACCEPTED);
+        List<StoreOrder> acceptedOrders = storeOrderRepository.findByStatus(StoreOrderStatus.ACCEPTED);
 
         if (acceptedOrders.isEmpty()) {
             return;
@@ -402,17 +399,21 @@ public class StoreOrderService {
             log.warn("[TTL][추적] processAutoRejectByTtl - 주문 없음, 스킵 storeOrderId={}", storeOrderId);
             return;
         }
-        log.info("[TTL][추적] processAutoRejectByTtl - 현재 상태 status={}, storeOrderId={}", storeOrder.getStatus(), storeOrderId);
+        log.info("[TTL][추적] processAutoRejectByTtl - 현재 상태 status={}, storeOrderId={}", storeOrder.getStatus(),
+                storeOrderId);
         if (storeOrder.getStatus() == StoreOrderStatus.PENDING) {
             storeOrder.requestReject();
             storeOrderTtlService.removeAutoReject(storeOrderId);
             paymentCancelService.cancel(storeOrder, "자동 거절 (미응답)");
             log.info("[TTL][추적] processAutoRejectByTtl - REJECT_REQUESTED 반영 및 PG 환불 요청 완료 storeOrderId={}", storeOrderId);
         } else {
-            log.info("[TTL][추적] processAutoRejectByTtl - 이미 PENDING 아님(이미 거절/접수됨), DB 변경 없이 목록 갱신 SSE만 발송 storeOrderId={}, status={}", storeOrderId, storeOrder.getStatus());
+            log.info(
+                    "[TTL][추적] processAutoRejectByTtl - 이미 PENDING 아님(이미 거절/접수됨), DB 변경 없이 목록 갱신 SSE만 발송 storeOrderId={}, status={}",
+                    storeOrderId, storeOrder.getStatus());
         }
         Long ownerId = storeOrder.getStore().getOwner().getId();
-        log.info("[TTL][추적] processAutoRejectByTtl - 스토어 오너 목록 갱신 SSE 발송 직전 ownerId={}, storeOrderId={}", ownerId, storeOrderId);
+        log.info("[TTL][추적] processAutoRejectByTtl - 스토어 오너 목록 갱신 SSE 발송 직전 ownerId={}, storeOrderId={}", ownerId,
+                storeOrderId);
         sseService.send(ownerId, SseEventType.STORE_ORDER_UPDATED, storeOrderId);
         log.info("[TTL] 자동 거절 흐름 완료(목록 갱신 SSE 발송됨) - storeOrderId={}", storeOrderId);
     }
@@ -428,14 +429,17 @@ public class StoreOrderService {
             log.warn("[TTL][추적] processAutoMarkReadyByTtl - 주문 없음, 스킵 storeOrderId={}", storeOrderId);
             return;
         }
-        log.info("[TTL][추적] processAutoMarkReadyByTtl - 현재 상태 status={}, storeOrderId={}", storeOrder.getStatus(), storeOrderId);
+        log.info("[TTL][추적] processAutoMarkReadyByTtl - 현재 상태 status={}, storeOrderId={}", storeOrder.getStatus(),
+                storeOrderId);
         if (storeOrder.getStatus() != StoreOrderStatus.ACCEPTED) {
-            log.info("[TTL][추적] processAutoMarkReadyByTtl - ACCEPTED 아님, 스킵(목록 갱신 SSE는 미발송) storeOrderId={}, status={}", storeOrderId, storeOrder.getStatus());
+            log.info("[TTL][추적] processAutoMarkReadyByTtl - ACCEPTED 아님, 스킵(목록 갱신 SSE는 미발송) storeOrderId={}, status={}",
+                    storeOrderId, storeOrder.getStatus());
             return;
         }
         storeOrder.markReady();
         Long ownerId = storeOrder.getStore().getOwner().getId();
-        log.info("[TTL][추적] processAutoMarkReadyByTtl - 스토어 오너 목록 갱신 SSE 발송 직전 ownerId={}, storeOrderId={}", ownerId, storeOrderId);
+        log.info("[TTL][추적] processAutoMarkReadyByTtl - 스토어 오너 목록 갱신 SSE 발송 직전 ownerId={}, storeOrderId={}", ownerId,
+                storeOrderId);
         sseService.send(ownerId, SseEventType.STORE_ORDER_UPDATED, storeOrderId);
         log.info("[TTL] 자동 준비완료 흐름 완료 - storeOrderId={}", storeOrderId);
     }
