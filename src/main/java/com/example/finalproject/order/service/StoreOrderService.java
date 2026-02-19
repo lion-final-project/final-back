@@ -357,10 +357,17 @@ public class StoreOrderService {
         // 플랫폼 수수료 (8%)
         long platformFee = (long) (totalSales * 0.08);
 
-        // 오늘/어제 매출 → 일간 증감률
-        long todaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, todayStart, todayEnd);
-        long yesterdaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, yesterdayStart, yesterdayEnd);
-        double dayOverDayRate = yesterdaySales == 0 ? 0.0 : ((double) (todaySales - yesterdaySales) / yesterdaySales) * 100;
+        // 오늘/어제 매출 → 일간 증감률 (요청 연월이 이번 달일 때만 사용)
+        YearMonth currentYearMonth = YearMonth.now();
+        long todaySales = 0;
+        long yesterdaySales = 0;
+        double dayOverDayRate = 0.0;
+        if (yearMonth.equals(currentYearMonth)) {
+            todaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, todayStart, todayEnd);
+            yesterdaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, yesterdayStart, yesterdayEnd);
+            dayOverDayRate = yesterdaySales == 0 ? 0.0 : ((double) (todaySales - yesterdaySales) / yesterdaySales) * 100;
+            dayOverDayRate = Math.round(dayOverDayRate * 10) / 10.0;
+        }
 
         log.info("월별 매출 조회 완료 - storeId={}, totalSales={}, totalOrderCount={}",
                 storeId, totalSales, totalOrderCount);
@@ -377,7 +384,9 @@ public class StoreOrderService {
                 .refundCount(refundCount)
                 .totalOrderCount(totalOrderCount)
                 .averageOrderAmount(averageOrderAmount)
-                .dayOverDayRate(Math.round(dayOverDayRate * 10) / 10.0)
+                .dayOverDayRate(dayOverDayRate)
+                .todaySales(todaySales)
+                .yesterdaySales(yesterdaySales)
                 .build();
     }
 

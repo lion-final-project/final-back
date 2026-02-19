@@ -29,4 +29,9 @@ public class GetStoreSalesResponse {
     private long totalOrderCount;
     private long averageOrderAmount;
     private double dayOverDayRate;
+
+    /** 오늘 총 매출 (요청한 연월이 이번 달일 때만 의미 있음, 대시보드용) */
+    private long todaySales;
+    /** 어제 총 매출 (요청한 연월이 이번 달일 때만 의미 있음) */
+    private long yesterdaySales;
 }
