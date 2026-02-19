@@ -4,6 +4,7 @@ import com.example.finalproject.auth.config.KakaoProperties;
 import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
 import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
 import com.example.finalproject.auth.service.KakaoService;
+import com.example.finalproject.auth.social.SocialLoginStrategyRegistry;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -38,17 +39,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityLocalConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final KakaoService kakaoService;
-    private final KakaoProperties kakaoProperties;
+    private final SocialLoginStrategyRegistry socialLoginStrategyRegistry;
     private final ClientRegistrationRepository clientRegistrationRepository;
 
     public SecurityLocalConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-            @Lazy KakaoService kakaoService,
-            @Lazy KakaoProperties kakaoProperties,
+            @Lazy SocialLoginStrategyRegistry socialLoginStrategyRegistry,
             ClientRegistrationRepository clientRegistrationRepository) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.kakaoService = kakaoService;
-        this.kakaoProperties = kakaoProperties;
+        this.socialLoginStrategyRegistry = socialLoginStrategyRegistry;
         this.clientRegistrationRepository = clientRegistrationRepository;
     }
 
@@ -115,7 +113,7 @@ public class SecurityLocalConfig {
                 .oauth2Login(oauth2 -> {
                     oauth2.authorizationEndpoint(auth -> auth
                             .authorizationRequestResolver(kakaoAuthorizationRequestResolver()));
-                    oauth2.successHandler(new OAuth2LoginSuccessHandler(kakaoService, kakaoProperties));
+                    oauth2.successHandler(new OAuth2LoginSuccessHandler(socialLoginStrategyRegistry));
                 })
                 .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(),
                         OAuth2AuthorizationRequestRedirectFilter.class)

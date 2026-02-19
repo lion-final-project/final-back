@@ -2,6 +2,9 @@ package com.example.finalproject.auth.config;
 
 import com.example.finalproject.auth.dto.kakao.OAuthLoginSessionResult;
 import com.example.finalproject.auth.service.KakaoService;
+import com.example.finalproject.auth.social.SocialLoginSessionConstants;
+import com.example.finalproject.auth.social.SocialLoginStrategy;
+import com.example.finalproject.auth.social.SocialLoginStrategyRegistry;
 import com.example.finalproject.global.security.CustomUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,8 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final KakaoService kakaoService;
-    private final KakaoProperties kakaoProperties;
+    private final SocialLoginStrategyRegistry strategyRegistry;
 
     @Override
     public void onAuthenticationSuccess(
@@ -43,69 +45,54 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         String registrationId = authentication instanceof OAuth2AuthenticationToken token
                 ? token.getAuthorizedClientRegistrationId()
                 : null;
-        if (registrationId == null) {
+        if (registrationId == null || registrationId.isBlank()) {
             registrationId = "kakao";
         }
 
-        String redirectUrl = kakaoProperties.getFrontendSuccessUrl();
-        if (redirectUrl == null || redirectUrl.isBlank()) {
-            redirectUrl = "http://localhost:5173";
-        }
+        SocialLoginStrategy strategy = strategyRegistry.getRequiredStrategy(registrationId);
+        String redirectUrl = defaultIfBlank(strategy.frontendSuccessUrl(), "http://localhost:5173");
 
-        if ("kakao".equals(registrationId)) {
+        Map<String, Object> attributes = oauth2User.getAttributes();
+        String providerUserId = strategy.resolveProviderUserId(attributes);
+        String nickname = strategy.resolveNickname(attributes);
 
-            Map<String, Object> attrs = oauth2User.getAttributes();
-            Object idObj = attrs.get("id");
-            String providerUserId = idObj != null ? String.valueOf(idObj) : null;
-            String nickname = resolveNickname(attrs);
-
-            if (providerUserId != null && !providerUserId.isBlank()) {
-                if (kakaoService.isKakaoUserRegistered(providerUserId)) {
-                    // 이미 가입된 경우: 로그인 처리
-                    log.info("[OAuth2 카카오] 기존 회원 로그인 처리 providerUserId={}", providerUserId);
-                    OAuthLoginSessionResult result = kakaoService.findOrCreateByKakaoInfo(providerUserId, nickname);
-                    CustomUserDetails userDetails = new CustomUserDetails(result.getUser(), result.getRoles());
-                    UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities());
-                    SecurityContextHolder.getContext().setAuthentication(newAuth);
-                    redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
-                } else {
-                    // 가입되지 않은 경우: 세션에 정보 저장 및 추가 정보 입력 페이지로 리다이렉트
-                    log.info("[OAuth2 카카오] 최초 로그인 - 회원가입 폼 필요 providerUserId={}", providerUserId);
-                    request.getSession().setAttribute("kakao_pending_provider_user_id", providerUserId);
-                    request.getSession().setAttribute("kakao_pending_nickname", nickname != null ? nickname : "");
-                    redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=signup_required";
-                }
+        if (providerUserId != null && !providerUserId.isBlank()) {
+            if (strategy.isRegistered(providerUserId)) {
+                log.info("[OAuth2 {}] 기존 회원 로그인 처리 providerUserId={}", registrationId, providerUserId);
+                OAuthLoginSessionResult result = strategy.findOrCreate(providerUserId, nickname);
+                CustomUserDetails userDetails = new CustomUserDetails(result.getUser(), result.getRoles());
+                UsernamePasswordAuthenticationToken newAuth = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(newAuth);
+                redirectUrl = appendStatusQuery(redirectUrl, registrationId, "success");
             } else {
-                redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
+                log.info("[OAuth2 {}] 최초 로그인 - 회원가입 폼 필요 providerUserId={}", registrationId, providerUserId);
+                request.getSession().setAttribute(SocialLoginSessionConstants.PENDING_PROVIDER, registrationId);
+                request.getSession().setAttribute(SocialLoginSessionConstants.PENDING_PROVIDER_USER_ID, providerUserId);
+                request.getSession().setAttribute(SocialLoginSessionConstants.PENDING_NICKNAME, nickname != null ? nickname : "");
+                redirectUrl = appendStatusQuery(redirectUrl, registrationId, "signup_required");
             }
         } else {
-            redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
+            redirectUrl = appendStatusQuery(redirectUrl, registrationId, "success");
         }
 
-        if (!redirectUrl.contains("kakao=")) {
-            redirectUrl = redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "kakao=success";
-        }
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
 
-    private String resolveNickname(Map<String, Object> attrs) {
+    private String appendStatusQuery(String redirectUrl, String registrationId, String status) {
+        String key = registrationId + "=";
+        if (!redirectUrl.contains(key)) {
+            return redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + registrationId + "=" + status;
+        }
+        return redirectUrl;
+    }
 
-        Object props = attrs.get("properties");
-        if (props instanceof Map<?, ?> map) {
-            Object n = map.get("nickname");
-            if (n != null) return n.toString();
+    private String defaultIfBlank(String value, String defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
         }
-        Object kakaoAccount = attrs.get("kakao_account");
-        if (kakaoAccount instanceof Map<?, ?> account) {
-            Object profile = account.get("profile");
-            if (profile instanceof Map<?, ?> p) {
-                Object n = p.get("nickname");
-                if (n != null) return n.toString();
-            }
-        }
-        return null;
+        return value;
     }
 }
