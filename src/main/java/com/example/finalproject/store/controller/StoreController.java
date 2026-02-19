@@ -2,6 +2,7 @@ package com.example.finalproject.store.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.store.dto.request.PatchDeliveryAvailableRequest;
+import com.example.finalproject.store.dto.request.PatchStoreImageRequest;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
@@ -124,6 +125,18 @@ public class StoreController {
         storeService.updateDeliveryAvailable(userName, request);
         return ResponseEntity.ok(ApiResponse.success(
                 Boolean.TRUE.equals(request.getDeliveryAvailable()) ? "배달 가능으로 변경되었습니다." : "배달 불가로 변경되었습니다."));
+    }
+
+    /**
+     * 내 상점 대표 이미지 수정 (URL로 설정, 빈 문자열이면 제거)
+     */
+    @PatchMapping("/my/store-image")
+    public ResponseEntity<ApiResponse<Void>> updateMyStoreImage(
+            Authentication authentication,
+            @RequestBody PatchStoreImageRequest request) {
+        String userName = authentication.getName();
+        storeService.updateStoreImage(userName, request);
+        return ResponseEntity.ok(ApiResponse.success("대표 이미지가 저장되었습니다."));
     }
 
 }

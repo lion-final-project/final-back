@@ -120,6 +120,13 @@ public class ProductService {
 
         validateProductOwner(store, product);
 
+        // 제품명 변경 시 동일 스토어 내 중복 체크 (수정 대상 상품 제외)
+        if (request.getProductName() != null && !request.getProductName().isBlank()) {
+            if (productRepository.existsByStoreAndProductNameAndDeletedAtIsNullAndIdNot(store, request.getProductName(), productId)) {
+                throw new BusinessException(ErrorCode.DUPLICATE_PRODUCT_NAME);
+            }
+        }
+
         if (request.getCategoryId() != null) {
             ProductCategory productCategory = productCategoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));

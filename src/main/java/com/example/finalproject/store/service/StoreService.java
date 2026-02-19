@@ -14,6 +14,7 @@ import com.example.finalproject.store.domain.embedded.StoreAddress;
 import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.dto.request.PatchDeliveryAvailableRequest;
+import com.example.finalproject.store.dto.request.PatchStoreImageRequest;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
@@ -175,6 +176,15 @@ public class StoreService {
         store.setDeliveryAvailable(Boolean.TRUE.equals(request.getDeliveryAvailable()));
     }
 
+    /** 내 상점 대표 이미지 수정 */
+    public void updateStoreImage(String userName, PatchStoreImageRequest request) {
+        User user = findUserByUserName(userName);
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        String url = request.getStoreImageUrl() != null ? request.getStoreImageUrl() : "";
+        store.updateStoreImage(url);
+    }
+
     private void updateExistingBusinessHours(Store store, List<PostStoreBusinessHourRequest> businessHours) {
         Map<Short, StoreBusinessHour> byDay = store.getBusinessHours().stream()
                 .collect(Collectors.toMap(StoreBusinessHour::getDayOfWeek, bh -> bh));
@@ -250,9 +260,14 @@ public class StoreService {
 
         Point location = GeometryUtil.createPoint(request.getLongitude(), request.getLatitude());
 
+        String addressLine2 = (request.getAddressLine2() != null && !request.getAddressLine2().isBlank())
+                ? request.getAddressLine2() : null;
+        String postalCode = (request.getPostalCode() != null && !request.getPostalCode().isBlank())
+                ? request.getPostalCode() : "";
         StoreAddress address = StoreAddress.builder()
-                .postalCode("00000")
+                .postalCode(postalCode)
                 .addressLine1(request.getAddressLine())
+                .addressLine2(addressLine2)
                 .location(location)
                 .build();
 
