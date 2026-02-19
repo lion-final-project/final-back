@@ -1,6 +1,7 @@
 package com.example.finalproject.global.config;
 
 import com.example.finalproject.auth.config.KakaoProperties;
+import com.example.finalproject.auth.config.NaverProperties;
 import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
 import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
 import com.example.finalproject.auth.service.KakaoService;
@@ -40,7 +41,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties({ JwtProperties.class, KakaoProperties.class })
+@EnableConfigurationProperties({ JwtProperties.class, KakaoProperties.class, NaverProperties.class })
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;

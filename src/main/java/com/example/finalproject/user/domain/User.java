@@ -57,6 +57,7 @@ public class User extends BaseTimeEntity {
 
     private LocalDateTime privacyAgreedAt;
 
+    @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
     @Column(nullable = false, columnDefinition = "integer not null default 0")

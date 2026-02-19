@@ -1,6 +1,7 @@
 package com.example.finalproject.global.config;
 
 import com.example.finalproject.auth.config.KakaoProperties;
+import com.example.finalproject.auth.config.NaverProperties;
 import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
 import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
 import com.example.finalproject.auth.service.KakaoService;
@@ -35,7 +36,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Profile(value = "local")
 @Configuration
 @EnableWebSecurity
-@EnableConfigurationProperties({ JwtProperties.class, KakaoProperties.class })
+@EnableConfigurationProperties({ JwtProperties.class, KakaoProperties.class, NaverProperties.class })
 public class SecurityLocalConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
