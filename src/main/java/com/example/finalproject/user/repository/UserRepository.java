@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.Optional;
+import java.util.List;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
@@ -19,6 +20,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     Optional<User> findByEmailAndDeletedAtIsNull(String email);
+
+    List<User> findAllByDeletedAtIsNull();
 
     Page<User>findAllBy(Pageable pageable);
 
@@ -47,4 +50,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Page<User> searchUsersForAdmin(@Param("keyword") String keyword,
                                    @Param("status") UserStatus status,
                                    Pageable pageable);
+
+    @Query("""
+            SELECT DISTINCT u
+            FROM User u
+            JOIN u.userRoles ur
+            JOIN ur.role r
+            WHERE u.deletedAt IS NULL
+              AND r.roleName = :roleName
+            """)
+    List<User> findAllActiveByRoleName(@Param("roleName") String roleName);
 }
