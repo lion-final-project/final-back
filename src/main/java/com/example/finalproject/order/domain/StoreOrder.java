@@ -104,9 +104,35 @@ public class StoreOrder extends BaseTimeEntity {
         this.acceptedAt = LocalDateTime.now();
     }
 
+    /**
+     * PENDING 주문을 즉시 거절 (PG 환불 없이 사용하는 경우용).
+     * 환불이 필요한 거절은 {@link #requestReject()} 후 PG 취소를 호출하고, 환불 완료 시 {@link #completeReject(String)}를 사용한다.
+     */
     public void reject(String reason) {
         if (this.status != PENDING) {
             throw new BusinessException(ErrorCode.STORE_ORDER_NOT_PENDING);
+        }
+        this.status = REJECTED;
+        this.cancelReason = reason;
+        this.cancelledAt = LocalDateTime.now();
+    }
+
+    /**
+     * 마트 거절 요청. PG 호출 전에 상태를 REJECT_REQUESTED로 두어, 환불 완료 이벤트에서 completeReject로 구분할 수 있게 한다.
+     */
+    public void requestReject() {
+        if (this.status != PENDING) {
+            throw new BusinessException(ErrorCode.STORE_ORDER_NOT_PENDING);
+        }
+        this.status = StoreOrderStatus.REJECT_REQUESTED;
+    }
+
+    /**
+     * 환불 완료 후 거절 확정. REJECT_REQUESTED → REJECTED, 사유·시각 저장.
+     */
+    public void completeReject(String reason) {
+        if (this.status != StoreOrderStatus.REJECT_REQUESTED) {
+            throw new BusinessException(ErrorCode.INVALID_STORE_ORDER_REFUND_STATUS);
         }
         this.status = REJECTED;
         this.cancelReason = reason;
@@ -165,7 +191,7 @@ public class StoreOrder extends BaseTimeEntity {
 
             case CANCEL_REQUESTED -> throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
 
-            case ACCEPTED, READY, PICKED_UP, DELIVERING, DELIVERED, CANCELLED, REJECTED ->
+            case ACCEPTED, READY, PICKED_UP, DELIVERING, DELIVERED, CANCELLED, REJECTED, REJECT_REQUESTED ->
                     throw new BusinessException(ErrorCode.ORDER_CANNOT_BE_CANCELLED);
         }
     }

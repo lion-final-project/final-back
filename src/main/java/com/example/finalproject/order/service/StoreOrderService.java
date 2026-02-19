@@ -19,10 +19,10 @@ import com.example.finalproject.order.enums.OrderStatus;
 import com.example.finalproject.order.enums.OrderType;
 import com.example.finalproject.order.enums.StoreOrderStatus;
 import com.example.finalproject.order.event.StoreOrderAcceptedEvent;
-import com.example.finalproject.order.event.StoreOrderRejectedEvent;
 import com.example.finalproject.order.repository.OrderProductRepository;
 import com.example.finalproject.order.repository.StoreOrderRepository;
 import com.example.finalproject.payment.repository.PaymentRefundRepository;
+import com.example.finalproject.payment.service.PaymentCancelService;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.enums.StoreActiveStatus;
@@ -60,7 +60,7 @@ public class StoreOrderService {
     private final ApplicationEventPublisher eventPublisher;
     private final SseService sseService;
     private final StoreOrderTtlService storeOrderTtlService;
-    // TODO: 환불 관련 서비스
+    private final PaymentCancelService paymentCancelService;
 
     public List<GetStoreOrderResponse> getNewOrders(String userEmail) {
         log.info("신규 주문 조회 시작 - userEmail={}", userEmail);
@@ -156,19 +156,12 @@ public class StoreOrderService {
         OrderStatus orderStatus = storeOrder.getOrder().getStatus();
         validateOrderPaid(orderStatus);
 
-        storeOrder.reject(reason);
-
+        storeOrder.requestReject();
         storeOrderTtlService.removeAutoReject(storeOrderId);
 
-        User customer = storeOrder.getOrder().getUser();
+        paymentCancelService.cancel(storeOrder, reason);
 
-        // 주문 거절 알림 발송
-        eventPublisher.publishEvent(new StoreOrderRejectedEvent(customer.getId(), store.getStoreName()));
-
-        // 신규 주문 현황 갱신
-        log.info("주문 거절 완료 - storeOrderId={}, reason={}", storeOrderId, reason);
-
-        // TODO: 환불 처리 구현
+        log.info("주문 거절 요청 완료(환불 처리 대기) - storeOrderId={}, reason={}", storeOrderId, reason);
     }
 
     @Transactional
@@ -249,12 +242,9 @@ public class StoreOrderService {
 
         for (StoreOrder storeOrder : expiredPendingOrders) {
             try {
-                storeOrder.reject("자동 거절 (미응답)");
-
-                User customer = storeOrder.getOrder().getUser();
-                Store store = storeOrder.getStore();
-
-                eventPublisher.publishEvent(new StoreOrderRejectedEvent(customer.getId(), store.getStoreName()));
+                storeOrder.requestReject();
+                storeOrderTtlService.removeAutoReject(storeOrder.getId());
+                paymentCancelService.cancel(storeOrder, "자동 거절 (미응답)");
             } catch (Exception e) {
                 log.error("자동 거절 처리 중 오류 발생 - storeOrderId={}", storeOrder.getId(), e);
             }
@@ -351,8 +341,8 @@ public class StoreOrderService {
         long prevMonthSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, prevMonthStart, prevMonthEnd);
         double monthOverMonthRate = prevMonthSales == 0 ? 0.0 : ((double) (totalSales - prevMonthSales) / prevMonthSales) * 100;
 
-        // 환불 금액
-        long refundAmount = paymentRefundRepository.sumRefundAmountByStoreOrderStoreIdAndRefundedAtBetween(storeId, monthStart, monthEnd);
+        // 환불 금액 (상점 기준: 배달비 제외, storeProductPrice만)
+        long refundAmount = paymentRefundRepository.sumStoreProductPriceByStoreOrderStoreIdAndRefundedAtBetween(storeId, monthStart, monthEnd);
 
         // 환불 건수 (CANCELLED + REJECTED)
         List<StoreOrderStatus> refundStatuses = List.of(StoreOrderStatus.CANCELLED, StoreOrderStatus.REJECTED);
@@ -405,11 +395,10 @@ public class StoreOrderService {
         }
         log.info("[TTL][추적] processAutoRejectByTtl - 현재 상태 status={}, storeOrderId={}", storeOrder.getStatus(), storeOrderId);
         if (storeOrder.getStatus() == StoreOrderStatus.PENDING) {
-            storeOrder.reject("자동 거절 (미응답)");
-            User customer = storeOrder.getOrder().getUser();
-            Store store = storeOrder.getStore();
-            eventPublisher.publishEvent(new StoreOrderRejectedEvent(customer.getId(), store.getStoreName()));
-            log.info("[TTL][추적] processAutoRejectByTtl - DB 거절 반영 및 고객 알림 발송 완료 storeOrderId={}", storeOrderId);
+            storeOrder.requestReject();
+            storeOrderTtlService.removeAutoReject(storeOrderId);
+            paymentCancelService.cancel(storeOrder, "자동 거절 (미응답)");
+            log.info("[TTL][추적] processAutoRejectByTtl - REJECT_REQUESTED 반영 및 PG 환불 요청 완료 storeOrderId={}", storeOrderId);
         } else {
             log.info("[TTL][추적] processAutoRejectByTtl - 이미 PENDING 아님(이미 거절/접수됨), DB 변경 없이 목록 갱신 SSE만 발송 storeOrderId={}, status={}", storeOrderId, storeOrder.getStatus());
         }

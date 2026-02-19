@@ -5,11 +5,13 @@ import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.Order;
 import com.example.finalproject.order.domain.OrderProduct;
 import com.example.finalproject.order.domain.StoreOrder;
+import com.example.finalproject.order.event.StoreOrderRejectedEvent;
 import com.example.finalproject.order.repository.OrderProductRepository;
 import com.example.finalproject.order.repository.StoreOrderRepository;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ public class StoreOrderStatusService {
 
     private final OrderProductRepository orderProductRepository;
     private final StoreOrderRepository storeOrderRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void handleRefundCompletion(Long storeOrderId, String reason) {
 
@@ -63,9 +66,22 @@ public class StoreOrderStatusService {
     }
 
     private void completeReject(StoreOrder storeOrder, String reason) {
-        /**
-         * 구현 필요!
-         */
+        storeOrder.completeReject(reason);
+
+        List<OrderProduct> orderProducts = orderProductRepository.findAllByStoreOrderId(storeOrder.getId());
+        for (OrderProduct op : orderProducts) {
+            op.getProduct().increaseStock(op.getQuantity());
+        }
+
+        log.debug("[STORE_ORDER_REJECT_STOCK_RESTORED] storeOrderId={}, restoredCount={}",
+                storeOrder.getId(), orderProducts.size());
+
+        storeOrder.getOrder().recalculateStatus();
+
+        eventPublisher.publishEvent(
+                new StoreOrderRejectedEvent(
+                        storeOrder.getOrder().getUser().getId(),
+                        storeOrder.getStore().getStoreName()));
     }
 
 
