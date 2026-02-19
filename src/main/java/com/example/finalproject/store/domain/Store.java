@@ -117,6 +117,11 @@ public class Store extends BaseTimeEntity {
         this.isDeliveryAvailable = deliveryAvailable;
     }
 
+    /** 스토어 대표 이미지 URL 설정 (운영설정에서 사용) */
+    public void updateStoreImage(String storeImageUrl) {
+        this.storeImage = storeImageUrl;
+    }
+
     /** 활성 상태 설정 (시드/테스트 데이터용) */
     public void setActiveStatus(StoreActiveStatus activeStatus) {
         this.isActive = activeStatus;

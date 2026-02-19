@@ -14,6 +14,7 @@ import com.example.finalproject.store.domain.embedded.StoreAddress;
 import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.dto.request.PatchDeliveryAvailableRequest;
+import com.example.finalproject.store.dto.request.PatchStoreImageRequest;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
@@ -173,6 +174,15 @@ public class StoreService {
         Store store = storeRepository.findByOwner(user)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
         store.setDeliveryAvailable(Boolean.TRUE.equals(request.getDeliveryAvailable()));
+    }
+
+    /** 내 상점 대표 이미지 수정 */
+    public void updateStoreImage(String userName, PatchStoreImageRequest request) {
+        User user = findUserByUserName(userName);
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        String url = request.getStoreImageUrl() != null ? request.getStoreImageUrl() : "";
+        store.updateStoreImage(url);
     }
 
     private void updateExistingBusinessHours(Store store, List<PostStoreBusinessHourRequest> businessHours) {
