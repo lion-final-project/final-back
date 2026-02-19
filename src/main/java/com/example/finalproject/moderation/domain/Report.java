@@ -80,4 +80,10 @@ public class Report extends BaseTimeEntity {
         this.targetType = targetType;
         this.reasonDetail = reasonDetail;
     }
+
+    public void resolve(String result) {
+        this.status = ReportStatus.RESOLVED;
+        this.reportResult = result;
+        this.resolvedAt = LocalDateTime.now();
+    }
 }
