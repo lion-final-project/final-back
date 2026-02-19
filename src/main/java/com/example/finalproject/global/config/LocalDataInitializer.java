@@ -166,7 +166,7 @@ public class LocalDataInitializer implements CommandLineRunner {
                     .email(userEmail)
                     .password(passwordEncoder.encode("user1234"))
                     .name("테스트유저")
-                    .phone("01011111111")
+                    .phone("010-1111-1111")
                     .termsAgreed(true)
                     .privacyAgreed(true)
                     .termsAgreedAt(LocalDateTime.now())
