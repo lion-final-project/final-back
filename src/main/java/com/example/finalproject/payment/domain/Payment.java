@@ -102,16 +102,16 @@ public class Payment extends BaseTimeEntity {
         this.paymentStatus = PaymentStatus.FAILED;
     }
 
-    public void cancel() {
+    public void Refunded() {
         this.refundedAmount = this.amount;
-        this.paymentStatus = PaymentStatus.CANCELLED;
+        this.paymentStatus = PaymentStatus.REFUNDED;
     }
 
-    public void partialCancel(Integer refundAmount) {
+    public void partialRefunded(Integer refundAmount) {
         this.refundedAmount = refundAmount;
 
         if (this.refundedAmount >= this.amount) {
-            this.paymentStatus = PaymentStatus.CANCELLED;
+            this.paymentStatus = PaymentStatus.REFUNDED;
         } else {
             this.paymentStatus = PaymentStatus.PARTIAL_REFUNDED;
         }
@@ -121,13 +121,13 @@ public class Payment extends BaseTimeEntity {
         return this.refundedAmount != null && this.refundedAmount >= this.amount;
     }
 
-    public void markCancelRequested() {
+    public void markRefundRequested() {
         if (this.paymentStatus != PaymentStatus.APPROVED &&
                 this.paymentStatus != PaymentStatus.PARTIAL_REFUNDED) {
             throw new BusinessException(ErrorCode.INVALID_PAYMENT_CANCEL_STATUS);
         }
 
-        this.paymentStatus = PaymentStatus.CANCEL_REQUESTED;
+        this.paymentStatus = PaymentStatus.REFUND_REQUESTED;
     }
 
     public void revertToPaid() {
