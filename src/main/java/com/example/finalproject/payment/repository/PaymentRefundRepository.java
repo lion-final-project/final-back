@@ -20,5 +20,15 @@ public interface PaymentRefundRepository extends JpaRepository<PaymentRefund, Lo
             @Param("storeId") Long storeId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+    /** 상점 기준 환불 금액 (배달비 제외, storeProductPrice만 합산) - 매출 조회용 */
+    @Query("SELECT COALESCE(SUM(pr.storeOrder.storeProductPrice), 0L) "
+            + "FROM PaymentRefund pr "
+            + "WHERE pr.storeOrder.store.id = :storeId "
+            + "AND pr.refundedAt BETWEEN :start AND :end")
+    long sumStoreProductPriceByStoreOrderStoreIdAndRefundedAtBetween(
+            @Param("storeId") Long storeId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
 }
 
