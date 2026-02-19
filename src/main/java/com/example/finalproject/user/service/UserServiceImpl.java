@@ -8,6 +8,7 @@ import com.example.finalproject.store.dto.response.StoreNearbyResponse;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.dto.request.GetStoreSearchRequest;
+import com.example.finalproject.user.dto.response.GetMyProfileResponse;
 import com.example.finalproject.user.dto.response.GetWithdrawalCheckResponse;
 import com.example.finalproject.user.dto.response.PostWithdrawalConfirmResponse;
 import com.example.finalproject.user.enums.UserStatus;
@@ -45,6 +46,21 @@ public class UserServiceImpl implements UserService {
     public Slice<StoreNearbyResponse> getNearbyStores(GetStoreSearchRequest request) {
         return storeRepository.findNearbyStoresByCategory(request);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GetMyProfileResponse getMyProfile(Authentication authentication) {
+        User user = getCurrentUser(authentication);
+        log.info("[프로필 조회] userId={}, email={}", user.getId(), user.getEmail());
+
+        return GetMyProfileResponse.builder()
+                .name(user.getName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .joinedAt(user.getCreatedAt())
+                .build();
+    }
+
 
     //회원탈퇴 사전 가능 여부 조회
     @Override
