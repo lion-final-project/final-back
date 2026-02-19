@@ -1,6 +1,6 @@
 # Project Index: 동네 마켓 Backend (final-back)
 
-Generated: 2026-02-11
+Generated: 2026-02-19
 
 ## Project Structure
 
@@ -8,14 +8,15 @@ Generated: 2026-02-11
 final-back/
 ├── src/main/java/com/example/finalproject/
 │   ├── FinalProjectApplication.java          # Entry point (@EnableScheduling)
-│   ├── auth/                                 # 인증/인가 (SMS, Kakao OAuth2, JWT)
-│   ├── user/                                 # 사용자 관리, 주소, 역할
+│   ├── admin/                                # 관리자 (사용자 관리, 신고 처리, 브로드캐스트)
+│   ├── auth/                                 # 인증/인가 (SMS, Kakao/Naver OAuth2, JWT)
+│   ├── user/                                 # 사용자 관리, 주소, 역할, 상태 이력
 │   ├── store/                                # 마트 등록/관리, 영업시간
 │   ├── product/                              # 상품 CRUD, 재고, 카테고리
 │   ├── order/                                # 주문, 장바구니, 마트주문
 │   ├── checkout/                             # 주문서, 가격 계산
-│   ├── delivery/                             # 배달, 라이더, 위치추적, 매칭
-│   ├── payment/                              # 결제 (Toss Payments)
+│   ├── delivery/                             # 배달, 라이더, 위치추적, 매칭, 완료사진
+│   ├── payment/                              # 결제 (Toss Payments), 구독 결제
 │   ├── subscription/                         # 정기 구독
 │   ├── settlement/                           # 정산
 │   ├── review/                               # 리뷰
@@ -44,29 +45,31 @@ final-back/
 
 | Metric | Count |
 |--------|-------|
-| Domains | 15 |
-| Controllers | 26 |
-| Services | 39 |
-| Entities | 55 |
-| Repositories | 42 |
+| Domains | 17 |
+| Controllers | 36 |
+| Services | 65 |
+| Entities | 54+ |
+| Repositories | 53 |
 | Error Codes | 95+ |
 | Enums | 20+ |
-| Events | 5 |
+| Events | 7 |
 | Schedulers | 1 |
+| Total Java Files | 472 |
 | Test Files | 2 |
 
 ## Domain-Entity Map
 
 | Domain | Entities |
 |--------|----------|
+| admin | *(no entities - service layer only)* |
 | auth | PhoneVerification, RefreshToken |
-| user | User, Role, UserRole, Address, SocialLogin |
+| user | User, Role, UserRole, Address, SocialLogin, UserStatusHistory |
 | store | Store, StoreCategory, StoreBusinessHour, StoreAddress(E), SettlementAccount(E), SubmittedDocumentInfo(E) |
 | product | Product, ProductCategory, ProductStockHistory, StockEventType |
 | order | Order, OrderLine, OrderProduct, StoreOrder, Cart, CartProduct |
 | checkout | *(no entities)* |
 | delivery | Delivery, Rider, RiderLocation, DeliveryPhoto |
-| payment | Payment, PaymentMethod, PaymentRefund |
+| payment | Payment, PaymentMethod, PaymentRefund, SubscriptionPayment |
 | subscription | Subscription, SubscriptionProduct, SubscriptionHistory, SubscriptionDayOfWeek, SubscriptionProductItem, SubscriptionProductDayOfWeek, SubscriptionStatusLog |
 | settlement | Settlement, SettlementDetail |
 | review | Review |
@@ -153,4 +156,4 @@ cd ../final-front && npm run dev
 
 ## Current Branch
 
-`feature/rider-US-R03` - 라이더 실시간 위치 추적 기능 개발 중
+`feature/rider-api-UC-R07` - 라이더 API 개발 중

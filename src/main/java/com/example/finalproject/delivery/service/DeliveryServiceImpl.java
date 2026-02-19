@@ -3,16 +3,19 @@ package com.example.finalproject.delivery.service;
 import com.example.finalproject.delivery.component.DeliveryMatchComponent;
 import com.example.finalproject.delivery.constants.DeliveryRedisKeys;
 import com.example.finalproject.delivery.domain.Delivery;
+import com.example.finalproject.delivery.domain.DeliveryPhoto;
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.dto.response.GetDeliveryDetailResponse;
 import com.example.finalproject.delivery.dto.response.GetDeliveryResponse;
 import com.example.finalproject.delivery.enums.DeliveryStatus;
 import com.example.finalproject.delivery.event.DeliveryStatusChangedEvent;
+import com.example.finalproject.delivery.repository.DeliveryPhotoRepository;
 import com.example.finalproject.delivery.repository.DeliveryRepository;
 import com.example.finalproject.delivery.repository.RiderRepository;
 import com.example.finalproject.delivery.service.interfaces.DeliveryService;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -29,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeliveryServiceImpl implements DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
+    private final DeliveryPhotoRepository deliveryPhotoRepository;
     private final RiderRepository riderRepository;
     private final DeliveryMatchComponent deliveryMatchComponent;
     private final ApplicationEventPublisher eventPublisher;
@@ -66,10 +70,18 @@ public class DeliveryServiceImpl implements DeliveryService {
     /** 배송 완료 (DELIVERING → DELIVERED) */
     @Override
     @Transactional
-    public void completeDelivery(String username, Long deliveryId) {
+    public void completeDelivery(String username, Long deliveryId, String photoUrl) {
         Delivery delivery = findDeliveryAndValidateRider(username, deliveryId);
         delivery.complete();
         delivery.getStoreOrder().markDelivered();
+
+        // 배달 완료 증빙 사진 저장 (사진 URL은 프론트에서 S3 업로드 후 전달)
+        DeliveryPhoto photo = DeliveryPhoto.builder()
+                .delivery(delivery)
+                .photoUrl(photoUrl)
+                .expiresAt(LocalDateTime.now().plusDays(90))
+                .build();
+        deliveryPhotoRepository.save(photo);
 
         Rider rider = delivery.getRider();
 

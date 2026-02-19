@@ -34,9 +34,10 @@ public interface DeliveryService {
     void startDelivery(String username, Long deliveryId);
 
     /**
-     * 배송 완료 (DELIVERING → DELIVERED)
+     * 배송 완료 (DELIVERING → DELIVERED).
+     * 프론트엔드에서 S3에 업로드한 증빙 사진 URL을 받아 DeliveryPhoto 레코드를 생성합니다.
      */
-    void completeDelivery(String username, Long deliveryId);
+    void completeDelivery(String username, Long deliveryId, String photoUrl);
 
     /**
      * 내 배달 목록 조회.

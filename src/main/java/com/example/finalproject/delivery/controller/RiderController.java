@@ -1,5 +1,6 @@
 package com.example.finalproject.delivery.controller;
 
+import com.example.finalproject.delivery.dto.request.PatchDeliveryCompleteRequest;
 import com.example.finalproject.delivery.dto.request.PatchRiderStatusRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderLocationRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderRegisterRequest;
@@ -208,13 +209,15 @@ public class RiderController {
     }
 
     /**
-     * 배송 완료 (DELIVERING → DELIVERED)
+     * 배송 완료 (DELIVERING → DELIVERED).
+     * 프론트엔드에서 S3 업로드 후 전달된 증빙 사진 URL을 함께 저장합니다.
      */
     @PatchMapping("/deliveries/{deliveryId}/complete")
     public ResponseEntity<ApiResponse<Void>> completeDelivery(
             @PathVariable Long deliveryId,
+            @Valid @RequestBody PatchDeliveryCompleteRequest request,
             Authentication authentication) {
-        deliveryService.completeDelivery(authentication.getName(), deliveryId);
+        deliveryService.completeDelivery(authentication.getName(), deliveryId, request.getPhotoUrl());
         return ResponseEntity.ok(ApiResponse.success("배송이 완료되었습니다."));
     }
 
