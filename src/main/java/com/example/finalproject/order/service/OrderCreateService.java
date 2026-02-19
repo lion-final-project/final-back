@@ -196,7 +196,7 @@ public class OrderCreateService {
 
         // 마트별 상품 가격 계산
         Map<Long, PriceCalculationResult.StorePriceSummary> summaryMap = priceResult.storeSummaries().stream()
-                .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s));
+                .collect(java.util.stream.Collectors.toMap(PriceCalculationResult.StorePriceSummary::storeId, s -> s, (v1, v2) -> v1));
 
         // 마트별 상품 조회
         List<PostOrderResponse.StoreOrderSummary> storeOrderSummaries = new ArrayList<>();

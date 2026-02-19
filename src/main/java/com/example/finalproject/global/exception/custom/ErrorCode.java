@@ -175,6 +175,15 @@ public enum ErrorCode {
     STORE_ORDER_NOT_PICKED_UP(HttpStatus.BAD_REQUEST, "STORE-ORDER-006", "픽업 완료된 주문이 아닙니다."),
     STORE_ORDER_NOT_DELIVERING(HttpStatus.BAD_REQUEST, "STORE-ORDER-007", "배송 중인 주문이 아닙니다."),
     STORE_ORDER_ALREADY_PROCESSED(HttpStatus.CONFLICT, "STORE-ORDER-008", "이미 처리된 주문입니다."),
+    INVALID_STORE_ORDER_REFUND_STATUS(HttpStatus.CONFLICT, "STORE-ORDER-009", "환불 과정에서 문제가 발생했습니다."),
+
+    // REVIEW
+    REVIEW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "REVIEW-001", "리뷰 작성이 불가능한 주문 상태입니다."),
+    REVIEW_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-002", "이미 리뷰가 존재합니다."),
+    REVIEW_NOT_FOUND(HttpStatus.BAD_REQUEST, "REVIEW-003", "리뷰를 찾을 수 없습니다."),
+    REVIEW_MODIFICATION_PERIOD_EXPIRED(HttpStatus.BAD_REQUEST, "REVIEW-004", "리뷰 수정/삭제 가능 기간이 지났습니다."),
+    REVIEW_REPLY_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-005", "이미 답글이 존재합니다."),
+
     ;
 
     private final HttpStatus status;

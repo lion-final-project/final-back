@@ -153,34 +153,28 @@ public class StoreOrder extends BaseTimeEntity {
         this.deliveredAt = LocalDateTime.now();
     }
 
-    public void validateCancelable() {
-        if (status == StoreOrderStatus.CANCELLED
-                || status == StoreOrderStatus.REJECTED
-                || status == StoreOrderStatus.CANCEL_REQUESTED) {
-            throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
-        }
-
-        if (status != StoreOrderStatus.PENDING) {
-            throw new BusinessException(ErrorCode.ORDER_CANNOT_BE_CANCELLED);
-        }
-    }
 
     public boolean isCancelledOrRejected() {
         return status == StoreOrderStatus.CANCELLED
                 || status == StoreOrderStatus.REJECTED;
     }
 
-    public void markCancelCancelRequested() {
-        if (this.status == StoreOrderStatus.CANCELLED
-                || this.status == StoreOrderStatus.REJECTED
-                || this.status == StoreOrderStatus.DELIVERED) {
-            throw new BusinessException(ErrorCode.ORDER_CANNOT_BE_CANCELLED);
-        }
+    public void requestCancel() {
+        switch (this.status) {
+            case PENDING -> this.status = StoreOrderStatus.CANCEL_REQUESTED;
 
-        if (this.status == StoreOrderStatus.CANCEL_REQUESTED) {
-            return;
-        }
+            case CANCEL_REQUESTED -> throw new BusinessException(ErrorCode.ALREADY_PROCESSED_PAYMENT);
 
-        this.status = StoreOrderStatus.CANCEL_REQUESTED;
+            case ACCEPTED, READY, PICKED_UP, DELIVERING, DELIVERED, CANCELLED, REJECTED ->
+                    throw new BusinessException(ErrorCode.ORDER_CANNOT_BE_CANCELLED);
+        }
+    }
+
+    public boolean isCancelRequested() {
+        return this.status == StoreOrderStatus.CANCEL_REQUESTED;
+    }
+
+    public boolean isRejectRequested() {
+        return this.status == StoreOrderStatus.REJECT_REQUESTED;
     }
 }

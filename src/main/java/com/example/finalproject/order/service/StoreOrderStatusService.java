@@ -16,26 +16,57 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class OrderStatusService {
+public class StoreOrderStatusService {
 
     private final OrderProductRepository orderProductRepository;
     private final StoreOrderRepository storeOrderRepository;
 
-    @Transactional
-    public void cancelAfterPayment(Long storeOrderId, String reason) {
+    public void handleRefundCompletion(Long storeOrderId, String reason) {
 
         StoreOrder storeOrder = storeOrderRepository.findById(storeOrderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_ORDER_NOT_FOUND));
+
+        if (storeOrder.isCancelRequested()) {
+            completeCancel(storeOrder, reason);
+        } else if (storeOrder.isRejectRequested()) {
+            completeReject(storeOrder, reason);
+        } else {
+            log.error("[REFUND_EVENT_STATE_MISMATCH] storeOrderId={}, status={}",
+                    storeOrderId, storeOrder.getStatus());
+        }
+    }
+
+    @Transactional
+    public void requestCancel(Long storeOrderId, String reason) {
+
+        StoreOrder storeOrder = storeOrderRepository.findById(storeOrderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_ORDER_NOT_FOUND));
+
+        storeOrder.requestCancel();
+    }
+
+    private void completeCancel(StoreOrder storeOrder, String reason) {
 
         Order order = storeOrder.getOrder();
 
         storeOrder.cancel(reason);
 
-        List<OrderProduct> orderProducts = orderProductRepository.findAllByStoreOrderId(storeOrderId);
+        List<OrderProduct> orderProducts = orderProductRepository.findAllByStoreOrderId(storeOrder.getId());
         for (OrderProduct op : orderProducts) {
             op.getProduct().increaseStock(op.getQuantity());
         }
 
+        log.debug("[STORE_ORDER_STOCK_RESTORED] storeOrderId={}, restoredCount={}",
+                storeOrder.getId(), orderProducts.size());
+
         order.recalculateStatus();
     }
+
+    private void completeReject(StoreOrder storeOrder, String reason) {
+        /**
+         * 구현 필요!
+         */
+    }
+
+
 }
