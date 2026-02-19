@@ -1,20 +1,23 @@
 package com.example.finalproject.global.config;
 
 import com.example.finalproject.auth.config.KakaoProperties;
+import com.example.finalproject.auth.config.NaverProperties;
 import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
 import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
-import com.example.finalproject.auth.service.KakaoService;
+import com.example.finalproject.auth.social.SocialLoginStrategyRegistry;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
+import java.util.function.Consumer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -26,34 +29,26 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestResolver;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.web.SecurityFilterChain;
-
-import java.util.function.Consumer;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
 @Profile(value = "!local")
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
-@EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class})
+@EnableConfigurationProperties({JwtProperties.class, KakaoProperties.class, NaverProperties.class})
 public class SecurityConfig {
-
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final KakaoService kakaoService;
-    private final KakaoProperties kakaoProperties;
+    private final SocialLoginStrategyRegistry socialLoginStrategyRegistry;
     private final ClientRegistrationRepository clientRegistrationRepository;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          @Lazy KakaoService kakaoService,
-                          @Lazy KakaoProperties kakaoProperties,
+                          @Lazy SocialLoginStrategyRegistry socialLoginStrategyRegistry,
                           ClientRegistrationRepository clientRegistrationRepository) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.kakaoService = kakaoService;
-        this.kakaoProperties = kakaoProperties;
+        this.socialLoginStrategyRegistry = socialLoginStrategyRegistry;
         this.clientRegistrationRepository = clientRegistrationRepository;
     }
 
@@ -106,26 +101,40 @@ public class SecurityConfig {
                             response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                         }))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(HttpMethod.GET, "/api/auth/check-email",
-                                "/api/auth/check-phone")
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/auth/check-email",
+                                "/api/auth/check-phone",
+                                "/api/users/stores*",
+                                "/api/products/categories",
+                                "/api/products/{productId}",
+                                "/api/stores/categories",
+                                "/api/stores/*/products",
+                                "/api/users/stores")
                         .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/stores*").permitAll()
-                        .requestMatchers("/oauth2/authorization/**", "/login/oauth2/code/**")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/register",
-                                "/api/auth/refresh", "/api/auth/login",
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/auth/register",
+                                "/api/auth/refresh",
+                                "/api/auth/login",
                                 "/api/auth/social-signup/complete",
                                 "/api/auth/password-reset/request",
-                                "/api/auth/password-reset/confirm")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/send-verification",
+                                "/api/auth/password-reset/confirm",
+                                "/api/auth/send-verification",
                                 "/api/auth/verify-phone")
                         .permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers("/api/admin/notices/**").hasRole("ADMIN")
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/notices").permitAll()
-                        .requestMatchers("/api/riders", "/api/riders/register",
+                        .requestMatchers(
+                                "/oauth2/authorization/**",
+                                "/login/oauth2/code/**",
+                                "/error",
+                                "/api/notices")
+                        .permitAll()
+                        .requestMatchers(
+                                "/api/admin/notices/**",
+                                "/api/admin/**")
+                        .hasRole("ADMIN")
+                        .requestMatchers(
+                                "/api/riders",
+                                "/api/riders/register",
+
                                 "/api/riders/approvals/*")
                         .hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.PATCH, "/api/riders/status").hasRole("RIDER")
@@ -133,13 +142,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/riders/locations/{riderId}").hasRole("RIDER")
                         .requestMatchers(HttpMethod.GET, "/api/riders/locations/{riderId}").hasRole("RIDER")
                         .requestMatchers("/api/riders/status").hasRole("RIDER")
-                        .requestMatchers(HttpMethod.GET, "/api/products/categories").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/products/{productId}")
-                        .permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/stores/*/products").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/stores").permitAll()
-                        .requestMatchers("/api/store/subscription-products",
+                        .requestMatchers(
+                                "/api/store/subscription-products",
                                 "/api/store/subscription-products/**")
                         .hasRole("STORE_OWNER")
                         .anyRequest().authenticated())
@@ -147,8 +151,7 @@ public class SecurityConfig {
                         .authorizationEndpoint(auth -> auth
                                 .authorizationRequestResolver(
                                         kakaoAuthorizationRequestResolver()))
-                        .successHandler(new OAuth2LoginSuccessHandler(kakaoService,
-                                kakaoProperties)))
+                        .successHandler(new OAuth2LoginSuccessHandler(socialLoginStrategyRegistry)))
                 .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(),
                         OAuth2AuthorizationRequestRedirectFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

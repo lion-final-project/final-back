@@ -210,7 +210,8 @@ public class AuthService {
             List<String> roles = details.getAuthorities().stream()
                     .map(a -> a.getAuthority().replace("ROLE_", ""))
                     .toList();
-            return new MeResponse(user.getId(), user.getEmail(), user.getName(), roles);
+            return new MeResponse(user.getId(), user.getEmail(), user.getName(), user.getPhone(),
+                    user.getCreatedAt(), roles);
         }
         if (principal instanceof String email) { //JWT 토큰 인증 시
             User user = userRepository.findByEmail(email)
@@ -219,7 +220,8 @@ public class AuthService {
                     .map(UserRole::getRole)
                     .map(Role::getRoleName)
                     .toList();
-            return new MeResponse(user.getId(), user.getEmail(), user.getName(), roles);
+            return new MeResponse(user.getId(), user.getEmail(), user.getName(), user.getPhone(),
+                    user.getCreatedAt(), roles);
         }
         throw new BusinessException(ErrorCode.UNAUTHORIZED);
     }

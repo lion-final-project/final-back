@@ -159,14 +159,14 @@ public class LocalDataInitializer implements CommandLineRunner {
             log.info("==============================================");
         }
 
-        // 일반 USER 테스트 계정 생성 (없으면)
+        // 일반 USER 테스트 계정 생성 (없으면) - 프로필 조회 GET /api/users/me 테스트용
         String userEmail = "user@test.com";
         if (userRepository.findByEmail(userEmail).isEmpty()) {
             User normalUser = User.builder()
                     .email(userEmail)
                     .password(passwordEncoder.encode("user1234"))
                     .name("테스트유저")
-                    .phone("01011111111")
+                    .phone("010-1111-1111")
                     .termsAgreed(true)
                     .privacyAgreed(true)
                     .termsAgreedAt(LocalDateTime.now())
@@ -180,9 +180,10 @@ public class LocalDataInitializer implements CommandLineRunner {
                     .build());
 
             log.info("==============================================");
-            log.info("USER 테스트 계정이 생성되었습니다.");
+            log.info("USER 테스트 계정이 생성되었습니다. (프로필 조회 GET /api/users/me 테스트용)");
             log.info("Email: {}", userEmail);
             log.info("Password: user1234");
+            log.info("프로필: 이름=테스트유저, 연락처=01011111111, 가입일=DB createdAt");
             log.info("==============================================");
         }
 

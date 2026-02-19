@@ -3,6 +3,7 @@ package com.example.finalproject.user.controller;
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.store.dto.response.StoreNearbyResponse;
 import com.example.finalproject.user.dto.request.GetStoreSearchRequest;
+import com.example.finalproject.user.dto.response.GetMyProfileResponse;
 import com.example.finalproject.user.dto.response.GetWithdrawalCheckResponse;
 import com.example.finalproject.user.dto.response.PostWithdrawalConfirmResponse;
 import com.example.finalproject.user.service.interfaces.UserService;
@@ -40,6 +41,13 @@ public class UserController {
         GetWithdrawalCheckResponse response = userService.checkWithdrawalEligibility(authentication);
         return ResponseEntity.ok(ApiResponse.success("회원 탈퇴 가능 여부 조회가 완료되었습니다.", response));
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<GetMyProfileResponse>> getMyProfile(Authentication authentication) {
+        GetMyProfileResponse response = userService.getMyProfile(authentication);
+        return ResponseEntity.ok(ApiResponse.success("내 프로필 조회가 완료되었습니다.", response));
+    }
+
 
     @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<?>> withdraw(Authentication authentication) {

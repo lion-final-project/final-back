@@ -13,4 +13,6 @@ public interface DeliveryPhotoRepository extends JpaRepository<DeliveryPhoto, Lo
 
     /** 특정 배달에 첨부된 사진 목록 조회 */
     List<DeliveryPhoto> findByDeliveryId(Long deliveryId);
+
+    List<DeliveryPhoto> findByDeliveryIdOrderByCreatedAtDesc(Long deliveryId);
 }
