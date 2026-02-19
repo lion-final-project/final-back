@@ -4,9 +4,12 @@ import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.order.dto.storeorder.request.PatchStoreOrderAcceptRequest;
 import com.example.finalproject.order.dto.storeorder.request.PatchStoreOrderRejectRequest;
 import com.example.finalproject.order.dto.storeorder.response.GetCompletedStoreOrderResponse;
+import com.example.finalproject.order.dto.storeorder.response.GetStoreSalesResponse;
 import com.example.finalproject.order.dto.storeorder.response.GetStoreOrderResponse;
 import com.example.finalproject.order.service.StoreOrderService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,11 +17,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -29,6 +34,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/store/orders")
 @RequiredArgsConstructor
+@Validated
 public class StoreOrderController {
 
     private final StoreOrderService storeOrderService;
@@ -104,5 +110,18 @@ public class StoreOrderController {
 
         storeOrderService.completePreparation(storeOrderId, authentication.getName());
         return ResponseEntity.ok(ApiResponse.success("준비 완료"));
+    }
+
+    /**
+     * 월별 매출 현황 조회
+     */
+    @GetMapping("/sales")
+    public ResponseEntity<ApiResponse<GetStoreSalesResponse>> getMonthlySales(
+            Authentication authentication,
+            @RequestParam @Min(2000) @Max(2100) int year,
+            @RequestParam @Min(1) @Max(12) int month) {
+        String username = authentication.getName();
+        GetStoreSalesResponse response = storeOrderService.getMonthlySales(username, year, month);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

@@ -13,20 +13,25 @@ import com.example.finalproject.order.domain.OrderProduct;
 import com.example.finalproject.order.domain.StoreOrder;
 import com.example.finalproject.order.dto.storeorder.request.PatchStoreOrderAcceptRequest;
 import com.example.finalproject.order.dto.storeorder.response.GetCompletedStoreOrderResponse;
+import com.example.finalproject.order.dto.storeorder.response.GetStoreSalesResponse;
 import com.example.finalproject.order.dto.storeorder.response.GetStoreOrderResponse;
 import com.example.finalproject.order.enums.OrderStatus;
+import com.example.finalproject.order.enums.OrderType;
 import com.example.finalproject.order.enums.StoreOrderStatus;
 import com.example.finalproject.order.event.StoreOrderAcceptedEvent;
-import com.example.finalproject.order.event.StoreOrderRejectedEvent;
 import com.example.finalproject.order.repository.OrderProductRepository;
 import com.example.finalproject.order.repository.StoreOrderRepository;
+import com.example.finalproject.payment.repository.PaymentRefundRepository;
+import com.example.finalproject.payment.service.PaymentCancelService;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.enums.StoreActiveStatus;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.User;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -51,10 +56,11 @@ public class StoreOrderService {
     private final StoreRepository storeRepository;
     private final DeliveryRepository deliveryRepository;
     private final DeliveryMatchComponent deliveryMatchComponent;
+    private final PaymentRefundRepository paymentRefundRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final SseService sseService;
     private final StoreOrderTtlService storeOrderTtlService;
-    // TODO: 환불 관련 서비스
+    private final PaymentCancelService paymentCancelService;
 
     public List<GetStoreOrderResponse> getNewOrders(String userEmail) {
         log.info("신규 주문 조회 시작 - userEmail={}", userEmail);
@@ -150,19 +156,12 @@ public class StoreOrderService {
         OrderStatus orderStatus = storeOrder.getOrder().getStatus();
         validateOrderPaid(orderStatus);
 
-        storeOrder.reject(reason);
-
+        storeOrder.requestReject();
         storeOrderTtlService.removeAutoReject(storeOrderId);
 
-        User customer = storeOrder.getOrder().getUser();
+        paymentCancelService.cancel(storeOrder, reason);
 
-        // 주문 거절 알림 발송
-        eventPublisher.publishEvent(new StoreOrderRejectedEvent(customer.getId(), store.getStoreName()));
-
-        // 신규 주문 현황 갱신
-        log.info("주문 거절 완료 - storeOrderId={}, reason={}", storeOrderId, reason);
-
-        // TODO: 환불 처리 구현
+        log.info("주문 거절 요청 완료(환불 처리 대기) - storeOrderId={}, reason={}", storeOrderId, reason);
     }
 
     @Transactional
@@ -243,12 +242,9 @@ public class StoreOrderService {
 
         for (StoreOrder storeOrder : expiredPendingOrders) {
             try {
-                storeOrder.reject("자동 거절 (미응답)");
-
-                User customer = storeOrder.getOrder().getUser();
-                Store store = storeOrder.getStore();
-
-                eventPublisher.publishEvent(new StoreOrderRejectedEvent(customer.getId(), store.getStoreName()));
+                storeOrder.requestReject();
+                storeOrderTtlService.removeAutoReject(storeOrder.getId());
+                paymentCancelService.cancel(storeOrder, "자동 거절 (미응답)");
             } catch (Exception e) {
                 log.error("자동 거절 처리 중 오류 발생 - storeOrderId={}", storeOrder.getId(), e);
             }
@@ -312,6 +308,88 @@ public class StoreOrderService {
         });
     }
 
+    public GetStoreSalesResponse getMonthlySales(String userEmail, int year, int month) {
+        log.info("월별 매출 조회 시작 - userEmail={}, year={}, month={}", userEmail, year, month);
+        Store store = getStoreByOwner(userEmail);
+        Long storeId = store.getId();
+
+        // 해당 월 범위
+        YearMonth yearMonth = YearMonth.of(year, month);
+        LocalDateTime monthStart = yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime monthEnd = yearMonth.atEndOfMonth().atTime(LocalTime.MAX);
+
+        // 전월 범위
+        YearMonth prevMonth = yearMonth.minusMonths(1);
+        LocalDateTime prevMonthStart = prevMonth.atDay(1).atStartOfDay();
+        LocalDateTime prevMonthEnd = prevMonth.atEndOfMonth().atTime(LocalTime.MAX);
+
+        // 오늘/어제 범위
+        LocalDate today = LocalDate.now();
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime todayEnd = today.atTime(LocalTime.MAX);
+        LocalDateTime yesterdayStart = today.minusDays(1).atStartOfDay();
+        LocalDateTime yesterdayEnd = today.minusDays(1).atTime(LocalTime.MAX);
+
+        // 주문 유형별 건수
+        long regularCount = storeOrderRepository.countByStoreIdAndStatusAndOrderTypeAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, OrderType.REGULAR, monthStart, monthEnd);
+        long subscriptionCount = storeOrderRepository.countByStoreIdAndStatusAndOrderTypeAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, OrderType.SUBSCRIPTION, monthStart, monthEnd);
+
+        // 총 매출 (해당 월)
+        long totalSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, monthStart, monthEnd);
+
+        // 전월 매출 → 전월 대비 증감률
+        long prevMonthSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, prevMonthStart, prevMonthEnd);
+        double monthOverMonthRate = prevMonthSales == 0 ? 0.0 : ((double) (totalSales - prevMonthSales) / prevMonthSales) * 100;
+
+        // 환불 금액 (상점 기준: 배달비 제외, storeProductPrice만)
+        long refundAmount = paymentRefundRepository.sumStoreProductPriceByStoreOrderStoreIdAndRefundedAtBetween(storeId, monthStart, monthEnd);
+
+        // 환불 건수 (CANCELLED + REJECTED)
+        List<StoreOrderStatus> refundStatuses = List.of(StoreOrderStatus.CANCELLED, StoreOrderStatus.REJECTED);
+        long refundCount = storeOrderRepository.countByStoreIdAndStatusInAndCancelledAtBetween(storeId, refundStatuses, monthStart, monthEnd);
+
+        // 총 주문 건수
+        long totalOrderCount = regularCount + subscriptionCount;
+
+        // 평균 주문 금액
+        long averageOrderAmount = totalOrderCount == 0 ? 0 : totalSales / totalOrderCount;
+
+        // 플랫폼 수수료 (8%)
+        long platformFee = (long) (totalSales * 0.08);
+
+        // 오늘/어제 매출 → 일간 증감률 (요청 연월이 이번 달일 때만 사용)
+        YearMonth currentYearMonth = YearMonth.now();
+        long todaySales = 0;
+        long yesterdaySales = 0;
+        double dayOverDayRate = 0.0;
+        if (yearMonth.equals(currentYearMonth)) {
+            todaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, todayStart, todayEnd);
+            yesterdaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, yesterdayStart, yesterdayEnd);
+            dayOverDayRate = yesterdaySales == 0 ? 0.0 : ((double) (todaySales - yesterdaySales) / yesterdaySales) * 100;
+            dayOverDayRate = Math.round(dayOverDayRate * 10) / 10.0;
+        }
+
+        log.info("월별 매출 조회 완료 - storeId={}, totalSales={}, totalOrderCount={}",
+                storeId, totalSales, totalOrderCount);
+
+        return GetStoreSalesResponse.builder()
+                .year(year)
+                .month(month)
+                .regularOrderCount(regularCount)
+                .subscriptionOrderCount(subscriptionCount)
+                .totalSales(totalSales)
+                .monthOverMonthRate(Math.round(monthOverMonthRate * 10) / 10.0)
+                .platformFee(platformFee)
+                .refundAmount(refundAmount)
+                .refundCount(refundCount)
+                .totalOrderCount(totalOrderCount)
+                .averageOrderAmount(averageOrderAmount)
+                .dayOverDayRate(dayOverDayRate)
+                .todaySales(todaySales)
+                .yesterdaySales(yesterdaySales)
+                .build();
+    }
+
     /**
      * Redis TTL 만료 시 호출. PENDING 주문 자동 거절 후 스토어 오너에게 목록 갱신 SSE 발송.
      * 이미 다른 경로(스케줄러 등)에서 거절된 경우에도 목록 갱신 SSE는 발송.
@@ -326,11 +404,10 @@ public class StoreOrderService {
         }
         log.info("[TTL][추적] processAutoRejectByTtl - 현재 상태 status={}, storeOrderId={}", storeOrder.getStatus(), storeOrderId);
         if (storeOrder.getStatus() == StoreOrderStatus.PENDING) {
-            storeOrder.reject("자동 거절 (미응답)");
-            User customer = storeOrder.getOrder().getUser();
-            Store store = storeOrder.getStore();
-            eventPublisher.publishEvent(new StoreOrderRejectedEvent(customer.getId(), store.getStoreName()));
-            log.info("[TTL][추적] processAutoRejectByTtl - DB 거절 반영 및 고객 알림 발송 완료 storeOrderId={}", storeOrderId);
+            storeOrder.requestReject();
+            storeOrderTtlService.removeAutoReject(storeOrderId);
+            paymentCancelService.cancel(storeOrder, "자동 거절 (미응답)");
+            log.info("[TTL][추적] processAutoRejectByTtl - REJECT_REQUESTED 반영 및 PG 환불 요청 완료 storeOrderId={}", storeOrderId);
         } else {
             log.info("[TTL][추적] processAutoRejectByTtl - 이미 PENDING 아님(이미 거절/접수됨), DB 변경 없이 목록 갱신 SSE만 발송 storeOrderId={}, status={}", storeOrderId, storeOrder.getStatus());
         }
