@@ -61,6 +61,8 @@ public class StoreOrderService {
     private final SseService sseService;
     private final StoreOrderTtlService storeOrderTtlService;
     private final PaymentCancelService paymentCancelService;
+    private final StoreOrderAutoRejectService storeOrderAutoRejectService;
+    private final StoreOrderAutoReadyService storeOrderAutoReadyService;
 
     public List<GetStoreOrderResponse> getNewOrders(String userEmail) {
         log.info("신규 주문 조회 시작 - userEmail={}", userEmail);
@@ -220,7 +222,6 @@ public class StoreOrderService {
      * 프론트에서의 타이머 의존도를 줄이고, 사장님이 대시보드를 보고 있지 않아도
      * 백엔드 기준으로 상태가 일관되게 유지되도록 한다.
      */
-    @Transactional
     @Scheduled(fixedDelay = 300_000L)
     public void processTimedOutStoreOrders() {
         LocalDateTime now = LocalDateTime.now();
@@ -242,9 +243,7 @@ public class StoreOrderService {
 
         for (StoreOrder storeOrder : expiredPendingOrders) {
             try {
-                storeOrder.requestReject();
-                storeOrderTtlService.removeAutoReject(storeOrder.getId());
-                paymentCancelService.cancel(storeOrder, "자동 거절 (미응답)");
+                storeOrderAutoRejectService.rejectSingleOrder(storeOrder.getId());
             } catch (Exception e) {
                 log.error("자동 거절 처리 중 오류 발생 - storeOrderId={}", storeOrder.getId(), e);
             }
@@ -259,7 +258,7 @@ public class StoreOrderService {
             return;
         }
 
-        int processedCount = 0;
+        log.info("자동 준비 완료 대상 확인 중 - acceptedOrders={}", acceptedOrders.size());
 
         for (StoreOrder storeOrder : acceptedOrders) {
             try {
@@ -273,16 +272,11 @@ public class StoreOrderService {
                 LocalDateTime readyAt = acceptedAt.plusMinutes(prepTime);
 
                 if (!readyAt.isAfter(now)) {
-                    storeOrder.markReady();
-                    processedCount++;
+                    storeOrderAutoReadyService.markReadySingleOrder(storeOrder.getId());
                 }
             } catch (Exception e) {
                 log.error("자동 준비 완료 처리 중 오류 발생 - storeOrderId={}", storeOrder.getId(), e);
             }
-        }
-
-        if (processedCount > 0) {
-            log.info("자동 준비 완료 처리된 주문 수: {}", processedCount);
         }
     }
 
