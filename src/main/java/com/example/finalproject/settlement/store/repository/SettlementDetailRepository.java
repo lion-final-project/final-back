@@ -1,6 +1,6 @@
-package com.example.finalproject.settlement.repository;
+package com.example.finalproject.settlement.store.repository;
 
-import com.example.finalproject.settlement.domain.SettlementDetail;
+import com.example.finalproject.settlement.store.domain.SettlementDetail;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

@@ -1,7 +1,7 @@
-package com.example.finalproject.settlement.service;
+package com.example.finalproject.settlement.store.service;
 
-import com.example.finalproject.settlement.dto.response.GetStoreSettlementDetailResponse;
-import com.example.finalproject.settlement.dto.response.GetStoreSettlementListResponse;
+import com.example.finalproject.settlement.store.dto.response.GetStoreSettlementDetailResponse;
+import com.example.finalproject.settlement.store.dto.response.GetStoreSettlementListResponse;
 import java.time.YearMonth;
 
 /**

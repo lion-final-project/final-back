@@ -1,8 +1,8 @@
-package com.example.finalproject.settlement.domain;
+package com.example.finalproject.settlement.store.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
-import com.example.finalproject.settlement.enums.SettlementStatus;
-import com.example.finalproject.settlement.enums.SettlementTargetType;
+import com.example.finalproject.settlement.store.enums.SettlementStatus;
+import com.example.finalproject.settlement.store.enums.SettlementTargetType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

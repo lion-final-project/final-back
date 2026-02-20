@@ -1,4 +1,4 @@
-package com.example.finalproject.settlement.domain;
+package com.example.finalproject.settlement.store.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
 import com.example.finalproject.order.domain.StoreOrder;

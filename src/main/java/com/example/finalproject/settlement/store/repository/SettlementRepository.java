@@ -1,8 +1,8 @@
-package com.example.finalproject.settlement.repository;
+package com.example.finalproject.settlement.store.repository;
 
-import com.example.finalproject.settlement.domain.Settlement;
-import com.example.finalproject.settlement.enums.SettlementStatus;
-import com.example.finalproject.settlement.enums.SettlementTargetType;
+import com.example.finalproject.settlement.store.domain.Settlement;
+import com.example.finalproject.settlement.store.enums.SettlementStatus;
+import com.example.finalproject.settlement.store.enums.SettlementTargetType;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;

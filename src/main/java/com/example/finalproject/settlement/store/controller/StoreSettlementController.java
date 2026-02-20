@@ -1,9 +1,9 @@
-package com.example.finalproject.settlement.controller;
+package com.example.finalproject.settlement.store.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
-import com.example.finalproject.settlement.dto.response.GetStoreSettlementDetailResponse;
-import com.example.finalproject.settlement.dto.response.GetStoreSettlementListResponse;
-import com.example.finalproject.settlement.service.StoreSettlementService;
+import com.example.finalproject.settlement.store.dto.response.GetStoreSettlementDetailResponse;
+import com.example.finalproject.settlement.store.dto.response.GetStoreSettlementListResponse;
+import com.example.finalproject.settlement.store.service.StoreSettlementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
