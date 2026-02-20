@@ -4,9 +4,10 @@ import com.example.finalproject.auth.config.KakaoProperties;
 import com.example.finalproject.auth.config.NaverProperties;
 import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
 import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
-import com.example.finalproject.auth.service.KakaoService;
+import com.example.finalproject.auth.service.AuthService;
 import com.example.finalproject.auth.social.SocialLoginStrategyRegistry;
 import com.example.finalproject.global.jwt.JwtProperties;
+import com.example.finalproject.global.jwt.JwtTokenProvider;
 import com.example.finalproject.global.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -42,13 +43,22 @@ public class SecurityLocalConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final SocialLoginStrategyRegistry socialLoginStrategyRegistry;
     private final ClientRegistrationRepository clientRegistrationRepository;
+    private final AuthService authService;
+    private final JwtProperties jwtProperties;
+    private final JwtTokenProvider jwtTokenProvider;
 
     public SecurityLocalConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
             @Lazy SocialLoginStrategyRegistry socialLoginStrategyRegistry,
-            ClientRegistrationRepository clientRegistrationRepository) {
+            ClientRegistrationRepository clientRegistrationRepository,
+            AuthService authService,
+            JwtProperties jwtProperties,
+            JwtTokenProvider jwtTokenProvider) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.socialLoginStrategyRegistry = socialLoginStrategyRegistry;
         this.clientRegistrationRepository = clientRegistrationRepository;
+        this.authService = authService;
+        this.jwtProperties = jwtProperties;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     private OAuth2AuthorizationRequestResolver kakaoAuthorizationRequestResolver() {
@@ -114,7 +124,8 @@ public class SecurityLocalConfig {
                 .oauth2Login(oauth2 -> {
                     oauth2.authorizationEndpoint(auth -> auth
                             .authorizationRequestResolver(kakaoAuthorizationRequestResolver()));
-                    oauth2.successHandler(new OAuth2LoginSuccessHandler(socialLoginStrategyRegistry));
+                    oauth2.successHandler(new OAuth2LoginSuccessHandler(
+                            socialLoginStrategyRegistry, authService, jwtProperties, jwtTokenProvider));
                 })
                 .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(),
                         OAuth2AuthorizationRequestRedirectFilter.class)

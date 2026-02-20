@@ -5,10 +5,10 @@ import com.example.finalproject.auth.dto.request.*;
 import com.example.finalproject.auth.dto.response.MeResponse;
 import com.example.finalproject.auth.dto.response.*;
 import com.example.finalproject.auth.service.AuthService;
-import com.example.finalproject.auth.service.KakaoService;
-import com.example.finalproject.auth.social.SocialLoginSessionConstants;
+import com.example.finalproject.auth.dto.SocialSignupStateClaims;
 import com.example.finalproject.auth.social.SocialLoginStrategy;
 import com.example.finalproject.auth.social.SocialLoginStrategyRegistry;
+import com.example.finalproject.global.jwt.JwtTokenProvider;
 import com.example.finalproject.global.config.CookieUtil;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
@@ -42,11 +42,10 @@ import jakarta.servlet.http.HttpServletResponse;
 @Validated
 public class AuthController {
 
-    private static final String SESSION_KAKAO_PENDING_PROVIDER_USER_ID = "kakao_pending_provider_user_id";
-
     private final AuthService authService;
     private final SocialLoginStrategyRegistry socialLoginStrategyRegistry;
     private final JwtProperties jwtProperties;
+    private final JwtTokenProvider jwtTokenProvider;
 
     /** 프로필 조회: 로그인 사용자 본인만 조회 가능. 미로그인 시 401. 이메일은 읽기 전용. */
     @GetMapping("/me")
@@ -126,26 +125,33 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("휴대폰 인증이 완료되었습니다.", new VerifyPhoneResponse(true, token)));
     }
 
-    // 카카오 최초 로그인 후 회원가입 폼 제출
+    // 소셜(카카오/네이버) 최초 로그인 후 추가 회원가입 폼 제출. state(JWT)로 provider 정보 전달.
     @PostMapping("/social-signup/complete")
     public ResponseEntity<ApiResponse<MeResponse>> completeSocialSignup(
             @Valid @RequestBody SocialSignupCompleteRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
-        String registrationId = (String) httpRequest.getSession().getAttribute(SocialLoginSessionConstants.PENDING_PROVIDER);
-        String providerUserId = (String) httpRequest.getSession().getAttribute(SocialLoginSessionConstants.PENDING_PROVIDER_USER_ID);
-
-        if (registrationId == null || registrationId.isBlank() || providerUserId == null || providerUserId.isBlank()) {
-            log.warn("[소셜 가입 완료] 세션에 소셜 가입 대기 정보 없음");
+        String stateToken = request.getState();
+        if (stateToken == null || stateToken.isBlank()) {
+            log.warn("[소셜 가입 완료] state 토큰 없음");
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        SocialSignupStateClaims stateClaims;
+        try {
+            stateClaims = jwtTokenProvider.parseSocialSignupStateToken(stateToken);
+        } catch (Exception e) {
+            log.warn("[소셜 가입 완료] state 토큰 검증 실패: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        String registrationId = stateClaims.registrationId();
+        String providerUserId = stateClaims.providerUserId();
+        if (registrationId.isBlank() || providerUserId.isBlank()) {
+            log.warn("[소셜 가입 완료] state 클레임 불완전");
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
         SocialLoginStrategy strategy = socialLoginStrategyRegistry.getRequiredStrategy(registrationId);
-        log.info("[소셜 가입 완료] API 호출 provider={}, providerUserId={}", registrationId, providerUserId);
+        log.info("[소셜 가입 완료] API 호출 provider={}, providerUserId={} (JWT state)", registrationId, providerUserId);
         OAuthLoginSessionResult result = strategy.completeSignup(providerUserId, request);
-
-        httpRequest.getSession().removeAttribute(SocialLoginSessionConstants.PENDING_PROVIDER);
-        httpRequest.getSession().removeAttribute(SocialLoginSessionConstants.PENDING_PROVIDER_USER_ID);
-        httpRequest.getSession().removeAttribute(SocialLoginSessionConstants.PENDING_NICKNAME);
 
         LoginResponse loginResponse = authService.issueTokensForUser(result.getUser(), result.getRoles());
 
