@@ -1,5 +1,6 @@
 package com.example.finalproject.order.dto.storeorder.response;
 
+import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -10,28 +11,45 @@ public class GetStoreSalesResponse {
     private int year;
     private int month;
 
-    // 주문 유형별 건수
     private long regularOrderCount;
     private long subscriptionOrderCount;
 
-    // 매출 요약
     private long totalSales;
     private double monthOverMonthRate;
 
-    // 수수료
     private long platformFee;
+    private long pgFee;
+    private long totalFee;
 
-    // 환불
     private long refundAmount;
     private long refundCount;
+    private long cancelledAmount;
+    private long cancelledCount;
 
-    // 통계
     private long totalOrderCount;
     private long averageOrderAmount;
+    private long averageDailySales;
     private double dayOverDayRate;
+    private long expectedSettlementAmount;
 
-    /** 오늘 총 매출 (요청한 연월이 이번 달일 때만 의미 있음, 대시보드용) */
     private long todaySales;
-    /** 어제 총 매출 (요청한 연월이 이번 달일 때만 의미 있음) */
     private long yesterdaySales;
+
+    private SalesComposition salesComposition;
+    private List<DailySalesPoint> dailySalesTrend;
+
+    @Getter
+    @Builder
+    public static class SalesComposition {
+        private long orderProductSales;
+        private long subscriptionSales;
+    }
+
+    @Getter
+    @Builder
+    public static class DailySalesPoint {
+        private String date;
+        private long salesAmount;
+        private long orderCount;
+    }
 }

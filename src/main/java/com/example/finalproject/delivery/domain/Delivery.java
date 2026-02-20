@@ -81,6 +81,8 @@ public class Delivery extends BaseTimeEntity {
     @Column(name = "cancel_reason", length = 500)
     private String cancelReason;
 
+
+
     @Builder
     public Delivery(StoreOrder storeOrder,
             Point storeLocation,

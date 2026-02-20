@@ -8,8 +8,10 @@ import com.example.finalproject.auth.social.SocialLoginStrategyRegistry;
 import com.example.finalproject.global.jwt.JwtProperties;
 import com.example.finalproject.global.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.List;
 import java.util.function.Consumer;
+
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -134,16 +136,32 @@ public class SecurityConfig {
                                 "/api/admin/**")
                         .hasRole("ADMIN")
                         .requestMatchers(
-                                "/api/riders",
                                 "/api/riders/register",
-
                                 "/api/riders/approvals/*")
                         .hasRole("CUSTOMER")
-                        .requestMatchers(HttpMethod.PATCH, "/api/riders/status").hasRole("RIDER")
-                        .requestMatchers(HttpMethod.POST, "/api/riders/locations").hasRole("RIDER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/riders/locations/{riderId}").hasRole("RIDER")
-                        .requestMatchers(HttpMethod.GET, "/api/riders/locations/{riderId}").hasRole("RIDER")
-                        .requestMatchers("/api/riders/status").hasRole("RIDER")
+                        // ── RIDER (GET) ──
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/riders",
+                                "/api/riders/locations/{riderId}",
+                                "/api/riders/deliveries/**")
+                        .hasRole("RIDER")
+                        // ── RIDER (POST) ──
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/riders/locations",
+                                "/api/riders/deliveries/*/accept",
+                                "/api/storage/delivery/**")
+                        .hasRole("RIDER")
+                        // ── RIDER (PATCH) ──
+                        .requestMatchers(HttpMethod.PATCH,
+                                "/api/riders/status",
+                                "/api/riders/deliveries/*/pickup",
+                                "/api/riders/deliveries/*/start",
+                                "/api/riders/deliveries/*/complete")
+                        .hasRole("RIDER")
+                        // ── RIDER (DELETE) ──
+                        .requestMatchers(HttpMethod.DELETE,
+                                "/api/riders/locations/{riderId}")
+                        .hasRole("RIDER")
                         .requestMatchers(
                                 "/api/store/subscription-products",
                                 "/api/store/subscription-products/**")
@@ -153,7 +171,8 @@ public class SecurityConfig {
                         .authorizationEndpoint(auth -> auth
                                 .authorizationRequestResolver(
                                         kakaoAuthorizationRequestResolver()))
-                        .successHandler(new OAuth2LoginSuccessHandler(socialLoginStrategyRegistry)))
+                        .successHandler(new OAuth2LoginSuccessHandler(
+                                socialLoginStrategyRegistry)))
                 .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(),
                         OAuth2AuthorizationRequestRedirectFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

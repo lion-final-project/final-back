@@ -13,6 +13,8 @@ import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.sse.Service.SseService;
 import com.example.finalproject.global.sse.enums.SseEventType;
 import com.example.finalproject.global.util.GeometryUtil;
+import com.example.finalproject.order.domain.OrderProduct;
+import com.example.finalproject.order.repository.OrderProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.geo.*;
@@ -24,7 +26,8 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -35,19 +38,24 @@ public class DeliveryMatchComponent {
     private final SseService sseService;
     private final RiderRepository riderRepository;
     private final DeliveryRepository deliveryRepository;
+    private final OrderProductRepository orderProductRepository;
 
     private static final double SEARCH_RADIUS_KM = 10.0;
 
     /**
      * 1. 신규 배달 발생 시 주변 라이더들에게 알림 (Broadcasting)
+     * Delivery 엔티티에서 상세 정보를 추출하여 SSE 페이로드에 포함
      */
-    public void notifyNewDelivery(String deliveryId, Double marketLng, Double marketLat) {
+    public void notifyNewDelivery(Delivery delivery) {
+        Double marketLng = GeometryUtil.getLongitude(delivery.getStoreLocation());
+        Double marketLat = GeometryUtil.getLatitude(delivery.getStoreLocation());
+
         // [이슈 #8] 배달 위치를 Redis GEO에 등록
         Point deliveryPoint = GeometryUtil.createPointForRedis(marketLng, marketLat);
 
         if (deliveryPoint != null) {
             redisTemplate.opsForGeo().add(
-                    DELIVERY_GEO_KEY, deliveryPoint, deliveryId);
+                    DELIVERY_GEO_KEY, deliveryPoint, String.valueOf(delivery.getId()));
         }
 
         Circle searchArea = GeometryUtil.createSearchCircle(marketLng, marketLat, SEARCH_RADIUS_KM);
@@ -57,14 +65,18 @@ public class DeliveryMatchComponent {
         if (results == null)
             return;
 
+        // 주문 상품 정보 조회하여 페이로드 구성
+        Map<String, Object> payload = buildDeliveryPayload(delivery);
+
         results.getContent().forEach(result -> {
             String riderKey = result.getContent().getName();
-            sendToRider(riderKey, SseEventType.NEW_DELIVERY, "새로운 배달 요청: " + deliveryId);
+            sendToRider(riderKey, SseEventType.NEW_DELIVERY, payload);
         });
     }
 
     /**
      * 2. 라이더 이동 시 주변 배달 목록 갱신 (Individual Update)
+     * 배달 상세 정보를 포함한 리스트로 전송
      */
     public void updateRiderNearbyDeliveries(Long riderId, Double riderLng, Double riderLat) {
         Circle searchArea = GeometryUtil.createSearchCircle(riderLng, riderLat, SEARCH_RADIUS_KM);
@@ -73,10 +85,20 @@ public class DeliveryMatchComponent {
 
         List<String> nearbyDeliveryIds = results != null ? results.getContent().stream()
                 .map(r -> r.getContent().getName())
-                .filter(id -> id != null && id.matches("^\\d+$")) // 숫자 형식만 허용
+                .filter(id -> id != null && id.matches("^\\d+$"))
                 .toList() : List.of();
 
-        sendToRider(RIDER_KEY_PREFIX + riderId, SseEventType.NEARBY_DELIVERIES, nearbyDeliveryIds);
+        // 배달 상세 정보를 DB에서 조회하여 리스트로 구성
+        List<Map<String, Object>> payloadList = new ArrayList<>();
+        if (!nearbyDeliveryIds.isEmpty()) {
+            List<Long> ids = nearbyDeliveryIds.stream().map(Long::parseLong).toList();
+            List<Delivery> deliveries = deliveryRepository.findAllById(ids);
+            for (Delivery d : deliveries) {
+                payloadList.add(buildDeliveryPayload(d));
+            }
+        }
+
+        sendToRider(RIDER_KEY_PREFIX + riderId, SseEventType.NEARBY_DELIVERIES, payloadList);
     }
 
     /**
@@ -160,6 +182,50 @@ public class DeliveryMatchComponent {
                 sendToRider(riderKey, SseEventType.DELIVERY_MATCHED, deliveryId);
             });
         }
+    }
+
+    /**
+     * Delivery에서 SSE 페이로드용 Map 구성
+     */
+    private Map<String, Object> buildDeliveryPayload(Delivery delivery) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("deliveryId", delivery.getId());
+        payload.put("deliveryFee", delivery.getDeliveryFee());
+
+        if (delivery.getDistanceKm() != null) {
+            payload.put("distanceKm", delivery.getDistanceKm());
+        }
+        if (delivery.getEstimatedMinutes() != null) {
+            payload.put("estimatedMinutes", delivery.getEstimatedMinutes());
+        }
+
+        try {
+            // 마트 정보
+            if (delivery.getStoreOrder() != null) {
+                if (delivery.getStoreOrder().getStore() != null) {
+                    payload.put("storeName", delivery.getStoreOrder().getStore().getStoreName());
+                }
+                // 배달 주소
+                if (delivery.getStoreOrder().getOrder() != null) {
+                    payload.put("deliveryAddress", delivery.getStoreOrder().getOrder().getDeliveryAddress());
+                }
+                // 주문 상품 요약
+                List<OrderProduct> orderProducts = orderProductRepository
+                        .findAllByStoreOrderId(delivery.getStoreOrder().getId());
+                if (orderProducts != null && !orderProducts.isEmpty()) {
+                    String firstItem = orderProducts.get(0).getProductNameSnapshot();
+                    if (orderProducts.size() > 1) {
+                        payload.put("orderSummary", firstItem + " 외 " + (orderProducts.size() - 1) + "건");
+                    } else {
+                        payload.put("orderSummary", firstItem);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("배달 SSE 페이로드 구성 중 일부 정보 누락: deliveryId={}", delivery.getId(), e);
+        }
+
+        return payload;
     }
 
     /**

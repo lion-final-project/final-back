@@ -1,8 +1,8 @@
-package com.example.finalproject.settlement.domain;
+package com.example.finalproject.settlement.store.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
-import com.example.finalproject.settlement.enums.SettlementStatus;
-import com.example.finalproject.settlement.enums.SettlementTargetType;
+import com.example.finalproject.settlement.store.enums.SettlementStatus;
+import com.example.finalproject.settlement.store.enums.SettlementTargetType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -47,6 +47,9 @@ public class Settlement extends BaseTimeEntity {
     @Column(name = "platform_fee", nullable = false)
     private Integer platformFee;
 
+    @Column(name = "pg_fee", nullable = false, columnDefinition = "integer not null default 0")
+    private Integer pgFee = 0;
+
     @Column(name = "settlement_amount", nullable = false)
     private Integer settlementAmount;
 
@@ -65,14 +68,33 @@ public class Settlement extends BaseTimeEntity {
     @Builder
     public Settlement(SettlementTargetType targetType, Long targetId,
                       LocalDate settlementPeriodStart, LocalDate settlementPeriodEnd,
-                      Integer totalSales, Integer platformFee,
-                      Integer settlementAmount) {
+                      Integer totalSales, Integer platformFee, Integer pgFee,
+                      Integer settlementAmount, String bankName, String bankAccount) {
         this.targetType = targetType;
         this.targetId = targetId;
         this.settlementPeriodStart = settlementPeriodStart;
         this.settlementPeriodEnd = settlementPeriodEnd;
         this.totalSales = totalSales;
         this.platformFee = platformFee;
+        this.pgFee = pgFee;
+        this.settlementAmount = settlementAmount;
+        this.bankName = bankName;
+        this.bankAccount = bankAccount;
+    }
+
+    public void complete(LocalDateTime settledAt) {
+        this.status = SettlementStatus.COMPLETED;
+        this.settledAt = settledAt != null ? settledAt : LocalDateTime.now();
+    }
+
+    public void fail() {
+        this.status = SettlementStatus.FAILED;
+    }
+
+    public void updateSummary(int totalSales, int platformFee, int pgFee, int settlementAmount) {
+        this.totalSales = totalSales;
+        this.platformFee = platformFee;
+        this.pgFee = pgFee;
         this.settlementAmount = settlementAmount;
     }
 }
