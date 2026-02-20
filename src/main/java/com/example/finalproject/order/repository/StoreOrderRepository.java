@@ -15,8 +15,6 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
-
 public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long>, StoreOrderRepositoryCustom {
 
     List<StoreOrder> findAllByOrderId(Long orderId);
@@ -103,4 +101,41 @@ public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long>, S
             @Param("statuses") List<StoreOrderStatus> statuses,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+    @Query("SELECT COALESCE(SUM(so.finalPrice), 0) FROM StoreOrder so "
+            + "WHERE so.store.id = :storeId "
+            + "AND so.status = :status "
+            + "AND so.orderType = :orderType "
+            + "AND so.deliveredAt BETWEEN :start AND :end")
+    long sumFinalPriceByStoreIdAndStatusAndOrderTypeAndDeliveredAtBetween(
+            @Param("storeId") Long storeId,
+            @Param("status") StoreOrderStatus status,
+            @Param("orderType") OrderType orderType,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    @Query("SELECT COUNT(so) FROM StoreOrder so "
+            + "WHERE so.store.id = :storeId "
+            + "AND so.status = :status "
+            + "AND so.deliveredAt BETWEEN :start AND :end")
+    long countByStoreIdAndStatusAndDeliveredAtBetween(
+            @Param("storeId") Long storeId,
+            @Param("status") StoreOrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end);
+
+    List<StoreOrder> findByStoreIdAndStatusAndDeliveredAtBetween(
+            Long storeId,
+            StoreOrderStatus status,
+            LocalDateTime start,
+            LocalDateTime end
+    );
+
+    @Query("SELECT DISTINCT so.store.id FROM StoreOrder so "
+            + "WHERE so.status = :status AND so.deliveredAt BETWEEN :start AND :end")
+    List<Long> findDistinctStoreIdsByStatusAndDeliveredAtBetween(
+            @Param("status") StoreOrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
 }
