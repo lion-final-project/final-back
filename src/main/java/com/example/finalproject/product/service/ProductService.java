@@ -4,6 +4,7 @@ import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.product.domain.ProductCategory;
 import com.example.finalproject.product.domain.Product;
+import com.example.finalproject.product.enums.ProductSortType;
 import com.example.finalproject.product.domain.ProductStockHistory;
 import com.example.finalproject.product.domain.StockEventType;
 import com.example.finalproject.product.dto.request.PatchProductRequest;
@@ -30,7 +31,9 @@ import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -88,14 +91,28 @@ public class ProductService {
 
     /**
      * 고객용: 마트 상세 메뉴 탭에서 보여줄 일반 상품 목록 (삭제 안 됨, 판매 중인 것만).
+     * @param sort null이면 추천순(상품명 오름차순) 적용
      */
     @Transactional(readOnly = true)
-    public List<GetProductResponse> getProductsByStoreIdForCustomer(Long storeId) {
+    public List<GetProductResponse> getProductsByStoreIdForCustomer(Long storeId, ProductSortType sort) {
         if (storeId == null || !storeRepository.existsById(storeId)) {
             return List.of();
         }
-        List<Product> products = productRepository.findByStore_IdAndDeletedAtIsNullAndIsActiveTrueOrderByProductNameAsc(storeId);
+        ProductSortType effectiveSort = sort != null ? sort : ProductSortType.RECOMMENDED;
+        Sort order = toSort(effectiveSort);
+        Pageable pageable = PageRequest.of(0, 1000, order);
+        List<Product> products = productRepository.findByStore_IdAndDeletedAtIsNullAndIsActiveTrue(storeId, pageable);
         return products.stream().map(GetProductResponse::from).toList();
+    }
+
+    private static Sort toSort(ProductSortType sortType) {
+        return switch (sortType) {
+            case NEWEST -> Sort.by(Sort.Direction.DESC, "createdAt");
+            case SALES -> Sort.by(Sort.Direction.DESC, "orderCount");
+            case PRICE_ASC -> Sort.by(Sort.Direction.ASC, "price");
+            case PRICE_DESC -> Sort.by(Sort.Direction.DESC, "price");
+            default -> Sort.by(Sort.Direction.ASC, "productName"); // RECOMMENDED
+        };
     }
 
     @Transactional(readOnly = true)

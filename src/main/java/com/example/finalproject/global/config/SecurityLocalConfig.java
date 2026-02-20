@@ -105,6 +105,7 @@ public class SecurityLocalConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products/{productId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stores/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stores/*/products").permitAll()
+                        .requestMatchers(req -> "GET".equals(req.getMethod()) && req.getRequestURI().matches(".*/api/stores/[0-9]+$")).permitAll()
                         .requestMatchers("/api/products/**").authenticated()
                         .requestMatchers("/api/stores/**").authenticated()
                         .requestMatchers("/api/storage/store/image").authenticated()

@@ -12,6 +12,7 @@ public class GetMyStoreResponse {
     private String categoryName;
     private String storeImage;
     private Boolean isDeliveryAvailable;
+    private String description;
 
     public static GetMyStoreResponse from(Store store) {
         return GetMyStoreResponse.builder()
@@ -20,6 +21,7 @@ public class GetMyStoreResponse {
                 .categoryName(store.getStoreCategory() != null ? store.getStoreCategory().getCategoryName() : null)
                 .storeImage(store.getStoreImage())
                 .isDeliveryAvailable(store.getIsDeliveryAvailable() != null ? store.getIsDeliveryAvailable() : false)
+                .description(store.getDescription())
                 .build();
     }
 }

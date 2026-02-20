@@ -22,6 +22,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findByStore_IdAndDeletedAtIsNullAndIsActiveTrueOrderByProductNameAsc(Long storeId);
 
+    List<Product> findByStore_IdAndDeletedAtIsNullAndIsActiveTrue(Long storeId, Pageable pageable);
+
     Long countByStoreAndDeletedAtIsNull(Store store);
 
     Long countByStoreAndIsActiveAndDeletedAtIsNull(Store store, Boolean isActive);
