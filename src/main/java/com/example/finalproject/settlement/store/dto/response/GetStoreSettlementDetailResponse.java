@@ -1,6 +1,6 @@
-package com.example.finalproject.settlement.dto.response;
+package com.example.finalproject.settlement.store.dto.response;
 
-import com.example.finalproject.settlement.enums.SettlementStatus;
+import com.example.finalproject.settlement.store.enums.SettlementStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;

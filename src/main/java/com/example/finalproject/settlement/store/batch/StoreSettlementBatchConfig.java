@@ -1,6 +1,6 @@
-package com.example.finalproject.settlement.batch;
+package com.example.finalproject.settlement.store.batch;
 
-import com.example.finalproject.settlement.service.StoreSettlementService;
+import com.example.finalproject.settlement.store.service.StoreSettlementService;
 import java.time.YearMonth;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;

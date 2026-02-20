@@ -1,4 +1,4 @@
-package com.example.finalproject.settlement.batch;
+package com.example.finalproject.settlement.store.batch;
 
 import java.time.YearMonth;
 import lombok.RequiredArgsConstructor;

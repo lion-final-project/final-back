@@ -1,4 +1,4 @@
-package com.example.finalproject.settlement.service;
+package com.example.finalproject.settlement.store.service;
 
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
@@ -7,14 +7,14 @@ import com.example.finalproject.order.enums.StoreOrderStatus;
 import com.example.finalproject.order.repository.StoreOrderRepository;
 import com.example.finalproject.payment.domain.PaymentRefund;
 import com.example.finalproject.payment.repository.PaymentRefundRepository;
-import com.example.finalproject.settlement.domain.Settlement;
-import com.example.finalproject.settlement.domain.SettlementDetail;
-import com.example.finalproject.settlement.dto.response.GetStoreSettlementDetailResponse;
-import com.example.finalproject.settlement.dto.response.GetStoreSettlementListResponse;
-import com.example.finalproject.settlement.enums.SettlementStatus;
-import com.example.finalproject.settlement.enums.SettlementTargetType;
-import com.example.finalproject.settlement.repository.SettlementDetailRepository;
-import com.example.finalproject.settlement.repository.SettlementRepository;
+import com.example.finalproject.settlement.store.domain.Settlement;
+import com.example.finalproject.settlement.store.domain.SettlementDetail;
+import com.example.finalproject.settlement.store.dto.response.GetStoreSettlementDetailResponse;
+import com.example.finalproject.settlement.store.dto.response.GetStoreSettlementListResponse;
+import com.example.finalproject.settlement.store.enums.SettlementStatus;
+import com.example.finalproject.settlement.store.enums.SettlementTargetType;
+import com.example.finalproject.settlement.store.repository.SettlementDetailRepository;
+import com.example.finalproject.settlement.store.repository.SettlementRepository;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.domain.embedded.SettlementAccount;
 import com.example.finalproject.store.enums.StoreStatus;
