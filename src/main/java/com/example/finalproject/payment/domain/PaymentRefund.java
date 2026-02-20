@@ -52,7 +52,7 @@ public class PaymentRefund extends BaseTimeEntity {
     private LocalDateTime refundedAt;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "responsibility", nullable = false, length = 30)
+    @Column(name = "refund_responsibility", length = 30)
     private RefundResponsibility responsibility;
 
     @Enumerated(EnumType.STRING)
