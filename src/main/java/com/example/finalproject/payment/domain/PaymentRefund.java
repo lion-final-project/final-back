@@ -3,8 +3,12 @@ package com.example.finalproject.payment.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
 import com.example.finalproject.order.domain.StoreOrder;
+import com.example.finalproject.payment.enums.RefundResponsibility;
+import com.example.finalproject.payment.enums.RefundStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
@@ -46,6 +50,14 @@ public class PaymentRefund extends BaseTimeEntity {
     private String refundReason;
 
     private LocalDateTime refundedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "responsibility", nullable = false, length = 30)
+    private RefundResponsibility responsibility;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "refund_status", nullable = false, length = 30)
+    private RefundStatus refundStatus;
 
     @Builder
     public PaymentRefund(Payment payment, StoreOrder storeOrder,
