@@ -2,6 +2,7 @@ package com.example.finalproject.store.controller;
 
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.store.dto.request.PatchDeliveryAvailableRequest;
+import com.example.finalproject.store.dto.request.PatchStoreDescriptionRequest;
 import com.example.finalproject.store.dto.request.PatchStoreImageRequest;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
@@ -137,6 +138,18 @@ public class StoreController {
         String userName = authentication.getName();
         storeService.updateStoreImage(userName, request);
         return ResponseEntity.ok(ApiResponse.success("대표 이미지가 저장되었습니다."));
+    }
+
+    /**
+     * 내 상점 마트 소개 수정
+     */
+    @PatchMapping("/my/description")
+    public ResponseEntity<ApiResponse<Void>> updateMyStoreDescription(
+            Authentication authentication,
+            @RequestBody PatchStoreDescriptionRequest request) {
+        String userName = authentication.getName();
+        storeService.updateStoreDescription(userName, request);
+        return ResponseEntity.ok(ApiResponse.success("마트 소개가 저장되었습니다."));
     }
 
 }

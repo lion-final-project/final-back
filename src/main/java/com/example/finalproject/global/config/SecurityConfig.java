@@ -111,6 +111,8 @@ public class SecurityConfig {
                                 "/api/stores/*/products",
                                 "/api/users/stores")
                         .permitAll()
+                        .requestMatchers(req -> "GET".equals(req.getMethod()) && req.getRequestURI().matches(".*/api/stores/[0-9]+$"))
+                        .permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/register",
                                 "/api/auth/refresh",
