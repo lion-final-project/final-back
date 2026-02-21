@@ -188,7 +188,14 @@ public enum ErrorCode {
     REVIEW_MODIFICATION_PERIOD_EXPIRED(HttpStatus.BAD_REQUEST, "REVIEW-004", "리뷰 수정/삭제 가능 기간이 지났습니다."),
     REVIEW_REPLY_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-005", "이미 답글이 존재합니다."),
 
-    ;
+    // REFUND
+    REFUND_ALREADY_REQUESTED(HttpStatus.CONFLICT, "REFUND-001", "이미 환불 요청이 접수된 주문입니다."),
+    REFUND_REQUEST_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "REFUND-002", "현재 상태에서는 환불 요청이 불가능합니다."),
+    REFUND_EXPIRED(HttpStatus.BAD_REQUEST, "REFUND-003", "환불 가능 기간(배송 완료 후 48시간)이 지났습니다."),
+    REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "REFUND-004", "환불 요청 정보를 찾을 수 없습니다."),
+    INVALID_REFUND_STATUS(HttpStatus.BAD_REQUEST, "REFUND-005", "환불 상태가 올바르지 않습니다."),
+    INVALID_REFUND_ROLLBACK_STATE(HttpStatus.INTERNAL_SERVER_ERROR, "REFUND-006", "환불 요청 원복 상태가 유실되었습니다."),
+    INVALID_STORE_ORDER_STATUS(HttpStatus.INTERNAL_SERVER_ERROR, "STORE_ORDER-007", "주문 상태 정보가 올바르지 않습니다.");;
 
     private final HttpStatus status;
     private final String code;

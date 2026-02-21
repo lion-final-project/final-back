@@ -156,7 +156,7 @@ public class StoreOrderService {
         storeOrder.requestReject();
         storeOrderTtlService.removeAutoReject(storeOrderId);
 
-        paymentCancelService.cancel(storeOrder, reason);
+        paymentCancelService.cancel(storeOrder, storeOrder.getFinalPrice(), reason);
 
         log.info("주문 거절 요청 완료(환불 처리 대기) - storeOrderId={}, reason={}", storeOrderId, reason);
     }
@@ -210,12 +210,9 @@ public class StoreOrderService {
     }
 
     /**
-     * 자동 상태 변경 스케줄러.
-     * - 5분 이상 응답 없는 PENDING 주문은 자동 거절
-     * - 준비 완료 시간이 지난 ACCEPTED 주문은 자동 READY 처리
+     * 자동 상태 변경 스케줄러. - 5분 이상 응답 없는 PENDING 주문은 자동 거절 - 준비 완료 시간이 지난 ACCEPTED 주문은 자동 READY 처리
      * <p>
-     * 프론트에서의 타이머 의존도를 줄이고, 사장님이 대시보드를 보고 있지 않아도
-     * 백엔드 기준으로 상태가 일관되게 유지되도록 한다.
+     * 프론트에서의 타이머 의존도를 줄이고, 사장님이 대시보드를 보고 있지 않아도 백엔드 기준으로 상태가 일관되게 유지되도록 한다.
      */
     @Transactional
     @Scheduled(fixedDelay = 300_000L)
@@ -242,7 +239,7 @@ public class StoreOrderService {
             try {
                 storeOrder.requestReject();
                 storeOrderTtlService.removeAutoReject(storeOrder.getId());
-                paymentCancelService.cancel(storeOrder, "자동 거절 (미응답)");
+                paymentCancelService.cancel(storeOrder, storeOrder.getFinalPrice(), "자동 거절 (미응답)");
             } catch (Exception e) {
                 log.error("자동 거절 처리 중 오류 발생 - storeOrderId={}", storeOrder.getId(), e);
             }
@@ -328,22 +325,29 @@ public class StoreOrderService {
         LocalDateTime yesterdayEnd = today.minusDays(1).atTime(LocalTime.MAX);
 
         // 주문 유형별 건수
-        long regularCount = storeOrderRepository.countByStoreIdAndStatusAndOrderTypeAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, OrderType.REGULAR, monthStart, monthEnd);
-        long subscriptionCount = storeOrderRepository.countByStoreIdAndStatusAndOrderTypeAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, OrderType.SUBSCRIPTION, monthStart, monthEnd);
+        long regularCount = storeOrderRepository.countByStoreIdAndStatusAndOrderTypeAndDeliveredAtBetween(storeId,
+                StoreOrderStatus.DELIVERED, OrderType.REGULAR, monthStart, monthEnd);
+        long subscriptionCount = storeOrderRepository.countByStoreIdAndStatusAndOrderTypeAndDeliveredAtBetween(storeId,
+                StoreOrderStatus.DELIVERED, OrderType.SUBSCRIPTION, monthStart, monthEnd);
 
         // 총 매출 (해당 월)
-        long totalSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, monthStart, monthEnd);
+        long totalSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId,
+                StoreOrderStatus.DELIVERED, monthStart, monthEnd);
 
         // 전월 매출 → 전월 대비 증감률
-        long prevMonthSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, prevMonthStart, prevMonthEnd);
-        double monthOverMonthRate = prevMonthSales == 0 ? 0.0 : ((double) (totalSales - prevMonthSales) / prevMonthSales) * 100;
+        long prevMonthSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId,
+                StoreOrderStatus.DELIVERED, prevMonthStart, prevMonthEnd);
+        double monthOverMonthRate =
+                prevMonthSales == 0 ? 0.0 : ((double) (totalSales - prevMonthSales) / prevMonthSales) * 100;
 
         // 환불 금액 (상점 기준: 배달비 제외, storeProductPrice만)
-        long refundAmount = paymentRefundRepository.sumStoreProductPriceByStoreOrderStoreIdAndRefundedAtBetween(storeId, monthStart, monthEnd);
+        long refundAmount = paymentRefundRepository.sumStoreProductPriceByStoreOrderStoreIdAndRefundedAtBetween(storeId,
+                monthStart, monthEnd);
 
         // 환불 건수 (CANCELLED + REJECTED)
         List<StoreOrderStatus> refundStatuses = List.of(StoreOrderStatus.CANCELLED, StoreOrderStatus.REJECTED);
-        long refundCount = storeOrderRepository.countByStoreIdAndStatusInAndCancelledAtBetween(storeId, refundStatuses, monthStart, monthEnd);
+        long refundCount = storeOrderRepository.countByStoreIdAndStatusInAndCancelledAtBetween(storeId, refundStatuses,
+                monthStart, monthEnd);
 
         // 총 주문 건수
         long totalOrderCount = regularCount + subscriptionCount;
@@ -360,9 +364,12 @@ public class StoreOrderService {
         long yesterdaySales = 0;
         double dayOverDayRate = 0.0;
         if (yearMonth.equals(currentYearMonth)) {
-            todaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, todayStart, todayEnd);
-            yesterdaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId, StoreOrderStatus.DELIVERED, yesterdayStart, yesterdayEnd);
-            dayOverDayRate = yesterdaySales == 0 ? 0.0 : ((double) (todaySales - yesterdaySales) / yesterdaySales) * 100;
+            todaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId,
+                    StoreOrderStatus.DELIVERED, todayStart, todayEnd);
+            yesterdaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId,
+                    StoreOrderStatus.DELIVERED, yesterdayStart, yesterdayEnd);
+            dayOverDayRate =
+                    yesterdaySales == 0 ? 0.0 : ((double) (todaySales - yesterdaySales) / yesterdaySales) * 100;
             dayOverDayRate = Math.round(dayOverDayRate * 10) / 10.0;
         }
 
@@ -388,8 +395,7 @@ public class StoreOrderService {
     }
 
     /**
-     * Redis TTL 만료 시 호출. PENDING 주문 자동 거절 후 스토어 오너에게 목록 갱신 SSE 발송.
-     * 이미 다른 경로(스케줄러 등)에서 거절된 경우에도 목록 갱신 SSE는 발송.
+     * Redis TTL 만료 시 호출. PENDING 주문 자동 거절 후 스토어 오너에게 목록 갱신 SSE 발송. 이미 다른 경로(스케줄러 등)에서 거절된 경우에도 목록 갱신 SSE는 발송.
      */
     @Transactional
     public void processAutoRejectByTtl(Long storeOrderId) {
@@ -404,8 +410,9 @@ public class StoreOrderService {
         if (storeOrder.getStatus() == StoreOrderStatus.PENDING) {
             storeOrder.requestReject();
             storeOrderTtlService.removeAutoReject(storeOrderId);
-            paymentCancelService.cancel(storeOrder, "자동 거절 (미응답)");
-            log.info("[TTL][추적] processAutoRejectByTtl - REJECT_REQUESTED 반영 및 PG 환불 요청 완료 storeOrderId={}", storeOrderId);
+            paymentCancelService.cancel(storeOrder, storeOrder.getFinalPrice(), "자동 거절 (미응답)");
+            log.info("[TTL][추적] processAutoRejectByTtl - REJECT_REQUESTED 반영 및 PG 환불 요청 완료 storeOrderId={}",
+                    storeOrderId);
         } else {
             log.info(
                     "[TTL][추적] processAutoRejectByTtl - 이미 PENDING 아님(이미 거절/접수됨), DB 변경 없이 목록 갱신 SSE만 발송 storeOrderId={}, status={}",

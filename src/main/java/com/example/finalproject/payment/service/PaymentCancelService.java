@@ -20,7 +20,7 @@ public class PaymentCancelService {
     private final PaymentGateWay paymentGateway;
     private final PaymentCommandService paymentCommandService;
 
-    public void cancel(StoreOrder storeOrder, String reason) {
+    public void cancel(StoreOrder storeOrder, int refundAmount, String reason) {
 
         Long orderId = storeOrder.getOrder().getId();
 
@@ -34,7 +34,7 @@ public class PaymentCancelService {
             log.info("[PG_CANCEL_REQUEST] orderId={}, storeOrderId={}, amount={}",
                     orderId, storeOrder.getId(), storeOrder.getFinalPrice());
 
-            result = paymentGateway.cancel(payment.getPaymentKey(), storeOrder.getFinalPrice(), reason);
+            result = paymentGateway.cancel(payment.getPaymentKey(), refundAmount, reason);
         } catch (Exception e) {
             log.error("[PG_CANCEL_ERROR] orderId={}, paymentId={}, error={}",
                     orderId, payment.getId(), e.getMessage(), e);
@@ -46,7 +46,7 @@ public class PaymentCancelService {
         paymentCommandService.applyRefund(
                 orderId,
                 storeOrder.getId(),
-                storeOrder.getFinalPrice(),
+                refundAmount,
                 reason,
                 result.getCumulativeCanceledAmount()
         );

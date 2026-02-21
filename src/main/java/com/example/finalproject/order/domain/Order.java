@@ -107,7 +107,7 @@ public class Order extends BaseTimeEntity {
     }
 
     public void recalculateStatus() {
-        boolean allCancelled = storeOrders.stream().allMatch(StoreOrder::isCancelledOrRejected);
+        boolean allCancelled = storeOrders.stream().allMatch(StoreOrder::isRefunded);
 
         if (allCancelled) {
             cancel();

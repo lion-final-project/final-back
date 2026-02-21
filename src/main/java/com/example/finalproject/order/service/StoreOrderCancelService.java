@@ -36,6 +36,6 @@ public class StoreOrderCancelService {
 
         storeOrderStatusService.requestCancel(storeOrderId, reason);
 
-        paymentCancelService.cancel(storeOrder, reason);
+        paymentCancelService.cancel(storeOrder, storeOrder.getFinalPrice(), reason);
     }
 }

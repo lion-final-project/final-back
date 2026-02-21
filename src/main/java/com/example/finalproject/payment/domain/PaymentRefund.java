@@ -43,7 +43,7 @@ public class PaymentRefund extends BaseTimeEntity {
             foreignKey = @ForeignKey(name = "fk_refunds_store_order"))
     private StoreOrder storeOrder;
 
-    @Column(name = "refund_amount", nullable = false, precision = 12, scale = 2)
+    @Column(name = "refund_amount")
     private Integer refundAmount;
 
     @Column(name = "refund_reason", length = 500)
@@ -61,11 +61,38 @@ public class PaymentRefund extends BaseTimeEntity {
 
     @Builder
     public PaymentRefund(Payment payment, StoreOrder storeOrder,
-                         Integer refundAmount, String refundReason) {
+                         Integer refundAmount, String refundReason,
+                         RefundStatus refundStatus, RefundResponsibility responsibility) {
         this.payment = payment;
         this.storeOrder = storeOrder;
         this.refundAmount = refundAmount;
         this.refundReason = refundReason;
+        this.refundStatus = refundStatus != null ? refundStatus : RefundStatus.REQUESTED;
         this.refundedAt = LocalDateTime.now();
+        this.responsibility = responsibility;
+    }
+
+    public void adminApprove(int refundAmount) {
+        this.refundAmount = refundAmount;
+        this.refundStatus = RefundStatus.APPROVED;
+        this.refundedAt = LocalDateTime.now();
+    }
+
+    public void confirmRefundDetails(RefundResponsibility responsibility, int refundAmount) {
+        this.responsibility = responsibility;
+        this.refundAmount = refundAmount;
+    }
+
+    public void adminReject() {
+        this.refundStatus = RefundStatus.REJECTED;
+    }
+
+    public void markPgApproved() {
+        this.refundStatus = RefundStatus.PG_APPROVED;
+        this.refundedAt = LocalDateTime.now();
+    }
+
+    public void markPgRejected() {
+        this.refundStatus = RefundStatus.PG_REJECTED;
     }
 }
