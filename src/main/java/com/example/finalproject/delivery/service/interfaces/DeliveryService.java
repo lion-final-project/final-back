@@ -1,6 +1,7 @@
 package com.example.finalproject.delivery.service.interfaces;
 
 import com.example.finalproject.delivery.dto.response.GetDeliveryDetailResponse;
+import com.example.finalproject.delivery.dto.response.GetDeliveryHistoryItemResponse;
 import com.example.finalproject.delivery.dto.response.GetDeliveryResponse;
 import com.example.finalproject.delivery.enums.DeliveryStatus;
 import org.springframework.data.domain.Page;
@@ -50,4 +51,9 @@ public interface DeliveryService {
      * 배달 상세 조회
      */
     GetDeliveryDetailResponse getDeliveryDetail(String username, Long deliveryId);
+
+    /**
+     * 라이더 배달 이력 조회 (완료/취소 건)
+     */
+    Page<GetDeliveryHistoryItemResponse> getMyDeliveryHistory(String username, Pageable pageable);
 }

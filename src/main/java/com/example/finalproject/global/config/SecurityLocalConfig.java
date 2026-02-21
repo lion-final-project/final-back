@@ -90,7 +90,7 @@ public class SecurityLocalConfig {
                 config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
                 config.setAllowCredentials(true); // 쿠키 포함 여부
 
-           UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", config);
                 return source;
         }
@@ -122,7 +122,7 @@ public class SecurityLocalConfig {
                                                                 && req.getRequestURI().matches(".*/api/stores/[0-9]+$"))
                                                 .permitAll()
                                                 .requestMatchers("/api/products/**").authenticated()
-                                                .requestMatchers("/api/stores/**").authenticated()
+                                                .requestMatchers("/api/stores/**", "/api/store/**").authenticated()
                                                 .requestMatchers("/api/storage/store/image").authenticated()
                                                 .requestMatchers("/api/storage/product/image*").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/users/stores*").permitAll()

@@ -178,6 +178,11 @@ public class SecurityConfig {
                                                                 "/api/riders/locations/{riderId}")
                                                 .hasRole("RIDER")
                                                 .requestMatchers(
+                                                                "/api/store/orders/**",
+                                                                "/api/store/settlements",
+                                                                "/api/store/settlements/**",
+                                                                "/api/store/subscriptions",
+                                                                "/api/store/subscriptions/**",
                                                                 "/api/store/subscription-products",
                                                                 "/api/store/subscription-products/**")
                                                 .hasRole("STORE_OWNER")
