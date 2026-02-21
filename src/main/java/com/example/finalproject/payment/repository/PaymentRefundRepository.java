@@ -9,9 +9,30 @@ import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface PaymentRefundRepository extends JpaRepository<PaymentRefund, Long> {
     List<PaymentRefund> findByStoreOrderIdOrderByCreatedAtDesc(Long storeOrderId);
+
+    @Query(value = "SELECT r FROM PaymentRefund r " +
+            "JOIN FETCH r.storeOrder so " +
+            "JOIN FETCH so.store s " +
+            "JOIN FETCH so.order o " +
+            "JOIN FETCH o.user u " +
+            "WHERE (:status IS NULL OR r.refundStatus = :status)",
+            countQuery = "SELECT COUNT(r) FROM PaymentRefund r "
+                    + "WHERE (:status IS NULL OR r.refundStatus = :status)")
+    Page<PaymentRefund> findAdminRefundsWithDetails(@Param("status") RefundStatus status, Pageable pageable);
+
+    @Query("SELECT r FROM PaymentRefund r " +
+            "JOIN FETCH r.payment p " +
+            "JOIN FETCH r.storeOrder so " +
+            "JOIN FETCH so.store s " +
+            "JOIN FETCH so.order o " +
+            "JOIN FETCH o.user u " +
+            "WHERE r.id = :refundId")
+    Optional<PaymentRefund> findAdminRefundDetailById(@Param("refundId") Long refundId);
 
     @Query("SELECT COALESCE(SUM(pr.refundAmount), 0 ) "
             + "FROM PaymentRefund pr "
@@ -61,8 +82,7 @@ public interface PaymentRefundRepository extends JpaRepository<PaymentRefund, Lo
             @Param("startExclusive") LocalDateTime startExclusive,
             @Param("endInclusive") LocalDateTime endInclusive,
             @Param("approvedStatus") RefundStatus approvedStatus,
-            @Param("storeResponsibility") RefundResponsibility storeResponsibility
-    );
+            @Param("storeResponsibility") RefundResponsibility storeResponsibility);
 
     long countByRefundStatus(RefundStatus refundStatus);
 
@@ -73,7 +93,5 @@ public interface PaymentRefundRepository extends JpaRepository<PaymentRefund, Lo
     long sumRefundAmountByRefundStatusAndRefundedAtBetween(
             @Param("refundStatus") RefundStatus refundStatus,
             @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
-    );
+            @Param("end") LocalDateTime end);
 }
-
