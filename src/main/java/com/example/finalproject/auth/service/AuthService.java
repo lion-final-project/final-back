@@ -52,6 +52,9 @@ public class AuthService {
 
     @Transactional
     public SignupResponse register(SignupRequest request) {
+        if (!request.isTermsAgreed() || !request.isPrivacyAgreed()) {
+            throw new BusinessException(ErrorCode.TERMS_PRIVACY_NOT_AGREED);
+        }
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
         }

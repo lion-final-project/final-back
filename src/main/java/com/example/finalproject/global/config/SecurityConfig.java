@@ -110,12 +110,15 @@ public class SecurityConfig {
                                                                 SessionCreationPolicy.IF_REQUIRED)) // OAuth는 세션 사용
                                 .exceptionHandling(ex -> ex
                                                 .authenticationEntryPoint((request, response, authException) -> {
+                                                        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, CookieUtil.clearAccessTokenCookie().toString());
+                                                        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, CookieUtil.clearRefreshTokenCookie().toString());
                                                         response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                                                 }))
                                 .authorizeHttpRequests(authorize -> authorize
                                                 .requestMatchers(HttpMethod.GET,
                                                                 "/api/auth/check-email",
                                                                 "/api/auth/check-phone",
+                                                                "/api/auth/clear-cookies",
                                                                 "/api/users/stores*",
                                                                 "/api/products/categories",
                                                                 "/api/products/{productId}",
@@ -130,6 +133,7 @@ public class SecurityConfig {
                                                                 "/api/auth/register",
                                                                 "/api/auth/refresh",
                                                                 "/api/auth/login",
+                                                                "/api/auth/logout",
                                                                 "/api/auth/social-signup/complete",
                                                                 "/api/auth/password-reset/request",
                                                                 "/api/auth/password-reset/confirm",

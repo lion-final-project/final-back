@@ -79,7 +79,7 @@ public class ApiResponse<T> {
     public static <T> ApiResponse<T> fail(ErrorCode errorCode) {
         return new ApiResponse<>(
                 false, null, null, null,
-                ErrorBody.of(errorCode.getCode(), errorCode.getMessage()),
+                ErrorBody.of(errorCode.getApiCode(), errorCode.getMessage()),
                 nowTimestamp());
     }
 }

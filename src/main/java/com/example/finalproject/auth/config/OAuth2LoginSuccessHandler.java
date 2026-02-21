@@ -61,6 +61,9 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         Map<String, Object> attributes = oauth2User.getAttributes();
         String providerUserId = strategy.resolveProviderUserId(attributes);
+        if ((providerUserId == null || providerUserId.isBlank()) && "naver".equals(registrationId)) {
+            providerUserId = oauth2User.getName();
+        }
         String nickname = strategy.resolveNickname(attributes);
 
         if (providerUserId != null && !providerUserId.isBlank()) {

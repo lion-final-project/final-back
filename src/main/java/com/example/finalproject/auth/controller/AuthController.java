@@ -85,7 +85,7 @@ public class AuthController {
                 CookieUtil.createRefreshTokenCookie(
                         response.getRefreshToken(),
                         jwtProperties.getRefreshTokenValiditySeconds()).toString());
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity.ok()
                 .headers(headers)
                 .body(ApiResponse.success("회원가입이 완료되었습니다.", response));
     }
@@ -209,9 +209,22 @@ public class AuthController {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearAccessTokenCookie().toString());
         headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearRefreshTokenCookie().toString());
+        headers.add("Clear-Site-Data", "\"cookies\"");
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(ApiResponse.success("로그아웃 되었습니다."));
+    }
+
+    /** 브라우저 쿠키 삭제용. 로그아웃 후 프론트에서 한 번 더 호출해 쿠키 삭제를 확실히 함. */
+    @GetMapping("/clear-cookies")
+    public ResponseEntity<Void> clearCookies() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearAccessTokenCookie().toString());
+        headers.add(HttpHeaders.SET_COOKIE, CookieUtil.clearRefreshTokenCookie().toString());
+        headers.add("Clear-Site-Data", "\"cookies\"");
+        return ResponseEntity.noContent()
+                .headers(headers)
+                .build();
     }
 
 }
