@@ -33,12 +33,14 @@ public final class CookieUtil {
                 .build();
     }
 
-    //쿠키 삭제 AT
+    //쿠키 삭제 AT (설정이 생성 시와 동일해야 브라우저가 삭제함)
     public static ResponseCookie clearAccessTokenCookie() {
         return ResponseCookie.from(ACCESS_TOKEN_COOKIE, "")
                 .httpOnly(true)
+                .secure(false)
                 .path(COOKIE_PATH)
                 .maxAge(0)
+                .sameSite("Lax")
                 .build();
     }
 
@@ -46,8 +48,10 @@ public final class CookieUtil {
     public static ResponseCookie clearRefreshTokenCookie() {
         return ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
                 .httpOnly(true)
+                .secure(false)
                 .path(COOKIE_PATH)
                 .maxAge(0)
+                .sameSite("Lax")
                 .build();
     }
 }

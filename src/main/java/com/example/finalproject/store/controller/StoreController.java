@@ -20,8 +20,6 @@ import java.util.List;
 
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/api/stores")
 @RequiredArgsConstructor
@@ -35,10 +33,9 @@ public class StoreController {
     @GetMapping("/registration")
     public ResponseEntity<ApiResponse<GetStoreRegistrationStatusResponse>> getMyStoreRegistration(Authentication authentication) {
         String userName = authentication.getName();
-        Optional<GetStoreRegistrationStatusResponse> result = storeService.getMyStoreRegistration(userName);
-        return result
-                .map(data -> ResponseEntity.ok(ApiResponse.success("조회되었습니다.", data)))
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+        GetStoreRegistrationStatusResponse data = storeService.getMyStoreRegistration(userName)
+                .orElse(GetStoreRegistrationStatusResponse.none());
+        return ResponseEntity.ok(ApiResponse.success("조회되었습니다.", data));
     }
 
     /**

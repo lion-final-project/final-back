@@ -104,6 +104,8 @@ public class SecurityLocalConfig {
                                 .httpBasic(AbstractHttpConfigurer::disable)
                                 .exceptionHandling(ex -> ex
                                                 .authenticationEntryPoint((request, response, authException) -> {
+                                                        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, CookieUtil.clearAccessTokenCookie().toString());
+                                                        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, CookieUtil.clearRefreshTokenCookie().toString());
                                                         response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                                                 }))
                                 .authorizeHttpRequests(auth -> auth
