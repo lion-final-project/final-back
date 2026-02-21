@@ -35,9 +35,8 @@ public class SignupRequest {
 
     private boolean marketingAgreed;
 
-    @AssertTrue(message = "필수 약관에 동의해야 합니다.")
+    /** 필수 약관 미동의 시 서비스에서 422 TERMS_PRIVACY_NOT_AGREED 반환 */
     private boolean termsAgreed;
 
-    @AssertTrue(message = "개인정보 처리방침에 동의해야 합니다.")
     private boolean privacyAgreed;
 }

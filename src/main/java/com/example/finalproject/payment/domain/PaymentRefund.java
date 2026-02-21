@@ -59,6 +59,13 @@ public class PaymentRefund extends BaseTimeEntity {
     @Column(name = "refund_status", nullable = false, length = 30)
     private RefundStatus refundStatus;
 
+    @Column(name = "is_settled", nullable = false)
+    private boolean isSettled = false;
+
+    public void markSettled() {
+        this.isSettled = true;
+    }
+
     @Builder
     public PaymentRefund(Payment payment, StoreOrder storeOrder,
                          Integer refundAmount, String refundReason,

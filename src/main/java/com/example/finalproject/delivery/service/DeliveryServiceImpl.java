@@ -6,6 +6,7 @@ import com.example.finalproject.delivery.domain.Delivery;
 import com.example.finalproject.delivery.domain.DeliveryPhoto;
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.dto.response.GetDeliveryDetailResponse;
+import com.example.finalproject.delivery.dto.response.GetDeliveryHistoryItemResponse;
 import com.example.finalproject.delivery.dto.response.GetDeliveryResponse;
 import com.example.finalproject.delivery.enums.DeliveryStatus;
 import com.example.finalproject.delivery.event.DeliveryStatusChangedEvent;
@@ -16,6 +17,7 @@ import com.example.finalproject.delivery.service.interfaces.DeliveryService;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -120,6 +122,15 @@ public class DeliveryServiceImpl implements DeliveryService {
     public GetDeliveryDetailResponse getDeliveryDetail(String username, Long deliveryId) {
         Delivery delivery = findDeliveryAndValidateRider(username, deliveryId);
         return GetDeliveryDetailResponse.from(delivery);
+    }
+
+    @Override
+    public Page<GetDeliveryHistoryItemResponse> getMyDeliveryHistory(String username, Pageable pageable) {
+        Rider rider = findRiderByUsername(username);
+        // 완료(DELIVERED) 및 취소(CANCELLED) 상태만 조회
+        List<DeliveryStatus> statuses = List.of(DeliveryStatus.DELIVERED, DeliveryStatus.CANCELLED);
+        Page<Delivery> deliveries = deliveryRepository.findByRiderAndStatusIn(rider, statuses, pageable);
+        return deliveries.map(GetDeliveryHistoryItemResponse::from);
     }
 
     /**

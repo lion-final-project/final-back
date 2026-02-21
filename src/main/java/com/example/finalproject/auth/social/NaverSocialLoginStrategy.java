@@ -35,10 +35,11 @@ public class NaverSocialLoginStrategy implements SocialLoginStrategy {
         Object response = attributes.get("response");
         if (response instanceof Map<?, ?> map) {
             Object id = map.get("id");
-            return id != null ? id.toString() : null;
+            if (id != null) return id.toString();
         }
         Object id = attributes.get("id");
-        return id != null ? id.toString() : null;
+        if (id != null) return id.toString();
+        return null;
     }
 
     @Override

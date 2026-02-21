@@ -43,12 +43,14 @@ public class SmsService {
 
     public String sendAuthCode(String phoneNumber) {
         String resendKey = REDIS_KEY_RESEND + phoneNumber;
+        String currentStr = redisTemplate.opsForValue().get(resendKey);
+        int currentCount = currentStr != null ? Integer.parseInt(currentStr, 10) : 0;
+        if (currentCount >= RESEND_LIMIT) {
+            throw new BusinessException(ErrorCode.PHONE_VERIFICATION_RESEND_LIMIT);
+        }
         Long resendCount = redisTemplate.opsForValue().increment(resendKey);
         if (resendCount != null && resendCount == 1) {
             redisTemplate.expire(resendKey, RESEND_SESSION_TTL_MINUTES, TimeUnit.MINUTES);
-        }
-        if (resendCount != null && resendCount > RESEND_LIMIT) {
-            throw new BusinessException(ErrorCode.PHONE_VERIFICATION_RESEND_LIMIT);
         }
 
         String authCode = SmsUtil.generateAuthCode();

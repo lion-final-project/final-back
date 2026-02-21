@@ -5,6 +5,7 @@ import com.example.finalproject.global.domain.BaseTimeEntity;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.StoreOrder;
+import com.example.finalproject.settlement.domain.Settlement;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -81,7 +82,13 @@ public class Delivery extends BaseTimeEntity {
     @Column(name = "cancel_reason", length = 500)
     private String cancelReason;
 
+    @Column(name = "is_settled", nullable = false)
+    private boolean isSettled = false;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "settlement_id",
+            foreignKey = @ForeignKey(name = "fk_deliveries_settlement"))
+    private Settlement settlement;
 
     @Builder
     public Delivery(StoreOrder storeOrder,
@@ -132,6 +139,12 @@ public class Delivery extends BaseTimeEntity {
         validateStatusTransition(DeliveryStatus.DELIVERING);
         this.status = DeliveryStatus.DELIVERED;
         this.deliveredAt = LocalDateTime.now();
+    }
+
+    /** 라이더 정산 완료 처리 — Settlement FK 연결 및 isSettled 플래그 설정 */
+    public void markSettled(Settlement settlement) {
+        this.settlement = settlement;
+        this.isSettled = true;
     }
 
     /**

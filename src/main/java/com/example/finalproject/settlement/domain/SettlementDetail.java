@@ -1,7 +1,6 @@
 package com.example.finalproject.settlement.domain;
 
 import com.example.finalproject.global.domain.BaseTimeEntity;
-import com.example.finalproject.order.domain.StoreOrder;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -32,11 +31,6 @@ public class SettlementDetail extends BaseTimeEntity {
             foreignKey = @ForeignKey(name = "fk_settlement_details_settlement"))
     private Settlement settlement;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "store_order_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_settlement_details_store_order"))
-    private StoreOrder storeOrder;
-
     @Column(nullable = false)
     private Integer amount;
 
@@ -47,10 +41,9 @@ public class SettlementDetail extends BaseTimeEntity {
     private Integer netAmount;
 
     @Builder
-    public SettlementDetail(Settlement settlement, StoreOrder storeOrder,
+    public SettlementDetail(Settlement settlement,
                             Integer amount, Integer fee, Integer netAmount) {
         this.settlement = settlement;
-        this.storeOrder = storeOrder;
         this.amount = amount;
         this.fee = fee;
         this.netAmount = netAmount;

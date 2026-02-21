@@ -11,6 +11,7 @@ import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberTemplate;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import java.time.LocalDate;
 import java.util.List;
 import com.example.finalproject.global.util.GeometryUtil;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Repository;
 
 import static com.example.finalproject.product.domain.QProduct.product;
 import static com.example.finalproject.store.domain.QStore.store;
+import static com.example.finalproject.store.domain.QStoreBusinessHour.storeBusinessHour;
 
 @Repository
 @RequiredArgsConstructor
@@ -53,6 +55,9 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
                 store.address.location
         );
 
+        // 오늘 요일 (0=일요일, 1=월, ..., 6=토) - 휴무일 매장 제외용
+        short todayDayOfWeek = (short) (LocalDate.now().getDayOfWeek().getValue() % 7);
+
         List<StoreNearbyResponse> content = queryFactory
                 .select(new QStoreNearbyResponse(
                         store.id,
@@ -70,6 +75,7 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
                 .where(
                         within3km(currentLocation),
                         isApprovedAndActive(),
+                        notClosedToday(todayDayOfWeek),                    // 휴무일이 아닌 매장만 (오늘 영업)
                         storeCategoryEq(request.getStoreCategoryId()),    // 마트 카테고리 조건 (직접 필터링)
                         productKeywordCond(request.getKeyword()),         // 상품 키워드 조건 (EXISTS 서브쿼리)
                         cursorCondition(request.getLastDistance(), request.getLastId(), distanceExpr)
@@ -123,6 +129,20 @@ public class StoreRepositoryImpl implements StoreRepositoryCustom {
         return store.status.eq(StoreStatus.APPROVED)
                 .and(store.isActive.eq(StoreActiveStatus.ACTIVE))
                 .and(store.deletedAt.isNull());
+    }
+
+    /**
+     * 오늘 휴무가 아닌 매장만 (해당 요일에 isClosed=false인 영업시간이 있는 매장)
+     */
+    private BooleanExpression notClosedToday(short todayDayOfWeek) {
+        return store.id.in(
+                JPAExpressions.select(storeBusinessHour.store.id)
+                        .from(storeBusinessHour)
+                        .where(
+                                storeBusinessHour.dayOfWeek.eq(todayDayOfWeek),
+                                storeBusinessHour.isClosed.eq(false)
+                        )
+        );
     }
 
     /**

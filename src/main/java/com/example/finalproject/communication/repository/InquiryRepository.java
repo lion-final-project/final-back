@@ -19,5 +19,7 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
 
     long countByUserId(Long userId);
 
+    long countByStatus(InquiryStatus status);
+
     List<Inquiry> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
 }

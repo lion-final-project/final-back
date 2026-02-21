@@ -4,16 +4,19 @@ import com.example.finalproject.auth.config.KakaoProperties;
 import com.example.finalproject.auth.config.NaverProperties;
 import com.example.finalproject.auth.config.OAuth2AuthorizationRequestLoggingFilter;
 import com.example.finalproject.auth.config.OAuth2LoginSuccessHandler;
+import com.example.finalproject.auth.service.AuthService;
 import com.example.finalproject.auth.social.SocialLoginStrategyRegistry;
 import com.example.finalproject.global.jwt.JwtProperties;
+import com.example.finalproject.global.jwt.JwtTokenProvider;
 import com.example.finalproject.global.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.List;
 import java.util.function.Consumer;
+
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -43,13 +46,22 @@ public class SecurityConfig {
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
         private final SocialLoginStrategyRegistry socialLoginStrategyRegistry;
         private final ClientRegistrationRepository clientRegistrationRepository;
+        private final AuthService authService;
+        private final JwtProperties jwtProperties;
+        private final JwtTokenProvider jwtTokenProvider;
 
         public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                        @Lazy SocialLoginStrategyRegistry socialLoginStrategyRegistry,
-                        ClientRegistrationRepository clientRegistrationRepository) {
+                        SocialLoginStrategyRegistry socialLoginStrategyRegistry,
+                        ClientRegistrationRepository clientRegistrationRepository,
+                        AuthService authService,
+                        JwtProperties jwtProperties,
+                        JwtTokenProvider jwtTokenProvider) {
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
                 this.socialLoginStrategyRegistry = socialLoginStrategyRegistry;
                 this.clientRegistrationRepository = clientRegistrationRepository;
+                this.authService = authService;
+                this.jwtProperties = jwtProperties;
+                this.jwtTokenProvider = jwtTokenProvider;
         }
 
         private OAuth2AuthorizationRequestResolver kakaoAuthorizationRequestResolver() {
@@ -98,12 +110,15 @@ public class SecurityConfig {
                                                                 SessionCreationPolicy.IF_REQUIRED)) // OAuth는 세션 사용
                                 .exceptionHandling(ex -> ex
                                                 .authenticationEntryPoint((request, response, authException) -> {
+                                                        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, CookieUtil.clearAccessTokenCookie().toString());
+                                                        response.addHeader(org.springframework.http.HttpHeaders.SET_COOKIE, CookieUtil.clearRefreshTokenCookie().toString());
                                                         response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
                                                 }))
                                 .authorizeHttpRequests(authorize -> authorize
                                                 .requestMatchers(HttpMethod.GET,
                                                                 "/api/auth/check-email",
                                                                 "/api/auth/check-phone",
+                                                                "/api/auth/clear-cookies",
                                                                 "/api/users/stores*",
                                                                 "/api/products/categories",
                                                                 "/api/products/{productId}",
@@ -111,10 +126,14 @@ public class SecurityConfig {
                                                                 "/api/stores/*/products",
                                                                 "/api/users/stores")
                                                 .permitAll()
+                                                .requestMatchers(req -> "GET".equals(req.getMethod())
+                                                                && req.getRequestURI().matches(".*/api/stores/[0-9]+$"))
+                                                .permitAll()
                                                 .requestMatchers(HttpMethod.POST,
                                                                 "/api/auth/register",
                                                                 "/api/auth/refresh",
                                                                 "/api/auth/login",
+                                                                "/api/auth/logout",
                                                                 "/api/auth/social-signup/complete",
                                                                 "/api/auth/password-reset/request",
                                                                 "/api/auth/password-reset/confirm",
@@ -159,6 +178,11 @@ public class SecurityConfig {
                                                                 "/api/riders/locations/{riderId}")
                                                 .hasRole("RIDER")
                                                 .requestMatchers(
+                                                                "/api/store/orders/**",
+                                                                "/api/store/settlements",
+                                                                "/api/store/settlements/**",
+                                                                "/api/store/subscriptions",
+                                                                "/api/store/subscriptions/**",
                                                                 "/api/store/subscription-products",
                                                                 "/api/store/subscription-products/**")
                                                 .hasRole("STORE_OWNER")
@@ -168,7 +192,10 @@ public class SecurityConfig {
                                                                 .authorizationRequestResolver(
                                                                                 kakaoAuthorizationRequestResolver()))
                                                 .successHandler(new OAuth2LoginSuccessHandler(
-                                                                socialLoginStrategyRegistry)))
+                                                                socialLoginStrategyRegistry,
+                                                                authService,
+                                                                jwtProperties,
+                                                                jwtTokenProvider)))
                                 .addFilterBefore(new OAuth2AuthorizationRequestLoggingFilter(),
                                                 OAuth2AuthorizationRequestRedirectFilter.class)
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -27,4 +27,7 @@ public class SocialSignupCompleteRequest {
 
     @AssertTrue(message = "개인정보 처리방침에 동의해야 합니다.")
     private boolean privacyAgreed;
+
+    /** 소셜 추가 가입 시 리다이렉트 URL의 state 쿼리 값(JWT). 세션 대신 JWT로 provider 정보 전달. */
+    private String state;
 }

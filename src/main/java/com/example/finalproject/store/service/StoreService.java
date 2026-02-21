@@ -14,10 +14,12 @@ import com.example.finalproject.store.domain.embedded.StoreAddress;
 import com.example.finalproject.store.domain.StoreBusinessHour;
 import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.dto.request.PatchDeliveryAvailableRequest;
+import com.example.finalproject.store.dto.request.PatchStoreDescriptionRequest;
 import com.example.finalproject.store.dto.request.PatchStoreImageRequest;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
+import com.example.finalproject.store.dto.response.GetStoreDetailForCustomerResponse;
 import com.example.finalproject.store.dto.response.GetStoreRegistrationStatusResponse;
 import com.example.finalproject.store.dto.response.PostStoreRegistrationResponse;
 import com.example.finalproject.store.dto.response.GetMyStoreResponse;
@@ -141,6 +143,15 @@ public class StoreService {
         return GetStoreCategoryResponse.fromList(storeCategoryRepository.findAll());
     }
 
+    /** 고객용: 마트 상세 정보 조회 (가게 정보 탭용). APPROVED 마트만 반환. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<GetStoreDetailForCustomerResponse> getStoreDetailForCustomer(Long storeId) {
+        if (storeId == null) return java.util.Optional.empty();
+        return storeRepository.findById(storeId)
+                .filter(s -> s.getStatus() == StoreStatus.APPROVED && s.getDeletedAt() == null)
+                .map(GetStoreDetailForCustomerResponse::from);
+    }
+
     //영업시간 조회
     @Transactional(readOnly = true)
     public List<PostStoreBusinessHourRequest> getStoreBusinessHours(String userName) {
@@ -183,6 +194,14 @@ public class StoreService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
         String url = request.getStoreImageUrl() != null ? request.getStoreImageUrl() : "";
         store.updateStoreImage(url);
+    }
+
+    /** 내 상점 마트 소개 수정 */
+    public void updateStoreDescription(String userName, PatchStoreDescriptionRequest request) {
+        User user = findUserByUserName(userName);
+        Store store = storeRepository.findByOwner(user)
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_NOT_FOUND));
+        store.updateDescription(request.getDescription() != null ? request.getDescription() : "");
     }
 
     private void updateExistingBusinessHours(Store store, List<PostStoreBusinessHourRequest> businessHours) {
