@@ -71,39 +71,53 @@ public class NaverService {
             log.warn("[네이버 소셜 가입] 이미 가입된 providerUserId={}", providerUserId);
             throw new IllegalStateException("이미 네이버로 가입된 회원입니다.");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
-        }
         if (userRepository.existsByPhone(request.getPhone())) {
             throw new BusinessException(ErrorCode.DUPLICATE_PHONE);
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        String encodedPassword = passwordEncoder.encode(UUID.randomUUID().toString());
-        User user = userRepository.save(User.builder()
-                .email(request.getEmail())
-                .password(encodedPassword)
-                .name(request.getName())
-                .phone(request.getPhone())
-                .termsAgreed(request.isTermsAgreed())
-                .privacyAgreed(request.isPrivacyAgreed())
-                .termsAgreedAt(request.isTermsAgreed() ? now : null)
-                .privacyAgreedAt(request.isPrivacyAgreed() ? now : null)
-                .build());
+        User user;
+        if (userRepository.existsByEmail(request.getEmail())) {
+            // 기존 이메일 연동: 해당 유저에 네이버 SocialLogin만 추가
+            user = userRepository.findByEmail(request.getEmail()).orElseThrow();
+            validateActiveUser(user);
+            socialLoginRepository.save(SocialLogin.builder()
+                    .user(user)
+                    .provider(SocialProvider.NAVER)
+                    .providerUserId(providerUserId)
+                    .connectedAt(LocalDateTime.now())
+                    .build());
+            log.info("[네이버 소셜 가입] 기존 이메일 연동 완료 userId={}, providerUserId={}", user.getId(), providerUserId);
+        } else {
+            LocalDateTime now = LocalDateTime.now();
+            String encodedPassword = passwordEncoder.encode(UUID.randomUUID().toString());
+            user = userRepository.save(User.builder()
+                    .email(request.getEmail())
+                    .password(encodedPassword)
+                    .name(request.getName())
+                    .phone(request.getPhone())
+                    .termsAgreed(request.isTermsAgreed())
+                    .privacyAgreed(request.isPrivacyAgreed())
+                    .termsAgreedAt(request.isTermsAgreed() ? now : null)
+                    .privacyAgreedAt(request.isPrivacyAgreed() ? now : null)
+                    .build());
 
-        Role role = roleRepository.findByRoleName("CUSTOMER")
-                .orElseGet(() -> roleRepository.save(Role.builder().roleName("CUSTOMER").build()));
-        userRoleRepository.save(UserRole.builder().user(user).role(role).build());
+            Role role = roleRepository.findByRoleName("CUSTOMER")
+                    .orElseGet(() -> roleRepository.save(Role.builder().roleName("CUSTOMER").build()));
+            userRoleRepository.save(UserRole.builder().user(user).role(role).build());
 
-        socialLoginRepository.save(SocialLogin.builder()
-                .user(user)
-                .provider(SocialProvider.NAVER)
-                .providerUserId(providerUserId)
-                .connectedAt(now)
-                .build());
+            socialLoginRepository.save(SocialLogin.builder()
+                    .user(user)
+                    .provider(SocialProvider.NAVER)
+                    .providerUserId(providerUserId)
+                    .connectedAt(now)
+                    .build());
+            log.info("[네이버 소셜 가입] 신규 가입 완료 userId={}, providerUserId={}", user.getId(), providerUserId);
+        }
 
-        List<String> roles = List.of(role.getRoleName());
-        log.info("[네이버 소셜 가입] 완료 userId={}, providerUserId={}", user.getId(), providerUserId);
+        List<String> roles = user.getUserRoles().stream()
+                .map(UserRole::getRole)
+                .map(Role::getRoleName)
+                .toList();
         return new OAuthLoginSessionResult(user, roles);
     }
 

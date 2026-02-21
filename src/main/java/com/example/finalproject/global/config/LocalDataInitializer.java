@@ -63,9 +63,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * 기존 시드 데이터 주입용. 이제 목데이터(Mock-Data-Loader SQL)로 통일하므로 기본 비활성화.
+ * 필요 시 프로필에 local-initializer 를 추가하면 실행됨.
+ */
 @Slf4j
 @Component
-@Profile("local")
+@Profile("local-initializer")
 @RequiredArgsConstructor
 public class LocalDataInitializer implements CommandLineRunner {
 
@@ -116,10 +120,10 @@ public class LocalDataInitializer implements CommandLineRunner {
                         .roleName("ADMIN")
                         .build()));
 
-        // USER 역할 생성 (없으면)
-        Role userRole = roleRepository.findByRoleName("USER")
+        // CUSTOMER 역할 생성 (없으면) - 기본 회원 역할
+        Role userRole = roleRepository.findByRoleName("CUSTOMER")
                 .orElseGet(() -> roleRepository.save(Role.builder()
-                        .roleName("USER")
+                        .roleName("CUSTOMER")
                         .build()));
 
         roleRepository.findByRoleName("RIDER")
@@ -159,14 +163,15 @@ public class LocalDataInitializer implements CommandLineRunner {
             log.info("==============================================");
         }
 
-        // 일반 USER 테스트 계정 생성 (없으면) - 프로필 조회 GET /api/users/me 테스트용
+        // 일반 CUSTOMER 테스트 계정 생성 (없으면) - 프로필 조회 GET /api/users/me 테스트용
+        // 전화번호는 목데이터(customer1@test.com의 010-1111-1111)와 겹치지 않게 010-0000-0002 사용 (users_phone_key UNIQUE)
         String userEmail = "user@test.com";
         if (userRepository.findByEmail(userEmail).isEmpty()) {
             User normalUser = User.builder()
                     .email(userEmail)
                     .password(passwordEncoder.encode("user1234"))
                     .name("테스트유저")
-                    .phone("010-1111-1111")
+                    .phone("010-0000-0002")
                     .termsAgreed(true)
                     .privacyAgreed(true)
                     .termsAgreedAt(LocalDateTime.now())
@@ -180,10 +185,10 @@ public class LocalDataInitializer implements CommandLineRunner {
                     .build());
 
             log.info("==============================================");
-            log.info("USER 테스트 계정이 생성되었습니다. (프로필 조회 GET /api/users/me 테스트용)");
+            log.info("CUSTOMER 테스트 계정이 생성되었습니다. (프로필 조회 GET /api/users/me 테스트용)");
             log.info("Email: {}", userEmail);
             log.info("Password: user1234");
-            log.info("프로필: 이름=테스트유저, 연락처=01011111111, 가입일=DB createdAt");
+            log.info("프로필: 이름=테스트유저, 연락처=010-0000-0002, 가입일=DB createdAt");
             log.info("==============================================");
         }
 
@@ -204,6 +209,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     // 스토어, 상품, 테스트 유저 장바구니에 상품 담기 (장바구니·주문서·결제 플로우 확인용)
     private void seedCheckoutDummyData(Role userRole) {
         String storeOwnerEmail = "storeowner@test.com";
+        Role storeOwnerRole = roleRepository.findByRoleName("STORE_OWNER").orElseThrow();
         User storeOwner = userRepository.findByEmail(storeOwnerEmail).orElseGet(() -> {
             User owner = User.builder()
                     .email(storeOwnerEmail)
@@ -216,7 +222,7 @@ public class LocalDataInitializer implements CommandLineRunner {
                     .privacyAgreedAt(LocalDateTime.now())
                     .build();
             userRepository.save(owner);
-            userRoleRepository.save(UserRole.builder().user(owner).role(userRole).build());
+            userRoleRepository.save(UserRole.builder().user(owner).role(storeOwnerRole).build());
             log.info("결제 더미데이터: 스토어 오너 계정 생성 - {}", storeOwnerEmail);
             return owner;
         });

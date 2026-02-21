@@ -85,7 +85,7 @@ public class AuthController {
                 CookieUtil.createRefreshTokenCookie(
                         response.getRefreshToken(),
                         jwtProperties.getRefreshTokenValiditySeconds()).toString());
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity.ok()
                 .headers(headers)
                 .body(ApiResponse.success("회원가입이 완료되었습니다.", response));
     }

@@ -40,7 +40,7 @@ public class GlobalExceptionHandler {
         ErrorCode ec = ErrorCode.INVALID_INPUT_VALUE;
         return ResponseEntity
                 .status(ec.getStatus())
-                .body(ApiResponse.fail(ec.getCode(), ec.getMessage(), details));
+                .body(ApiResponse.fail(ec.getApiCode(), ec.getMessage(), details));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
