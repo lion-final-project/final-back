@@ -189,4 +189,11 @@ public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long>, S
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
+
+    // 정산 상세 조회: settlement_id 기준 StoreOrder + Order 조인
+    @Query("SELECT so FROM StoreOrder so "
+            + "JOIN FETCH so.order o "
+            + "WHERE so.settlement.id = :settlementId "
+            + "ORDER BY so.id DESC")
+    List<StoreOrder> findAllBySettlementIdWithOrder(@Param("settlementId") Long settlementId);
 }
