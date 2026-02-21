@@ -17,7 +17,6 @@ import java.util.function.Consumer;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -52,7 +51,7 @@ public class SecurityConfig {
         private final JwtTokenProvider jwtTokenProvider;
 
         public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                        @Lazy SocialLoginStrategyRegistry socialLoginStrategyRegistry,
+                        SocialLoginStrategyRegistry socialLoginStrategyRegistry,
                         ClientRegistrationRepository clientRegistrationRepository,
                         AuthService authService,
                         JwtProperties jwtProperties,
