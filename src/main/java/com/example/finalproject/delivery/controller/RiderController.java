@@ -5,6 +5,7 @@ import com.example.finalproject.delivery.dto.request.PatchRiderStatusRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderLocationRequest;
 import com.example.finalproject.delivery.dto.request.PostRiderRegisterRequest;
 import com.example.finalproject.delivery.dto.response.GetDeliveryDetailResponse;
+import com.example.finalproject.delivery.dto.response.GetDeliveryHistoryItemResponse;
 import com.example.finalproject.delivery.dto.response.GetDeliveryResponse;
 import com.example.finalproject.delivery.dto.response.GetRiderLocationResponse;
 import com.example.finalproject.delivery.dto.response.GetRiderRegistrationStatusResponse;
@@ -104,14 +105,13 @@ public class RiderController {
     @GetMapping("/registration")
     public ResponseEntity<ApiResponse<GetRiderRegistrationStatusResponse>> getRegistrationStatus(
             Authentication authentication) {
-        Optional<GetRiderRegistrationStatusResponse> result =
-                riderService.getRegistrationStatus(authentication.getName());
-        GetRiderRegistrationStatusResponse response = result.orElseGet(() ->
-                GetRiderRegistrationStatusResponse.builder()
+        Optional<GetRiderRegistrationStatusResponse> result = riderService
+                .getRegistrationStatus(authentication.getName());
+        GetRiderRegistrationStatusResponse response = result
+                .orElseGet(() -> GetRiderRegistrationStatusResponse.builder()
                         .status("NONE")
                         .approvalId(null)
-                        .build()
-        );
+                        .build());
         return ResponseEntity.ok(ApiResponse.success("조회했습니다.", response));
     }
 
@@ -244,5 +244,17 @@ public class RiderController {
         GetDeliveryDetailResponse response = deliveryService.getDeliveryDetail(
                 authentication.getName(), deliveryId);
         return ResponseEntity.ok(ApiResponse.success("배달 상세 조회가 완료되었습니다.", response));
+    }
+
+    /**
+     * 라이더 배달 이력 조회 (완료/취소 건)
+     */
+    @GetMapping("/deliveries/history")
+    public ResponseEntity<ApiResponse<Page<GetDeliveryHistoryItemResponse>>> getDeliveryHistory(
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication authentication) {
+        Page<GetDeliveryHistoryItemResponse> history = deliveryService.getMyDeliveryHistory(
+                authentication.getName(), pageable);
+        return ResponseEntity.ok(ApiResponse.success("배달 이력 조회가 완료되었습니다.", history));
     }
 }

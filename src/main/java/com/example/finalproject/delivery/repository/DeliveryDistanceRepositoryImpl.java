@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class DeliveryDistanceRepositoryImpl implements DeliveryDistanceRepository {
+public class DeliveryDistanceRepositoryImpl implements DeliveryDistanceRepository{
 
     private final EntityManager em;
 
