@@ -1,6 +1,6 @@
 # Project Index: 동네 마켓 Backend (final-back)
 
-Generated: 2026-02-19
+Generated: 2026-02-20
 
 ## Project Structure
 
@@ -18,7 +18,7 @@ final-back/
 │   ├── delivery/                             # 배달, 라이더, 위치추적, 매칭, 완료사진
 │   ├── payment/                              # 결제 (Toss Payments), 구독 결제
 │   ├── subscription/                         # 정기 구독
-│   ├── settlement/                           # 정산
+│   ├── settlement/                           # 정산 (domain/, enums/ 공유; store.* 서브패키지)
 │   ├── review/                               # 리뷰
 │   ├── moderation/                           # 승인 심사, 신고
 │   ├── content/                              # FAQ, 공지, 배너, 프로모션
@@ -47,14 +47,14 @@ final-back/
 |--------|-------|
 | Domains | 17 |
 | Controllers | 36 |
-| Services | 65 |
+| Services | 65+ |
 | Entities | 54+ |
 | Repositories | 53 |
 | Error Codes | 95+ |
 | Enums | 20+ |
 | Events | 7 |
-| Schedulers | 1 |
-| Total Java Files | 472 |
+| Schedulers | 2 |
+| Total Java Files | 507 |
 | Test Files | 2 |
 
 ## Domain-Entity Map
@@ -87,7 +87,7 @@ final-back/
 | OrderStatus | 주문 상태 |
 | OrderType | 주문 방식 |
 | StoreOrderStatus | 마트 주문 상태 (PENDING, ACCEPTED, REJECTED, READY, ...) |
-| DeliveryStatus | 배달 상태 |
+| DeliveryStatus | 배달 상태 (REQUESTED→ACCEPTED→PICKED_UP→DELIVERING→DELIVERED/CANCELLED) |
 | RiderApprovalStatus | 라이더 승인 상태 |
 | RiderOperationStatus | 라이더 운영 상태 |
 | StoreStatus | 마트 상태 (PENDING, APPROVED, REJECTED, ...) |
@@ -95,6 +95,10 @@ final-back/
 | SubscriptionStatus | 구독 상태 |
 | UserStatus | 사용자 상태 |
 | PaymentMethodType | 결제 수단 |
+| RefundStatus | 환불 상태 (REQUESTED, APPROVED, REJECTED) |
+| RefundResponsibility | 환불 귀책 (CUSTOMER, STORE, PLATFORM, RIDER) |
+| SettlementStatus | 정산 상태 (PENDING, COMPLETED, FAILED) |
+| SettlementTargetType | 정산 대상 (STORE, RIDER) |
 | SseEventType | SSE 이벤트 타입 (6개) |
 | ContentStatus | 컨텐츠 상태 |
 | InquiryStatus | 문의 상태 |
@@ -156,4 +160,21 @@ cd ../final-front && npm run dev
 
 ## Current Branch
 
-`feature/rider-api-UC-R07` - 라이더 API 개발 중
+`feature/rider-UC-A06` - 라이더 관리자 기능 개발 중 (배달·결제·정산 통합)
+
+## 주요 변경 이력 (2026-02-20 기준)
+
+| 변경 | 내용 |
+|------|------|
+| settlement 패키지 재구성 | `domain/`, `enums/`를 `settlement/` 직하로 이동; 나머지(batch, controller, dto, repository, service)는 `settlement/store/` 유지 |
+| SettlementTargetType | `ORDER, REFUND` → `STORE, RIDER` (마트/라이더 별도 정산) |
+| SettlementStatus | `PENDING, COMPLETED, PAID` → `PENDING, COMPLETED, FAILED` |
+| Settlement Entity | `targetType`, `targetId`, `pgFee`, `bankName`, `bankAccount`, `settledAt` 필드 추가; `fail()`, `updateSummary()` 메서드 추가 |
+| RefundStatus | `PENDING, COMPLETED, FAILED` → `REQUESTED, APPROVED, REJECTED` |
+| RefundResponsibility | `RIDER` 귀책 유형 추가 (기존: CUSTOMER, STORE, PLATFORM) |
+| PaymentRefund Entity | `refundStatus`, `responsibility` 필드 추가 |
+| DeliveryStatus | `PICKED_UP` 상태 추가 (REQUESTED→ACCEPTED→**PICKED_UP**→DELIVERING→DELIVERED) |
+| Delivery Entity | `riderEarning`, `distanceKm` 필드 추가 |
+| Schedulers | `SubscriptionBillingScheduler` 추가 (총 2개) |
+| Auth | Naver OAuth2 지원 추가 (NaverService, NaverProperties, NaverSocialLoginStrategy) |
+| Global | `AsyncConfig`, `RetryConfig`, `UserAuthCache`, `TemplateRenderer`, Email 관련 클래스 추가 |
