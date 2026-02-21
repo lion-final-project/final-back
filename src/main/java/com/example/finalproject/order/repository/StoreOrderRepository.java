@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -91,7 +92,7 @@ public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long>, S
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
 
-    // 매출 조회: CANCELLED + REJECTED 건수
+    // 매출 조회: 취소/환불 대상 상태 건수
     @Query("SELECT COUNT(so) FROM StoreOrder so "
             + "WHERE so.store.id = :storeId "
             + "AND so.status IN :statuses "
@@ -135,6 +136,56 @@ public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long>, S
             + "WHERE so.status = :status AND so.deliveredAt BETWEEN :start AND :end")
     List<Long> findDistinctStoreIdsByStatusAndDeliveredAtBetween(
             @Param("status") StoreOrderStatus status,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+
+    @EntityGraph(attributePaths = {"store", "store.storeCategory", "order", "order.user"})
+    @Query(value = "SELECT so FROM StoreOrder so "
+            + "JOIN so.store s "
+            + "JOIN so.order o "
+            + "WHERE (:start IS NULL OR o.orderedAt >= :start) "
+            + "AND (:end IS NULL OR o.orderedAt < :end) "
+            + "AND (:keyword IS NULL OR :keyword = '' "
+            + "OR LOWER(s.storeName) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+            + "OR LOWER(o.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+            + "OR LOWER(o.user.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) "
+            + "ORDER BY o.orderedAt DESC, so.id DESC",
+            countQuery = "SELECT COUNT(so) FROM StoreOrder so "
+                    + "JOIN so.store s "
+                    + "JOIN so.order o "
+                    + "WHERE (:start IS NULL OR o.orderedAt >= :start) "
+                    + "AND (:end IS NULL OR o.orderedAt < :end) "
+                    + "AND (:keyword IS NULL OR :keyword = '' "
+                    + "OR LOWER(s.storeName) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+                    + "OR LOWER(o.orderNumber) LIKE LOWER(CONCAT('%', :keyword, '%')) "
+                    + "OR LOWER(o.user.name) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<StoreOrder> searchForAdminPayments(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("keyword") String keyword,
+            Pageable pageable
+    );
+
+    @Query("SELECT COALESCE(SUM(so.finalPrice), 0) FROM StoreOrder so "
+            + "WHERE so.order.orderedAt BETWEEN :start AND :end")
+    long sumFinalPriceByOrderOrderedAtBetween(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+
+    long countByOrder_OrderedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    List<StoreOrder> findByOrder_OrderedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT MAX(so.order.orderedAt) FROM StoreOrder so WHERE so.order.orderedAt IS NOT NULL")
+    LocalDateTime findMaxOrderOrderedAt();
+
+    @Query("SELECT COALESCE(SUM(so.finalPrice), 0) FROM StoreOrder so "
+            + "WHERE so.order.orderType = :orderType "
+            + "AND so.order.orderedAt BETWEEN :start AND :end")
+    long sumFinalPriceByOrderTypeAndOrderedAtBetween(
+            @Param("orderType") OrderType orderType,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end
     );
