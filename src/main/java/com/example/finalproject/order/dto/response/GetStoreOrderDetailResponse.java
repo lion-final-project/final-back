@@ -56,6 +56,7 @@ public class GetStoreOrderDetailResponse {
     @Getter
     @Builder
     public static class ProductInfo {
+        private Long productId;
         private String productNameSnapshot;
         private Integer priceSnapshot;
         private Integer quantity;
