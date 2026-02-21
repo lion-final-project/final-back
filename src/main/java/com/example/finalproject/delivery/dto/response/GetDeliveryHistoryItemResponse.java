@@ -28,6 +28,7 @@ public class GetDeliveryHistoryItemResponse {
     private LocalDateTime cancelledAt;
     private String cancelReason;
     private LocalDateTime createdAt;
+    private boolean isSettled;
 
     public static GetDeliveryHistoryItemResponse from(Delivery delivery) {
         return GetDeliveryHistoryItemResponse.builder()
@@ -43,6 +44,7 @@ public class GetDeliveryHistoryItemResponse {
                 .cancelledAt(delivery.getCancelledAt())
                 .cancelReason(delivery.getCancelReason())
                 .createdAt(delivery.getCreatedAt())
+                .isSettled(delivery.isSettled())
                 .build();
     }
 }
