@@ -91,18 +91,25 @@ public class StoreSettlementServiceImpl implements StoreSettlementService {
             throw new BusinessException(ErrorCode.FORBIDDEN, "해당 정산 내역에 접근할 수 없습니다.");
         }
 
-        List<GetStoreSettlementDetailResponse.OrderItem> orders = settlementDetailRepository
-                .findAllBySettlementIdWithStoreOrder(settlementId)
+        List<GetStoreSettlementDetailResponse.OrderItem> orders = storeOrderRepository
+                .findAllBySettlementIdWithOrder(settlementId)
                 .stream()
-                .map(sd -> GetStoreSettlementDetailResponse.OrderItem.builder()
-                        .storeOrderId(sd.getStoreOrder().getId())
-                        .orderId(sd.getStoreOrder().getOrder().getId())
-                        .orderNumber(sd.getStoreOrder().getOrder().getOrderNumber())
-                        .deliveredAt(sd.getStoreOrder().getDeliveredAt())
-                        .amount(sd.getAmount())
-                        .fee(sd.getFee())
-                        .netAmount(sd.getNetAmount())
-                        .build())
+                .map(so -> {
+                    int gross = so.getFinalPrice();
+                    int platform = (int) Math.round(gross * PLATFORM_FEE_RATE);
+                    int pg = (int) Math.round(gross * PG_FEE_RATE);
+                    int fee = platform + pg;
+                    int net = Math.max(0, gross - fee);
+                    return GetStoreSettlementDetailResponse.OrderItem.builder()
+                            .storeOrderId(so.getId())
+                            .orderId(so.getOrder().getId())
+                            .orderNumber(so.getOrder().getOrderNumber())
+                            .deliveredAt(so.getDeliveredAt())
+                            .amount(gross)
+                            .fee(fee)
+                            .netAmount(net)
+                            .build();
+                })
                 .toList();
 
         return GetStoreSettlementDetailResponse.builder()
@@ -219,13 +226,7 @@ public class StoreSettlementServiceImpl implements StoreSettlementService {
                 pgFee += pg;
                 settlementAmount += net;
 
-                settlementDetailRepository.save(SettlementDetail.builder()
-                        .settlement(settlement)
-                        .storeOrder(storeOrder)
-                        .amount(gross)
-                        .fee(fee)
-                        .netAmount(net)
-                        .build());
+                storeOrder.markSettled(settlement);
             }
 
             LocalDateTime cutoffStartExclusive = targetMonth.atDay(20).atStartOfDay();
@@ -241,6 +242,13 @@ public class StoreSettlementServiceImpl implements StoreSettlementService {
 
             int finalSettlementAmount = Math.max(0, settlementAmount - refundAdjustment);
             settlement.updateSummary(totalSales, platformFee, pgFee, refundAdjustment, finalSettlementAmount);
+
+            settlementDetailRepository.save(SettlementDetail.builder()
+                    .settlement(settlement)
+                    .amount(totalSales)
+                    .fee(platformFee + pgFee)
+                    .netAmount(finalSettlementAmount)
+                    .build());
         } catch (Exception exception) {
             String message = exception.getMessage();
             if (message == null || message.isBlank()) {

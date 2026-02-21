@@ -9,6 +9,7 @@ import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.enums.OrderType;
 import com.example.finalproject.order.enums.StoreOrderStatus;
+import com.example.finalproject.settlement.domain.Settlement;
 import com.example.finalproject.store.domain.Store;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -74,6 +75,14 @@ public class StoreOrder extends BaseTimeEntity {
 
     @Column(name = "cancel_reason", length = 500)
     private String cancelReason;
+
+    @Column(name = "is_settled", nullable = false)
+    private boolean isSettled = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "settlement_id",
+            foreignKey = @ForeignKey(name = "fk_store_orders_settlement"))
+    private Settlement settlement;
 
     @Builder
     public StoreOrder(Order order, Store store, OrderType orderType,
@@ -202,5 +211,11 @@ public class StoreOrder extends BaseTimeEntity {
 
     public boolean isRejectRequested() {
         return this.status == StoreOrderStatus.REJECT_REQUESTED;
+    }
+
+    /** 마트 정산 완료 처리 — Settlement FK 연결 및 isSettled 플래그 설정 */
+    public void markSettled(Settlement settlement) {
+        this.settlement = settlement;
+        this.isSettled = true;
     }
 }

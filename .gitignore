@@ -55,6 +55,7 @@ src/main/generated/*
 /src/test/
 **/claude.md
 .claude
+.agents/
 
 .DS_Store
 
@@ -67,3 +68,5 @@ minio_data/
 pgdata/
 GEMINI.md
 CLAUDE.md
+.serena/
+PROJECT_INDEX.md
