@@ -50,6 +50,9 @@ public class Settlement extends BaseTimeEntity {
     @Column(name = "pg_fee", nullable = false, columnDefinition = "integer not null default 0")
     private Integer pgFee = 0;
 
+    @Column(name = "refund_adjustment", nullable = false, columnDefinition = "integer not null default 0")
+    private Integer refundAdjustment = 0;
+
     @Column(name = "settlement_amount", nullable = false)
     private Integer settlementAmount;
 
@@ -62,6 +65,15 @@ public class Settlement extends BaseTimeEntity {
 
     @Column(name = "bank_account", length = 255)
     private String bankAccount;
+
+    @Column(name = "retry_count", nullable = false, columnDefinition = "integer not null default 0")
+    private Integer retryCount = 0;
+
+    @Column(name = "last_error", length = 500)
+    private String lastError;
+
+    @Column(name = "last_tried_at")
+    private LocalDateTime lastTriedAt;
 
     private LocalDateTime settledAt;
 
@@ -85,10 +97,18 @@ public class Settlement extends BaseTimeEntity {
     public void complete(LocalDateTime settledAt) {
         this.status = SettlementStatus.COMPLETED;
         this.settledAt = settledAt != null ? settledAt : LocalDateTime.now();
+        this.lastError = null;
     }
 
     public void fail() {
         this.status = SettlementStatus.FAILED;
+        this.retryCount = this.retryCount == null ? 1 : this.retryCount + 1;
+        this.lastTriedAt = LocalDateTime.now();
+    }
+
+    public void fail(String errorMessage) {
+        fail();
+        this.lastError = errorMessage;
     }
 
     public void updateSummary(int totalSales, int platformFee, int pgFee, int settlementAmount) {
@@ -96,5 +116,22 @@ public class Settlement extends BaseTimeEntity {
         this.platformFee = platformFee;
         this.pgFee = pgFee;
         this.settlementAmount = settlementAmount;
+        this.refundAdjustment = 0;
+        this.lastError = null;
+        this.lastTriedAt = LocalDateTime.now();
+    }
+
+    public void updateSummary(int totalSales, int platformFee, int pgFee, int refundAdjustment, int settlementAmount) {
+        this.totalSales = totalSales;
+        this.platformFee = platformFee;
+        this.pgFee = pgFee;
+        this.refundAdjustment = Math.max(0, refundAdjustment);
+        this.settlementAmount = settlementAmount;
+        this.lastError = null;
+        this.lastTriedAt = LocalDateTime.now();
+    }
+
+    public boolean isFailed() {
+        return this.status == SettlementStatus.FAILED;
     }
 }

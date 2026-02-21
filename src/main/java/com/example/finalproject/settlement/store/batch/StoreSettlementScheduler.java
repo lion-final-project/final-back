@@ -3,11 +3,7 @@ package com.example.finalproject.settlement.store.batch;
 import java.time.YearMonth;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -16,44 +12,38 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StoreSettlementScheduler {
 
-    private final JobLauncher jobLauncher;
+    private final StoreSettlementBatchLauncher batchLauncher;
 
-    @Qualifier("storeSettlementGenerateJob")
-    private final Job storeSettlementGenerateJob;
-
-    @Qualifier("storeSettlementCompleteJob")
-    private final Job storeSettlementCompleteJob;
+    @Value("${settlement.store.scheduler-enabled:true}")
+    private boolean schedulerEnabled;
 
     /**
-     * 정산 원장 생성 스케줄.
-     * 기본: 매월 20일 02:00
+     * 정산 생성 스케줄.
+     * 기본값: 매월 20일 02:00
      */
     @Scheduled(cron = "${settlement.store.generate-cron:0 0 2 20 * *}", zone = "Asia/Seoul")
     public void runGenerateJob() {
-        launch(storeSettlementGenerateJob, "generate");
+        if (!schedulerEnabled) {
+            return;
+        }
+
+        YearMonth target = YearMonth.now().minusMonths(1);
+        batchLauncher.runGenerateJob(target);
+        log.info("store settlement generate job launched. target={}", target);
     }
 
     /**
      * 정산 완료 처리 스케줄.
-     * 기본: 매월 20일 02:30
+     * 기본값: 매월 20일 02:30
      */
     @Scheduled(cron = "${settlement.store.complete-cron:0 30 2 20 * *}", zone = "Asia/Seoul")
     public void runCompleteJob() {
-        launch(storeSettlementCompleteJob, "complete");
-    }
-
-    private void launch(Job job, String phase) {
-        try {
-            // targetYearMonth를 넘겨 수동 실행/재실행 시에도 동일 로직 재사용 가능
-            String target = YearMonth.now().minusMonths(1).toString();
-            JobParameters params = new JobParametersBuilder()
-                    .addString("targetYearMonth", target)
-                    .addLong("requestedAt", System.currentTimeMillis())
-                    .toJobParameters();
-            jobLauncher.run(job, params);
-            log.info("store settlement {} job launched. target={}", phase, target);
-        } catch (Exception e) {
-            log.error("store settlement {} job failed", phase, e);
+        if (!schedulerEnabled) {
+            return;
         }
+
+        YearMonth target = YearMonth.now().minusMonths(1);
+        int completedCount = batchLauncher.runCompleteJob(target);
+        log.info("store settlement complete job launched. target={}, completedCount={}", target, completedCount);
     }
 }

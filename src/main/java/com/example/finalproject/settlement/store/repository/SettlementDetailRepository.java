@@ -14,4 +14,6 @@ public interface SettlementDetailRepository extends JpaRepository<SettlementDeta
             + "WHERE sd.settlement.id = :settlementId "
             + "ORDER BY sd.id DESC")
     List<SettlementDetail> findAllBySettlementIdWithStoreOrder(@Param("settlementId") Long settlementId);
+
+    void deleteBySettlementId(Long settlementId);
 }

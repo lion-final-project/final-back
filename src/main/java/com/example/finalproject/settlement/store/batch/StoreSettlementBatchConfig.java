@@ -16,8 +16,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 public class StoreSettlementBatchConfig {
 
     /**
-     * 월 정산 원장 생성 Job.
-     * - 마트별 정산 마스터/상세를 생성한다.
+     * 마트 월 정산 생성 Job.
+     * - 마트별 정산 마스터/상세 데이터를 생성한다.
      */
     @Bean
     public Job storeSettlementGenerateJob(
@@ -69,7 +69,11 @@ public class StoreSettlementBatchConfig {
                 .tasklet((contribution, chunkContext) -> {
                     // targetYearMonth(yyyy-MM) 파라미터가 없으면 전월 기준으로 완료 처리
                     YearMonth target = resolveTargetMonth(chunkContext);
-                    storeSettlementService.completePendingSettlements(target);
+                    int completedCount = storeSettlementService.completePendingSettlements(target);
+                    contribution.getStepExecution()
+                            .getJobExecution()
+                            .getExecutionContext()
+                            .putInt("completedCount", completedCount);
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
                 .build();
