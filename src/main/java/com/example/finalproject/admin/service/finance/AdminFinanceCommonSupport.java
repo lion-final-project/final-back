@@ -3,7 +3,6 @@ package com.example.finalproject.admin.service.finance;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.payment.domain.Payment;
-import com.example.finalproject.payment.enums.PaymentStatus;
 import com.example.finalproject.settlement.enums.SettlementStatus;
 import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.user.domain.User;
