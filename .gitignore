@@ -38,7 +38,7 @@ out/
 
 
 ### Local config ###
-application-*.yml
+application-local.yml
 
 Dockerfile.local
 *.log
