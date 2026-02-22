@@ -1,0 +1,87 @@
+services:
+  frontend:
+    image: ${DOCKER_USERNAME}/dongnae-market-frontend:latest
+    container_name: frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: postgres_postgis
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: ${TZ}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    shm_size: 1g
+
+  backend:
+    image: ${DOCKER_USERNAME}/dongnae-market-backend:latest
+    container_name: backend
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+      - minio
+
+  minio:
+    image: minio/minio
+    container_name: minio_s3
+    restart: always
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+  minio-setup:
+    image: minio/mc
+    container_name: minio_setup
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for MinIO..."
+        sleep 5
+        mc alias set myminio http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb myminio/market-bucket 2>/dev/null || true
+        mc anonymous set download myminio/market-bucket
+        echo "MinIO bucket market-bucket is now public read (download)."
+    restart: "no"
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: >
+      redis-server
+      --notify-keyspace-events Ex
+
+volumes:
+  pgdata:
+  minio_data:
+  redis_data:
