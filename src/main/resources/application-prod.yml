@@ -118,6 +118,12 @@ crypto:
   billing:
     aes-key: ${BILLING_AES_KEY}
 
+kakao:
+  frontend-success-url: ${FRONTEND_URL}
+
+naver:
+  frontend-success-url: ${FRONTEND_URL}
+
 password-reset:
   redis-prefix: "pwdreset:"
   rate-limit-prefix: "pwdreset:ratelmit:"

@@ -88,7 +88,9 @@ public class SecurityConfig {
                                 "http://localhost:5173",
                                 "http://localhost:3000",
                                 "http://127.0.0.1:5173",
-                                "http://127.0.0.1:3000"));
+                                "http://127.0.0.1:3000",
+                                "http://43.200.37.106",
+                                "http://43.200.37.106:8080"));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
                 config.setAllowCredentials(true); // 쿠키 포함 여부
