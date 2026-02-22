@@ -76,6 +76,9 @@ public class StoreOrder extends BaseTimeEntity {
     @Column(name = "cancel_reason", length = 500)
     private String cancelReason;
 
+    @Column(name = "refund_reason", length = 500)
+    private String refundReason;
+
     @Column(name = "is_settled", nullable = false)
     private boolean isSettled = false;
 
@@ -94,6 +97,7 @@ public class StoreOrder extends BaseTimeEntity {
         this.storeProductPrice = storeProductPrice;
         this.deliveryFee = deliveryFee;
         this.finalPrice = finalPrice;
+        this.isSettled = false;
     }
 
     /**
@@ -114,8 +118,8 @@ public class StoreOrder extends BaseTimeEntity {
     }
 
     /**
-     * PENDING 주문을 즉시 거절 (PG 환불 없이 사용하는 경우용).
-     * 환불이 필요한 거절은 {@link #requestReject()} 후 PG 취소를 호출하고, 환불 완료 시 {@link #completeReject(String)}를 사용한다.
+     * PENDING 주문을 즉시 거절 (PG 환불 없이 사용하는 경우용). 환불이 필요한 거절은 {@link #requestReject()} 후 PG 취소를 호출하고, 환불 완료 시
+     * {@link #completeReject(String)}를 사용한다.
      */
     public void reject(String reason) {
         if (this.status != PENDING) {
@@ -189,9 +193,10 @@ public class StoreOrder extends BaseTimeEntity {
     }
 
 
-    public boolean isCancelledOrRejected() {
+    public boolean isRefunded() {
         return status == StoreOrderStatus.CANCELLED
-                || status == StoreOrderStatus.REJECTED;
+                || status == StoreOrderStatus.REJECTED
+                || status == StoreOrderStatus.REFUNDED;
     }
 
     public void requestCancel() {
@@ -213,7 +218,51 @@ public class StoreOrder extends BaseTimeEntity {
         return this.status == StoreOrderStatus.REJECT_REQUESTED;
     }
 
-    /** 마트 정산 완료 처리 — Settlement FK 연결 및 isSettled 플래그 설정 */
+    public void validateRefundRequestable() {
+        if (this.status == StoreOrderStatus.REFUND_REQUESTED ||
+                this.status == StoreOrderStatus.REFUNDED) {
+            throw new BusinessException(ErrorCode.REFUND_ALREADY_REQUESTED);
+        }
+
+        if (this.status != StoreOrderStatus.DELIVERED) {
+            throw new BusinessException(ErrorCode.REFUND_REQUEST_NOT_ALLOWED);
+        }
+
+        if (this.deliveredAt == null) {
+            throw new BusinessException(ErrorCode.INVALID_STORE_ORDER_STATUS);
+        }
+        if (this.deliveredAt.plusHours(48).isBefore(LocalDateTime.now())) {
+            throw new BusinessException(ErrorCode.REFUND_EXPIRED);
+        }
+    }
+
+    public void requestRefund(String reason) {
+
+        validateRefundRequestable();
+
+        this.refundReason = reason;
+        this.status = StoreOrderStatus.REFUND_REQUESTED;
+    }
+
+    public boolean isRefundRequested() {
+        return this.status == StoreOrderStatus.REFUND_REQUESTED;
+    }
+
+    public void completeRefund(String reason) {
+        if (this.status != StoreOrderStatus.REFUND_REQUESTED) {
+            throw new BusinessException(ErrorCode.INVALID_STORE_ORDER_REFUND_STATUS);
+        }
+        this.status = StoreOrderStatus.REFUNDED;
+        this.refundReason = reason;
+    }
+
+    public void revertRefundRequest() {
+        this.status = StoreOrderStatus.DELIVERED;
+    }
+
+    /**
+     * 마트 정산 완료 처리 — Settlement FK 연결 및 isSettled 플래그 설정
+     */
     public void markSettled(Settlement settlement) {
         this.settlement = settlement;
         this.isSettled = true;

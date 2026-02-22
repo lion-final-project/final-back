@@ -107,13 +107,15 @@ public class Payment extends BaseTimeEntity {
         this.paymentStatus = PaymentStatus.REFUNDED;
     }
 
-    public void partialRefunded(Integer refundAmount) {
-        this.refundedAmount = refundAmount;
+    public void applyCumulativeCanceledAmount(int cumulativeCanceledAmount) {
+        this.refundedAmount = cumulativeCanceledAmount;
 
         if (this.refundedAmount >= this.amount) {
             this.paymentStatus = PaymentStatus.REFUNDED;
-        } else {
+        } else if (this.refundedAmount > 0) {
             this.paymentStatus = PaymentStatus.PARTIAL_REFUNDED;
+        } else {
+            this.paymentStatus = PaymentStatus.APPROVED;
         }
     }
 

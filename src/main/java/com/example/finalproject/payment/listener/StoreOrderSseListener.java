@@ -1,4 +1,4 @@
-package com.example.finalproject.payment.event.listener;
+package com.example.finalproject.payment.listener;
 
 import com.example.finalproject.global.sse.Service.SseService;
 import com.example.finalproject.global.sse.enums.SseEventType;

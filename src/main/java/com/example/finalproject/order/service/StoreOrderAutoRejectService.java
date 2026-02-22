@@ -25,6 +25,6 @@ public class StoreOrderAutoRejectService {
 
         storeOrder.requestReject();
         storeOrderTtlService.removeAutoReject(storeOrderId);
-        paymentCancelService.cancel(storeOrder, "자동 거절 (미응답)");
+        paymentCancelService.cancel(storeOrder, storeOrder.getFinalPrice(), "자동 거절 (미응답)");
     }
 }

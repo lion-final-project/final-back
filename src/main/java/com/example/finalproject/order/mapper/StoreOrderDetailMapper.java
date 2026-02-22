@@ -68,6 +68,7 @@ public class StoreOrderDetailMapper {
             OrderProduct op) {
 
         return GetStoreOrderDetailResponse.ProductInfo.builder()
+                .productId(op.getProduct() != null ? op.getProduct().getId() : null)
                 .productNameSnapshot(op.getProductNameSnapshot())
                 .priceSnapshot(op.getPriceSnapshot())
                 .quantity(op.getQuantity())

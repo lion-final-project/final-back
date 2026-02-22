@@ -52,6 +52,7 @@ public class GetOrderListResponse {
     @Getter
     @Builder
     public static class ProductSummary {
+        private Long productId;
         private String productNameSnapshot;
         private Integer priceSnapshot;
         private Integer quantity;

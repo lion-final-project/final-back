@@ -1,4 +1,4 @@
-package com.example.finalproject.payment.event.listener;
+package com.example.finalproject.payment.listener;
 
 import com.example.finalproject.order.service.StoreOrderTtlService;
 import com.example.finalproject.payment.event.StoreOrderCreatedEvent;
@@ -17,7 +17,8 @@ public class StoreOrderRedisTtlListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(StoreOrderCreatedEvent event) {
-        log.info("[TTL][추적] StoreOrderCreatedEvent 수신(AFTER_COMMIT) - storeOrderId={}, orderedAt={}", event.getStoreOrderId(), event.getOrderedAt());
+        log.info("[TTL][추적] StoreOrderCreatedEvent 수신(AFTER_COMMIT) - storeOrderId={}, orderedAt={}",
+                event.getStoreOrderId(), event.getOrderedAt());
         storeOrderTtlService.setAutoReject(event.getStoreOrderId(), event.getOrderedAt());
     }
 }

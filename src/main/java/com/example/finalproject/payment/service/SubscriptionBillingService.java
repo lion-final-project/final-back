@@ -60,7 +60,6 @@ public class SubscriptionBillingService {
 
         String cardNumber = res.getCard() != null ? res.getCard().getNumber() : null;
 
-        // pgTransactionId는 res에 transactionKey/lastTransactionKey로 올 수 있는데,
         subscriptionPayment.approve(
                 res.getPaymentKey(),
                 null,

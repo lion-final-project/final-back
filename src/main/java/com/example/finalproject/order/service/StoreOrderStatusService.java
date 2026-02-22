@@ -31,12 +31,22 @@ public class StoreOrderStatusService {
 
         if (storeOrder.isCancelRequested()) {
             completeCancel(storeOrder, reason);
-        } else if (storeOrder.isRejectRequested()) {
-            completeReject(storeOrder, reason);
-        } else {
-            log.error("[REFUND_EVENT_STATE_MISMATCH] storeOrderId={}, status={}",
-                    storeOrderId, storeOrder.getStatus());
+            return;
         }
+
+        if (storeOrder.isRejectRequested()) {
+            completeReject(storeOrder, reason);
+            return;
+        }
+
+        if (storeOrder.isRefundRequested()) {
+            completeRefund(storeOrder, reason);
+            return;
+        }
+
+        log.error("[REFUND_EVENT_STATE_MISMATCH] storeOrderId={}, status={}",
+                storeOrderId, storeOrder.getStatus());
+        throw new BusinessException(ErrorCode.INVALID_STORE_ORDER_REFUND_STATUS);
     }
 
     @Transactional
@@ -84,5 +94,8 @@ public class StoreOrderStatusService {
                         storeOrder.getStore().getStoreName()));
     }
 
-
+    private void completeRefund(StoreOrder storeOrder, String reason) {
+        storeOrder.completeRefund(reason);
+        storeOrder.getOrder().recalculateStatus();
+    }
 }

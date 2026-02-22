@@ -5,4 +5,6 @@ public enum RefundStatus {
     REQUESTED,
     APPROVED,
     REJECTED,
+    PG_APPROVED,
+    PG_REJECTED
 }
