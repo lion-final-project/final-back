@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.service;
+package com.example.finalproject.admin.service.report;
 
 import com.example.finalproject.admin.dto.report.AdminReportDetailResponse;
 import com.example.finalproject.admin.dto.report.AdminReportListItemResponse;
