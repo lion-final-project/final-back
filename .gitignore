@@ -38,7 +38,8 @@ out/
 
 
 ### Local config ###
-application-local.yml
+application-*.yml
+
 Dockerfile.local
 *.log
 src/main/java/com/example/finalproject/forLocal/
