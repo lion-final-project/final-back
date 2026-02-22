@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.service;
+package com.example.finalproject.admin.service.user;
 
 import com.example.finalproject.admin.dto.user.AdminUserDetailResponse;
 import com.example.finalproject.admin.dto.user.AdminUserListItemResponse;

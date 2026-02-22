@@ -1,11 +1,11 @@
-package com.example.finalproject.admin.dto.finance;
+package com.example.finalproject.admin.dto.finance.settlement;
 
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
-public class AdminRiderSettlementSummaryResponse {
+public class AdminStoreSettlementSummaryResponse {
     private long totalTargets;
     private long completedTargets;
     private long pendingTargets;

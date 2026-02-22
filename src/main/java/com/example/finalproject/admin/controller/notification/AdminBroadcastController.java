@@ -1,9 +1,9 @@
-package com.example.finalproject.admin.controller;
+package com.example.finalproject.admin.controller.notification;
 
 import com.example.finalproject.admin.dto.notification.AdminBroadcastCreateRequest;
 import com.example.finalproject.admin.dto.notification.AdminBroadcastCreateResponse;
 import com.example.finalproject.admin.dto.notification.AdminBroadcastHistoryResponse;
-import com.example.finalproject.admin.service.AdminBroadcastService;
+import com.example.finalproject.admin.service.notification.AdminBroadcastService;
 import com.example.finalproject.global.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

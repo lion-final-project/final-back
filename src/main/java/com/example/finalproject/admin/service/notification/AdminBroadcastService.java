@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.service;
+package com.example.finalproject.admin.service.notification;
 
 import com.example.finalproject.admin.dto.notification.AdminBroadcastCreateRequest;
 import com.example.finalproject.admin.dto.notification.AdminBroadcastCreateResponse;

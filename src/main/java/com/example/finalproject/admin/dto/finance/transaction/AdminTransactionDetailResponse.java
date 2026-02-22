@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.dto.finance;
+package com.example.finalproject.admin.dto.finance.transaction;
 
 import java.time.LocalDateTime;
 import java.util.List;

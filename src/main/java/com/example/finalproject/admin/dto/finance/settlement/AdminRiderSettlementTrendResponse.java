@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.dto.finance;
+package com.example.finalproject.admin.dto.finance.settlement;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
