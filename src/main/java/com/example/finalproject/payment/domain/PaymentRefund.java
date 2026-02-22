@@ -1,0 +1,105 @@
+package com.example.finalproject.payment.domain;
+
+
+import com.example.finalproject.global.domain.BaseTimeEntity;
+import com.example.finalproject.order.domain.StoreOrder;
+import com.example.finalproject.payment.enums.RefundResponsibility;
+import com.example.finalproject.payment.enums.RefundStatus;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "payment_refunds")
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class PaymentRefund extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_refunds_payment"))
+    private Payment payment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_order_id", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_refunds_store_order"))
+    private StoreOrder storeOrder;
+
+    @Column(name = "refund_amount")
+    private Integer refundAmount;
+
+    @Column(name = "refund_reason", length = 500)
+    private String refundReason;
+
+    private LocalDateTime refundedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "refund_responsibility", length = 30)
+    private RefundResponsibility responsibility;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "refund_status", nullable = false, length = 30)
+    private RefundStatus refundStatus;
+
+    @Column(name = "is_settled", nullable = false)
+    private boolean isSettled = false;
+
+    public void markSettled() {
+        this.isSettled = true;
+    }
+
+    @Builder
+    public PaymentRefund(Payment payment, StoreOrder storeOrder,
+                         Integer refundAmount, String refundReason,
+                         RefundStatus refundStatus, RefundResponsibility responsibility) {
+        this.payment = payment;
+        this.storeOrder = storeOrder;
+        this.refundAmount = refundAmount;
+        this.refundReason = refundReason;
+        this.refundStatus = refundStatus != null ? refundStatus : RefundStatus.REQUESTED;
+        this.refundedAt = LocalDateTime.now();
+        this.responsibility = responsibility;
+    }
+
+    public void adminApprove(int refundAmount) {
+        this.refundAmount = refundAmount;
+        this.refundStatus = RefundStatus.APPROVED;
+        this.refundedAt = LocalDateTime.now();
+    }
+
+    public void confirmRefundDetails(RefundResponsibility responsibility, int refundAmount) {
+        this.responsibility = responsibility;
+        this.refundAmount = refundAmount;
+    }
+
+    public void adminReject() {
+        this.refundStatus = RefundStatus.REJECTED;
+    }
+
+    public void markPgApproved() {
+        this.refundStatus = RefundStatus.PG_APPROVED;
+        this.refundedAt = LocalDateTime.now();
+    }
+
+    public void markPgRejected() {
+        this.refundStatus = RefundStatus.PG_REJECTED;
+    }
+}

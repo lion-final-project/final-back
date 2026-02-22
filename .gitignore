@@ -35,3 +35,38 @@ out/
 
 ### VS Code ###
 .vscode/
+
+
+### Local config ###
+application-local.yml
+Dockerfile.local
+*.log
+src/main/java/com/example/finalproject/forLocal/
+
+### Secrets ###
+.env
+.env.*
+*.pem
+*.key
+
+### Generated sources ###
+src/main/generated/*
+
+/src/test/
+**/claude.md
+.claude
+.agents/
+
+.DS_Store
+
+myMd/
+docs/
+
+
+
+minio_data/
+pgdata/
+GEMINI.md
+CLAUDE.md
+.serena/
+PROJECT_INDEX.md
