@@ -51,4 +51,15 @@ public interface SubscriptionHistoryRepository extends JpaRepository<Subscriptio
      */
     @Query("SELECT sh FROM SubscriptionHistory sh WHERE sh.storeOrder.id = :storeOrderId")
     Optional<SubscriptionHistory> findFirstByStoreOrderId(@Param("storeOrderId") Long storeOrderId);
+
+    /**
+     * 구독의 특정 기간 내 배송 이력을 조회한다 (일정 생성 시 중복 방지용).
+     *
+     * @param subscription  구독
+     * @param startDate     시작일 (inclusive)
+     * @param endDate       종료일 (inclusive)
+     * @return 해당 기간 내 이력 목록
+     */
+    List<SubscriptionHistory> findBySubscriptionAndScheduledDateBetween(
+            Subscription subscription, LocalDate startDate, LocalDate endDate);
 }

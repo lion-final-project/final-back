@@ -27,7 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 구독 배송 일정에 따라 Order → StoreOrder → OrderProduct 를 자동 생성하고 subscription_history 에 연결한다.
+ * 구독 배송 일정에 따라 Order → StoreOrder(PENDING) → OrderProduct 를 자동 생성하고 subscription_history 에 연결한다.
+ * 배차 처리는 점주가 "배송 접수" 버튼을 누를 때 StoreSubscriptionDeliveryService 에서 수행한다.
  */
 @Slf4j
 @Service
