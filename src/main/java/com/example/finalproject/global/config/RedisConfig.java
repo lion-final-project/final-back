@@ -7,10 +7,9 @@ import org.springframework.data.redis.core.RedisKeyValueAdapter.EnableKeyspaceEv
 import org.springframework.data.redis.listener.KeyExpirationEventMessageListener;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
-import org.springframework.session.data.redis.config.ConfigureRedisAction;
 
 @Configuration
-@EnableRedisRepositories(enableKeyspaceEvents = EnableKeyspaceEvents.ON_STARTUP)
+@EnableRedisRepositories(enableKeyspaceEvents = EnableKeyspaceEvents.ON_STARTUP, keyspaceNotificationsConfigParameter = "")
 public class RedisConfig {
 
     @Bean
@@ -18,15 +17,6 @@ public class RedisConfig {
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
         return container;
-    }
-
-    /**
-     * Redis 클러스터/ElastiCache 환경에서 CONFIG 명령어 실행을 방지하기 위한 설정
-     * ElastiCache는 안전상의 이유로 CONFIG 명령어를 막아두었으므로 이를 NO_OP 처리해야 함
-     */
-    @Bean
-    public ConfigureRedisAction configureRedisAction() {
-        return ConfigureRedisAction.NO_OP;
     }
 
     /**
