@@ -14,6 +14,9 @@ public class AdminStoreApprovalListResponse {
     private String storeName;
     private Long ownerId;
     private String ownerName;
+    private String ownerEmail;
+    private String ownerPhone;
+    private String storePhone;
     private ApprovalStatus status;
     private LocalDateTime appliedAt;
     private LocalDateTime heldUntil;
