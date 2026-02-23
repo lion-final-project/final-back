@@ -1,9 +1,9 @@
-package com.example.finalproject.admin.controller.report;
+package com.example.finalproject.admin.controller;
 
 import com.example.finalproject.admin.dto.report.AdminReportDetailResponse;
 import com.example.finalproject.admin.dto.report.AdminReportListResponse;
 import com.example.finalproject.admin.dto.report.AdminReportResolveRequest;
-import com.example.finalproject.admin.service.report.AdminReportService;
+import com.example.finalproject.admin.service.AdminReportService;
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.moderation.enums.ReportStatus;
 import jakarta.validation.Valid;
