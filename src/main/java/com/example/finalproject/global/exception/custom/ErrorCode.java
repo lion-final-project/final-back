@@ -35,8 +35,8 @@ public enum ErrorCode {
 
     // AUTH
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "AUTH-001", "인증이 필요합니다."),
-    DUPLICATE_EMAIL(HttpStatus.CONFLICT, "AUTH-002", "이미 사용 중인 이메일입니다."),
-    DUPLICATE_PHONE(HttpStatus.CONFLICT, "AUTH-003", "이미 가입된 휴대폰 번호입니다."),
+    DUPLICATE_EMAIL(HttpStatus.BAD_REQUEST, "AUTH-002", "이미 사용 중인 이메일입니다."),
+    DUPLICATE_PHONE(HttpStatus.BAD_REQUEST, "AUTH-003", "이미 가입된 휴대폰 번호입니다."),
     PHONE_VERIFICATION_REQUIRED(HttpStatus.UNPROCESSABLE_ENTITY, "AUTH-004", "휴대폰 인증이 필요합니다."),
     PHONE_VERIFICATION_ALREADY_USED(HttpStatus.UNPROCESSABLE_ENTITY, "AUTH-005", "이미 사용된 인증 토큰입니다."),
     PHONE_VERIFICATION_EXPIRED(HttpStatus.UNPROCESSABLE_ENTITY, "AUTH-006", "인증이 만료되었습니다. 다시 시도해주세요."),
@@ -126,7 +126,7 @@ public enum ErrorCode {
     // RIDER
     RIDER_STATUS_LOCKED_DELIVERING(HttpStatus.CONFLICT, "RIDER-001", "배달 중에는 상태를 변경할 수 없습니다."),
     RIDER_ALREADY_REGISTERED(HttpStatus.CONFLICT, "RIDER-002", "이미 라이더로 등록되어 있습니다."),
-    RIDER_APPROVAL_ALREADY_EXISTS(HttpStatus.CONFLICT, "RIDER-003", "이미 대기 중이거나 보류 중인 신청이 있습니다."),
+    RIDER_APPROVAL_ALREADY_EXISTS(HttpStatus.CONFLICT, "RIDER-003", "이미 대기 중인 신청이 있습니다."),
     RIDER_LOCATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RIDER-004", "라이더 위치 정보를 찾을 수 없습니다."),
     RIDER_MAX_DELIVERY_EXCEEDED(HttpStatus.CONFLICT, "RIDER-005", "동시에 진행할 수 있는 최대 배달 수를 초과했습니다."),
 
@@ -188,6 +188,15 @@ public enum ErrorCode {
     REVIEW_MODIFICATION_PERIOD_EXPIRED(HttpStatus.BAD_REQUEST, "REVIEW-004", "리뷰 수정/삭제 가능 기간이 지났습니다."),
     REVIEW_REPLY_ALREADY_EXISTS(HttpStatus.CONFLICT, "REVIEW-005", "이미 답글이 존재합니다."),
 
+    // REFUND
+    REFUND_ALREADY_REQUESTED(HttpStatus.CONFLICT, "REFUND-001", "이미 환불 요청이 접수된 주문입니다."),
+    REFUND_REQUEST_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "REFUND-002", "현재 상태에서는 환불 요청이 불가능합니다."),
+    REFUND_EXPIRED(HttpStatus.BAD_REQUEST, "REFUND-003", "환불 가능 기간(배송 완료 후 48시간)이 지났습니다."),
+    REFUND_NOT_FOUND(HttpStatus.NOT_FOUND, "REFUND-004", "환불 요청 정보를 찾을 수 없습니다."),
+    INVALID_REFUND_STATUS(HttpStatus.BAD_REQUEST, "REFUND-005", "환불 상태가 올바르지 않습니다."),
+    INVALID_REFUND_ROLLBACK_STATE(HttpStatus.INTERNAL_SERVER_ERROR, "REFUND-006", "환불 요청 원복 상태가 유실되었습니다."),
+    INVALID_STORE_ORDER_STATUS(HttpStatus.INTERNAL_SERVER_ERROR, "STORE_ORDER-007", "주문 상태 정보가 올바르지 않습니다."),
+
     // 회원가입 검증 (422)
     TERMS_PRIVACY_NOT_AGREED(HttpStatus.UNPROCESSABLE_ENTITY, "AUTH-018", "필수 약관에 동의해야 합니다."),
 
@@ -197,11 +206,19 @@ public enum ErrorCode {
     private final String code;
     private final String message;
 
-    /** API 에러 응답 코드: 409 → ERR_CONFLICT, 400 → ERR_VALIDATION, 422 → ERR_UNPROCESSABLE */
+    /**
+     * API 에러 응답 코드: 409 → ERR_CONFLICT, 400 → ERR_VALIDATION, 422 → ERR_UNPROCESSABLE
+     */
     public String getApiCode() {
-        if (status == HttpStatus.CONFLICT) return "ERR_CONFLICT";
-        if (status == HttpStatus.BAD_REQUEST) return "ERR_VALIDATION";
-        if (status == HttpStatus.UNPROCESSABLE_ENTITY) return "ERR_UNPROCESSABLE";
+        if (status == HttpStatus.CONFLICT) {
+            return "ERR_CONFLICT";
+        }
+        if (status == HttpStatus.BAD_REQUEST) {
+            return "ERR_VALIDATION";
+        }
+        if (status == HttpStatus.UNPROCESSABLE_ENTITY) {
+            return "ERR_UNPROCESSABLE";
+        }
         return code;
     }
 }

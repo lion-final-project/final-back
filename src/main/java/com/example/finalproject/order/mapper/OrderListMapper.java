@@ -53,6 +53,7 @@ public class OrderListMapper {
     public GetOrderListResponse.ProductSummary toProductSummary(OrderProduct product) {
 
         return GetOrderListResponse.ProductSummary.builder()
+                .productId(product.getProduct() != null ? product.getProduct().getId() : null)
                 .productNameSnapshot(product.getProductNameSnapshot())
                 .priceSnapshot(product.getPriceSnapshot())
                 .quantity(product.getQuantity())

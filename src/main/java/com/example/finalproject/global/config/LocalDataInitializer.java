@@ -131,9 +131,9 @@ public class LocalDataInitializer implements CommandLineRunner {
                         .roleName("RIDER")
                         .build()));
 
-        roleRepository.findByRoleName("STORE_OWNER")
+        roleRepository.findByRoleName("STORE")
                 .orElseGet(() -> roleRepository.save(Role.builder()
-                        .roleName("STORE_OWNER")
+                        .roleName("STORE")
                         .build()));
 
         // ADMIN 테스트 계정 생성 (없으면)
@@ -209,7 +209,7 @@ public class LocalDataInitializer implements CommandLineRunner {
     // 스토어, 상품, 테스트 유저 장바구니에 상품 담기 (장바구니·주문서·결제 플로우 확인용)
     private void seedCheckoutDummyData(Role userRole) {
         String storeOwnerEmail = "storeowner@test.com";
-        Role storeOwnerRole = roleRepository.findByRoleName("STORE_OWNER").orElseThrow();
+        Role storeOwnerRole = roleRepository.findByRoleName("STORE").orElseThrow();
         User storeOwner = userRepository.findByEmail(storeOwnerEmail).orElseGet(() -> {
             User owner = User.builder()
                     .email(storeOwnerEmail)

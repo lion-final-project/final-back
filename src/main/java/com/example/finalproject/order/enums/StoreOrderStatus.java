@@ -15,4 +15,7 @@ public enum StoreOrderStatus {
 
     REJECT_REQUESTED,
     REJECTED,
+
+    REFUND_REQUESTED,
+    REFUNDED,
 }

@@ -8,9 +8,11 @@ import com.example.finalproject.order.repository.StoreOrderRepository;
 import com.example.finalproject.payment.domain.Payment;
 import com.example.finalproject.payment.domain.PaymentRefund;
 import com.example.finalproject.payment.enums.PaymentStatus;
+import com.example.finalproject.payment.enums.RefundResponsibility;
 import com.example.finalproject.payment.enums.RefundStatus;
 import com.example.finalproject.payment.repository.PaymentRefundRepository;
 import com.example.finalproject.payment.repository.PaymentRepository;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -114,26 +116,41 @@ public class PaymentCommandService {
         if (pgCumulativeAmount.equals(payment.getAmount())) {
             payment.Refunded();
         } else {
-            payment.partialRefunded(pgCumulativeAmount);
+            payment.applyCumulativeCanceledAmount(pgCumulativeAmount);
         }
     }
 
-    private void saveRefundHistory(Long storeOrderId, Integer cancelAmount, String reason, Payment payment) {
+    private void saveRefundHistory(Long storeOrderId,
+                                   Integer cancelAmount,
+                                   String reason,
+                                   Payment payment) {
+
         StoreOrder storeOrder = storeOrderRepository.findById(storeOrderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_ORDER_NOT_FOUND));
 
-        paymentRefundRepository.save(
-                PaymentRefund.builder()
-                        .payment(payment)
-                        .storeOrder(storeOrder)
-                        .refundAmount(cancelAmount)
-                        .refundReason(reason)
-                        .refundStatus(RefundStatus.APPROVED)
-                        .isSettled(false)
-                        .build()
-        );
-    }
+        // 최근 환불 요청이 있는지 확인
+        Optional<PaymentRefund> optionalRefund = paymentRefundRepository.findByStoreOrder_Id(storeOrderId);
 
+        if (optionalRefund.isPresent()) {
+
+            PaymentRefund refund = optionalRefund.get();
+
+            refund.adminApprove(cancelAmount);
+
+        } else {
+            paymentRefundRepository.save(
+                    PaymentRefund.builder()
+                            .payment(payment)
+                            .storeOrder(storeOrder)
+                            .refundAmount(cancelAmount)
+                            .refundReason(reason)
+                            .refundStatus(RefundStatus.APPROVED)
+                            .responsibility(RefundResponsibility.PLATFORM)
+                            .isSettled(false)
+                            .build()
+            );
+        }
+    }
 }
 
 

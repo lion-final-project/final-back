@@ -94,7 +94,7 @@ public class AdminBroadcastService {
             return userRepository.findAllActiveByRoleName("CUSTOMER");
         }
         if (targetType == BroadcastRefType.STORE) {
-            return userRepository.findAllActiveByRoleName("STORE_OWNER");
+            return userRepository.findAllActiveByRoleName("STORE");
         }
         if (targetType == BroadcastRefType.RIDER) {
             return userRepository.findAllActiveByRoleName("RIDER");

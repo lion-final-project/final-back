@@ -75,7 +75,7 @@ public class Subscription extends BaseTimeEntity {
     private Integer totalAmount;
 
     @Column(name = "cycle_count", nullable = false)
-    private Integer cycleCount = 1;
+    private Integer cycleCount = 0;
 
     @Column(name = "started_at", nullable = false)
     private LocalDateTime startedAt;
@@ -153,6 +153,17 @@ public class Subscription extends BaseTimeEntity {
         this.cancelledAt = null;
     }
 
+    /**
+     * 해지 예정 구독을 최종 해지한다 (스케줄러 자동 처리). CANCELLATION_PENDING 상태에서만 호출 가능.
+     */
+    public void finalizeCancellation() {
+        if (this.status != SubscriptionStatus.CANCELLATION_PENDING) {
+            throw new IllegalStateException("CANCELLATION_PENDING 상태에서만 최종 해지할 수 있습니다.");
+        }
+        this.status = SubscriptionStatus.CANCELLED;
+        this.cancelledAt = LocalDateTime.now();
+    }
+
     public void activate() {
         this.status = SubscriptionStatus.ACTIVE;
     }
@@ -169,6 +180,6 @@ public class Subscription extends BaseTimeEntity {
      * 배송 완료 시 주기 차수를 1 증가시킨다 (구독 진행 상황 추적용).
      */
     public void incrementCycleCount() {
-        this.cycleCount = (this.cycleCount != null ? this.cycleCount : 1) + 1;
+        this.cycleCount = (this.cycleCount != null ? this.cycleCount : 0) + 1;
     }
 }

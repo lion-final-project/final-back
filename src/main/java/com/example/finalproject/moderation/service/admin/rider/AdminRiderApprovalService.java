@@ -4,7 +4,6 @@ import com.example.finalproject.communication.domain.Notification;
 import com.example.finalproject.communication.enums.NotificationRefType;
 import com.example.finalproject.communication.repository.NotificationRepository;
 import com.example.finalproject.delivery.domain.Rider;
-import com.example.finalproject.delivery.enums.RiderApprovalStatus;
 import com.example.finalproject.delivery.repository.RiderRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
@@ -62,15 +61,15 @@ public class AdminRiderApprovalService {
             if (rider == null) {
                 continue;
             }
-            if ((approval.getStatus() == ApprovalStatus.PENDING || approval.getStatus() == ApprovalStatus.HELD)
-                    && rider.getStatus() == RiderApprovalStatus.APPROVED) {
-                continue;
-            }
             result.add(new AdminRiderApprovalListResponse(
                     approval.getId(),
                     rider.getId(),
                     approval.getUser().getId(),
                     rider.getDisplayName(),
+                    approval.getUser().getEmail(),
+                    StringUtils.hasText(approval.getUser().getPhone())
+                            ? approval.getUser().getPhone()
+                            : rider.getDisplayPhone(),
                     approval.getStatus(),
                     approval.getCreatedAt(),
                     approval.getHeldUntil()

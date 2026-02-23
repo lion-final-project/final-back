@@ -1,5 +1,6 @@
 package com.example.finalproject.delivery.dto.response;
 
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,4 +11,6 @@ import lombok.Getter;
 public class GetRiderRegistrationStatusResponse {
     private String status;
     private Long approvalId;
+    private String reason;
+    private LocalDateTime heldUntil;
 }

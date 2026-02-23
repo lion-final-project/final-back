@@ -57,6 +57,86 @@ public interface UserRepository extends JpaRepository<User, Long> {
             JOIN u.userRoles ur
             JOIN ur.role r
             WHERE u.deletedAt IS NULL
+              AND r.roleName = 'CUSTOMER'
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM UserRole urx
+                    JOIN urx.role rx
+                    WHERE urx.user = u
+                      AND rx.roleName IN ('STORE', 'RIDER', 'ADMIN')
+              )
+              AND (:status IS NULL OR u.status = :status)
+              AND (
+                    :keyword IS NULL OR :keyword = ''
+                    OR LOWER(u.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR REPLACE(u.phone, '-', '') LIKE CONCAT('%', REPLACE(:keyword, '-', ''), '%')
+              )
+            """)
+    Page<User> searchCustomerUsersForAdmin(@Param("keyword") String keyword,
+                                           @Param("status") UserStatus status,
+                                           Pageable pageable);
+
+    @Query("""
+            SELECT COUNT(DISTINCT u.id)
+            FROM User u
+            JOIN u.userRoles ur
+            JOIN ur.role r
+            WHERE u.deletedAt IS NULL
+              AND r.roleName = 'CUSTOMER'
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM UserRole urx
+                    JOIN urx.role rx
+                    WHERE urx.user = u
+                      AND rx.roleName IN ('STORE', 'RIDER', 'ADMIN')
+              )
+            """)
+    long countCustomerUsers();
+
+    @Query("""
+            SELECT COUNT(DISTINCT u.id)
+            FROM User u
+            JOIN u.userRoles ur
+            JOIN ur.role r
+            WHERE u.deletedAt IS NULL
+              AND r.roleName = 'CUSTOMER'
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM UserRole urx
+                    JOIN urx.role rx
+                    WHERE urx.user = u
+                      AND rx.roleName IN ('STORE', 'RIDER', 'ADMIN')
+              )
+              AND u.status = :status
+            """)
+    long countCustomerUsersByStatus(@Param("status") UserStatus status);
+
+    @Query("""
+            SELECT COUNT(DISTINCT u.id)
+            FROM User u
+            JOIN u.userRoles ur
+            JOIN ur.role r
+            WHERE u.deletedAt IS NULL
+              AND r.roleName = 'CUSTOMER'
+              AND NOT EXISTS (
+                    SELECT 1
+                    FROM UserRole urx
+                    JOIN urx.role rx
+                    WHERE urx.user = u
+                      AND rx.roleName IN ('STORE', 'RIDER', 'ADMIN')
+              )
+              AND u.createdAt BETWEEN :from AND :to
+            """)
+    long countCustomerUsersByCreatedAtBetween(@Param("from") LocalDateTime from,
+                                              @Param("to") LocalDateTime to);
+
+    @Query("""
+            SELECT DISTINCT u
+            FROM User u
+            JOIN u.userRoles ur
+            JOIN ur.role r
+            WHERE u.deletedAt IS NULL
               AND r.roleName = :roleName
             """)
     List<User> findAllActiveByRoleName(@Param("roleName") String roleName);

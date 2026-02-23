@@ -54,12 +54,15 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(me));
     }
 
+    /** 이미 가입된 이메일이면 400, 미사용 이메일이면 200 + duplicated: false */
     @GetMapping("/check-email")
     public ResponseEntity<ApiResponse<DuplicateCheckResponse>> checkEmail(
             @RequestParam @Email(message = "이메일 형식이 올바르지 않습니다.") String email
     ) {
-        boolean duplicated = authService.isEmailDuplicated(email); 
-        return ResponseEntity.ok(ApiResponse.success(new DuplicateCheckResponse(duplicated)));
+        if (authService.isEmailDuplicated(email)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
+        return ResponseEntity.ok(ApiResponse.success(new DuplicateCheckResponse(false)));
     }
 
     @GetMapping("/check-phone")
@@ -85,7 +88,7 @@ public class AuthController {
                 CookieUtil.createRefreshTokenCookie(
                         response.getRefreshToken(),
                         jwtProperties.getRefreshTokenValiditySeconds()).toString());
-        return ResponseEntity.ok()
+        return ResponseEntity.status(HttpStatus.CREATED)
                 .headers(headers)
                 .body(ApiResponse.success("회원가입이 완료되었습니다.", response));
     }
