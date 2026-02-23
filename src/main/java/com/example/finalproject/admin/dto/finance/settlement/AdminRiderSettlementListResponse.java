@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.dto.finance;
+package com.example.finalproject.admin.dto.finance.settlement;
 
 import com.example.finalproject.settlement.enums.SettlementStatus;
 import java.time.LocalDate;

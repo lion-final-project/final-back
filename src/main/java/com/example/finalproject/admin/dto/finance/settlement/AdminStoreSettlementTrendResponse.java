@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.dto.finance;
+package com.example.finalproject.admin.dto.finance.settlement;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
@@ -7,11 +7,11 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class AdminTransactionTrendResponse {
-    private String period;
+public class AdminStoreSettlementTrendResponse {
     @JsonProperty("xLabels")
     private List<String> xLabels;
     @JsonProperty("yValues")
     private List<Long> yValues;
-    private long maxY;
+    private long totalAmount;
+    private double changeRate;
 }
