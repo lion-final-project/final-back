@@ -102,6 +102,31 @@ public class Store extends BaseTimeEntity {
         businessHour.assignStore(this);
     }
 
+    public void replaceRegistrationInfo(
+            StoreCategory storeCategory,
+            String storeName,
+            String phone,
+            String description,
+            String representativeName,
+            String representativePhone,
+            SubmittedDocumentInfo submittedDocumentInfo,
+            StoreAddress address,
+            SettlementAccount settlementAccount,
+            String storeImage
+    ) {
+        this.storeCategory = storeCategory;
+        this.storeName = storeName;
+        this.phone = phone;
+        this.description = description;
+        this.representativeName = representativeName;
+        this.representativePhone = representativePhone;
+        this.submittedDocumentInfo = submittedDocumentInfo;
+        this.address = address;
+        this.settlementAccount = settlementAccount;
+        this.storeImage = storeImage;
+        this.status = StoreStatus.PENDING;
+    }
+
     // 마트 승인 처리 (상태를 APPROVED로 변경).
     public void approve() {
         this.status = StoreStatus.APPROVED;

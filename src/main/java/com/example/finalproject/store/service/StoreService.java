@@ -3,43 +3,48 @@ package com.example.finalproject.store.service;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.global.util.GeometryUtil;
+import com.example.finalproject.communication.enums.NotificationRefType;
+import com.example.finalproject.communication.service.NotificationService;
 import com.example.finalproject.moderation.domain.Approval;
+import com.example.finalproject.moderation.domain.ApprovalDocument;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.ApprovalStatus;
 import com.example.finalproject.moderation.enums.DocumentType;
+import com.example.finalproject.moderation.repository.ApprovalDocumentRepository;
 import com.example.finalproject.moderation.repository.ApprovalRepository;
-import com.example.finalproject.store.domain.embedded.SettlementAccount;
 import com.example.finalproject.store.domain.Store;
-import com.example.finalproject.store.domain.embedded.StoreAddress;
 import com.example.finalproject.store.domain.StoreBusinessHour;
+import com.example.finalproject.store.domain.StoreCategory;
+import com.example.finalproject.store.domain.embedded.SettlementAccount;
+import com.example.finalproject.store.domain.embedded.StoreAddress;
 import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
 import com.example.finalproject.store.dto.request.PatchDeliveryAvailableRequest;
 import com.example.finalproject.store.dto.request.PatchStoreDescriptionRequest;
 import com.example.finalproject.store.dto.request.PatchStoreImageRequest;
 import com.example.finalproject.store.dto.request.PostStoreBusinessHourRequest;
 import com.example.finalproject.store.dto.request.PostStoreRegistrationRequest;
+import com.example.finalproject.store.dto.response.GetMyStoreResponse;
 import com.example.finalproject.store.dto.response.GetStoreCategoryResponse;
+import com.example.finalproject.store.dto.response.GetStoreRegistrationDetailResponse;
 import com.example.finalproject.store.dto.response.GetStoreDetailForCustomerResponse;
 import com.example.finalproject.store.dto.response.GetStoreRegistrationStatusResponse;
 import com.example.finalproject.store.dto.response.PostStoreRegistrationResponse;
-import com.example.finalproject.store.dto.response.GetMyStoreResponse;
-import com.example.finalproject.store.domain.StoreCategory;
 import com.example.finalproject.store.enums.StoreStatus;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
 import com.example.finalproject.store.repository.StoreRepository;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.repository.UserRepository;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.locationtech.jts.geom.Point;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -50,32 +55,46 @@ public class StoreService {
     private final StoreRepository storeRepository;
     private final StoreCategoryRepository storeCategoryRepository;
     private final ApprovalRepository approvalRepository;
+    private final ApprovalDocumentRepository approvalDocumentRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
-
-
     public PostStoreRegistrationResponse createStoreApplication(String userName, PostStoreRegistrationRequest request) {
-
         User user = findUserByUserName(userName);
+        Optional<Store> existingStore = storeRepository.findByOwner(user);
+        Optional<Approval> latestApproval = approvalRepository.findTopByUserAndApplicantTypeOrderByIdDesc(
+                user, ApplicantType.STORE);
 
-        //입점 신청 조건 확인
-        validateRegistration(user, request);
-
-        //마트 생성(PENDING 상태) + 운영 시간 추가
-        Store store = createStore(user, request);
-        addBusinessHours(store, request.getBusinessHours());
+        validateRegistration(user, request, existingStore.orElse(null));
+        Store store;
+        if (existingStore.isPresent() && existingStore.get().getStatus() != StoreStatus.APPROVED) {
+            // 재신청 시 기존 스토어를 삭제하지 않고 갱신한다. (products FK 충돌 방지)
+            store = existingStore.get();
+            updateStoreForRegistration(store, request);
+            store.getBusinessHours().clear();
+            storeRepository.saveAndFlush(store);
+            addBusinessHours(store, request.getBusinessHours());
+        } else {
+            store = createStore(user, request);
+            addBusinessHours(store, request.getBusinessHours());
+        }
         Store savedStore = storeRepository.save(store);
-        log.info("마트 및 운영 시간 저장 성공");
 
-        //승인 신청 생성 + 증빙 서류 추가
-        Approval approval = createApproval(user);
+        Approval approval;
+        if (latestApproval.isPresent() && latestApproval.get().getStatus() == ApprovalStatus.HELD) {
+            approval = latestApproval.get();
+            approval.resubmit();
+            approval.clearDocuments();
+            // 기존 문서 삭제를 먼저 flush 해서 문서 재업로드 시 유니크 충돌을 방지한다.
+            approvalRepository.saveAndFlush(approval);
+        } else {
+            approval = createApproval(user);
+        }
         addApprovalDocuments(approval, request);
         Approval savedApproval = approvalRepository.save(approval);
-        log.info("마트 승인 신청 이력 저장 성공 approvalId = {}", savedApproval.getId());
-
-        log.info("마트 입점 신청 완료. storeId={}, userId={}", savedStore.getId(), user.getId());
+        notifyAdminsForStoreSubmission(user, savedStore);
 
         return PostStoreRegistrationResponse.of(
                 savedStore.getId(),
@@ -86,19 +105,96 @@ public class StoreService {
         );
     }
 
-    /**
-     * 현재 사용자의 마트 입점 신청 현황 조회 (상호명 포함).
-     * 신청 이력이 없으면 Optional.empty() 반환.
-     */
     @Transactional(readOnly = true)
-    public java.util.Optional<GetStoreRegistrationStatusResponse> getMyStoreRegistration(String userName) {
+    public Optional<GetStoreRegistrationStatusResponse> getMyStoreRegistration(String userName) {
         User user = findUserByUserName(userName);
-        return storeRepository.findByOwner(user)
-                .map(store -> GetStoreRegistrationStatusResponse.of(
-                        store.getStatus(),
-                        store.getStoreName(),
-                        store.getRepresentativeName()
-                ));
+        Optional<Store> storeOptional = storeRepository.findByOwner(user);
+        Optional<Approval> latestApproval = approvalRepository.findTopByUserAndApplicantTypeOrderByIdDesc(user, ApplicantType.STORE);
+
+        if (latestApproval.isPresent()) {
+            Approval approval = latestApproval.get();
+            return Optional.of(GetStoreRegistrationStatusResponse.of(
+                    approval.getStatus().name(),
+                    storeOptional.map(Store::getStoreName).orElse(null),
+                    storeOptional.map(Store::getRepresentativeName).orElse(null),
+                    approval.getId(),
+                    approval.getReason(),
+                    approval.getHeldUntil()
+            ));
+        }
+
+        return storeOptional.map(store -> GetStoreRegistrationStatusResponse.of(
+                store.getStatus(),
+                store.getStoreName(),
+                store.getRepresentativeName(),
+                null,
+                null,
+                null
+        ));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<GetStoreRegistrationDetailResponse> getMyStoreRegistrationDetail(String userName) {
+        User user = findUserByUserName(userName);
+        Optional<Store> storeOptional = storeRepository.findByOwner(user);
+        Optional<Approval> latestApproval = approvalRepository.findTopByUserAndApplicantTypeOrderByIdDesc(user, ApplicantType.STORE);
+
+        if (storeOptional.isEmpty()) {
+            return Optional.empty();
+        }
+        Store store = storeOptional.get();
+
+        Long approvalId = latestApproval.map(Approval::getId).orElse(null);
+        Map<String, String> documents = Map.of();
+        String status = store.getStatus().name();
+        String reason = null;
+        java.time.LocalDateTime heldUntil = null;
+
+        if (latestApproval.isPresent()) {
+            Approval approval = latestApproval.get();
+            status = approval.getStatus().name();
+            reason = approval.getReason();
+            heldUntil = approval.getHeldUntil();
+            documents = approvalDocumentRepository.findByApprovalId(approval.getId()).stream()
+                    .collect(Collectors.toMap(
+                            doc -> doc.getDocumentType().name(),
+                            ApprovalDocument::getDocumentUrl,
+                            (a, b) -> b
+                    ));
+        }
+
+        Double latitude = null;
+        Double longitude = null;
+        if (store.getAddress() != null && store.getAddress().getLocation() != null) {
+            longitude = store.getAddress().getLocation().getX();
+            latitude = store.getAddress().getLocation().getY();
+        }
+
+        return Optional.of(GetStoreRegistrationDetailResponse.builder()
+                .status(status)
+                .approvalId(approvalId)
+                .reason(reason)
+                .heldUntil(heldUntil)
+                .storeCategory(store.getStoreCategory() != null ? store.getStoreCategory().getCategoryName() : null)
+                .storeOwnerName(store.getSubmittedDocumentInfo() != null ? store.getSubmittedDocumentInfo().getBusinessOwnerName() : null)
+                .storeName(store.getStoreName())
+                .representativeName(store.getRepresentativeName())
+                .representativePhone(store.getRepresentativePhone())
+                .storePhone(store.getPhone())
+                .storeDescription(store.getDescription())
+                .storeImageUrl(store.getStoreImage())
+                .businessNumber(store.getSubmittedDocumentInfo() != null ? store.getSubmittedDocumentInfo().getBusinessNumber() : null)
+                .telecomSalesReportNumber(store.getSubmittedDocumentInfo() != null ? store.getSubmittedDocumentInfo().getTelecomSalesReportNumber() : null)
+                .postalCode(store.getAddress() != null ? store.getAddress().getPostalCode() : null)
+                .addressLine1(store.getAddress() != null ? store.getAddress().getAddressLine1() : null)
+                .addressLine2(store.getAddress() != null ? store.getAddress().getAddressLine2() : null)
+                .latitude(latitude)
+                .longitude(longitude)
+                .settlementBankName(store.getSettlementAccount() != null ? store.getSettlementAccount().getBankName() : null)
+                .settlementBankAccount(store.getSettlementAccount() != null ? store.getSettlementAccount().getBankAccount() : null)
+                .settlementAccountHolder(store.getSettlementAccount() != null ? store.getSettlementAccount().getAccountHolder() : null)
+                .documents(documents)
+                .build());
     }
 
     public void cancelStoreRegistration(String userName) {
@@ -107,16 +203,20 @@ public class StoreService {
         Store store = storeRepository.findByOwner(user)
                 .orElseThrow(() -> new BusinessException(ErrorCode.STORE_PENDING_REGISTRATION_NOT_FOUND));
 
-        if (store.getStatus() != StoreStatus.PENDING) {
+        if (store.getStatus() == StoreStatus.APPROVED) {
             throw new BusinessException(ErrorCode.STORE_ALREADY_APPROVED);
         }
 
-        Approval approval = approvalRepository.findFirstByUserAndApplicantTypeAndStatus(user, ApplicantType.STORE, ApprovalStatus.PENDING)
-                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_PENDING_REGISTRATION_NOT_FOUND));
+        approvalRepository.findTopByUserAndApplicantTypeOrderByIdDesc(user, ApplicantType.STORE)
+                .ifPresent(approval -> {
+                    if (approval.getStatus() == ApprovalStatus.PENDING
+                            || approval.getStatus() == ApprovalStatus.HELD
+                            || approval.getStatus() == ApprovalStatus.REJECTED) {
+                        approvalRepository.delete(approval);
+                    }
+                });
 
-        approvalRepository.delete(approval);
         storeRepository.delete(store);
-        log.info("마트 입점 신청 취소 완료. storeId={}, userId={}", store.getId(), user.getId());
     }
 
     @Transactional(readOnly = true)
@@ -128,12 +228,11 @@ public class StoreService {
         return GetMyStoreResponse.from(store);
     }
 
-    /** 고객(상점 없음)인 경우 null 반환. 404 대신 200 + null 로 응답할 때 사용. */
     @Transactional(readOnly = true)
-    public java.util.Optional<GetMyStoreResponse> getMyStoreOptional(String userName) {
+    public Optional<GetMyStoreResponse> getMyStoreOptional(String userName) {
         User user = userRepository.findByEmail(userName).orElse(null);
         if (user == null) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
         return storeRepository.findByOwner(user).map(GetMyStoreResponse::from);
     }
@@ -143,16 +242,14 @@ public class StoreService {
         return GetStoreCategoryResponse.fromList(storeCategoryRepository.findAll());
     }
 
-    /** 고객용: 마트 상세 정보 조회 (가게 정보 탭용). APPROVED 마트만 반환. */
     @Transactional(readOnly = true)
-    public java.util.Optional<GetStoreDetailForCustomerResponse> getStoreDetailForCustomer(Long storeId) {
-        if (storeId == null) return java.util.Optional.empty();
+    public Optional<GetStoreDetailForCustomerResponse> getStoreDetailForCustomer(Long storeId) {
+        if (storeId == null) return Optional.empty();
         return storeRepository.findById(storeId)
                 .filter(s -> s.getStatus() == StoreStatus.APPROVED && s.getDeletedAt() == null)
                 .map(GetStoreDetailForCustomerResponse::from);
     }
 
-    //영업시간 조회
     @Transactional(readOnly = true)
     public List<PostStoreBusinessHourRequest> getStoreBusinessHours(String userName) {
         User user = findUserByUserName(userName);
@@ -165,7 +262,6 @@ public class StoreService {
                 .toList();
     }
 
-    //영업시간 수정
     public void updateStoreBusinessHours(String userName, List<PostStoreBusinessHourRequest> businessHours) {
         User user = findUserByUserName(userName);
         Store store = storeRepository.findByOwner(user)
@@ -179,7 +275,6 @@ public class StoreService {
         updateExistingBusinessHours(store, businessHours);
     }
 
-    /** 내 상점 배달 가능 여부 수정 */
     public void updateDeliveryAvailable(String userName, PatchDeliveryAvailableRequest request) {
         User user = findUserByUserName(userName);
         Store store = storeRepository.findByOwner(user)
@@ -187,7 +282,6 @@ public class StoreService {
         store.setDeliveryAvailable(Boolean.TRUE.equals(request.getDeliveryAvailable()));
     }
 
-    /** 내 상점 대표 이미지 수정 */
     public void updateStoreImage(String userName, PatchStoreImageRequest request) {
         User user = findUserByUserName(userName);
         Store store = storeRepository.findByOwner(user)
@@ -196,7 +290,6 @@ public class StoreService {
         store.updateStoreImage(url);
     }
 
-    /** 내 상점 마트 소개 수정 */
     public void updateStoreDescription(String userName, PatchStoreDescriptionRequest request) {
         User user = findUserByUserName(userName);
         Store store = storeRepository.findByOwner(user)
@@ -224,7 +317,6 @@ public class StoreService {
             if (existing != null) {
                 existing.update(openTime, closeTime, req.getIsClosed());
             } else {
-                // 해당 요일이 없으면 새로 추가 (초기 데이터 부족 등)
                 StoreBusinessHour newOne = StoreBusinessHour.builder()
                         .dayOfWeek(req.getDayOfWeek())
                         .openTime(openTime)
@@ -236,22 +328,37 @@ public class StoreService {
         }
     }
 
-    private void validateRegistration(User user, PostStoreRegistrationRequest request) {
-        if (storeRepository.existsBySubmittedDocumentInfo_BusinessNumber(request.getBusinessNumber())) {
+    private void validateRegistration(User user, PostStoreRegistrationRequest request, Store existingStore) {
+        Long existingStoreId = existingStore != null ? existingStore.getId() : null;
+
+        boolean duplicatedBusinessNumber = existingStoreId == null
+                ? storeRepository.existsBySubmittedDocumentInfo_BusinessNumber(request.getBusinessNumber())
+                : storeRepository.existsBySubmittedDocumentInfo_BusinessNumberAndIdNot(request.getBusinessNumber(), existingStoreId);
+        if (duplicatedBusinessNumber) {
             throw new BusinessException(ErrorCode.DUPLICATE_BUSINESS_NUMBER);
         }
 
-        if (storeRepository.existsBySubmittedDocumentInfo_TelecomSalesReportNumber(request.getTelecomSalesReportNumber())) {
+        boolean duplicatedTelecomNumber = existingStoreId == null
+                ? storeRepository.existsBySubmittedDocumentInfo_TelecomSalesReportNumber(request.getTelecomSalesReportNumber())
+                : storeRepository.existsBySubmittedDocumentInfo_TelecomSalesReportNumberAndIdNot(request.getTelecomSalesReportNumber(), existingStoreId);
+        if (duplicatedTelecomNumber) {
             throw new BusinessException(ErrorCode.DUPLICATE_TELECOM_SALES_NUMBER);
         }
 
-        if (storeRepository.existsByOwner(user)) {
+        if (existingStore != null && existingStore.getStatus() == StoreStatus.APPROVED) {
             throw new BusinessException(ErrorCode.ALREADY_REGISTERED_STORE);
         }
 
-        if (approvalRepository.existsByUserAndApplicantTypeAndStatus(user, ApplicantType.STORE, ApprovalStatus.PENDING)) {
-            throw new BusinessException(ErrorCode.PENDING_APPROVAL_EXISTS);
-        }
+        approvalRepository.findTopByUserAndApplicantTypeOrderByIdDesc(user, ApplicantType.STORE)
+                .ifPresent(approval -> {
+                    if (approval.getStatus() == ApprovalStatus.PENDING) {
+                        throw new BusinessException(ErrorCode.PENDING_APPROVAL_EXISTS);
+                    }
+                    if (approval.getStatus() == ApprovalStatus.REJECTED) {
+                        throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE,
+                                "거절된 신청은 다시 제출할 수 없습니다.");
+                    }
+                });
 
         validateBusinessHours(request.getBusinessHours());
     }
@@ -260,7 +367,7 @@ public class StoreService {
         for (PostStoreBusinessHourRequest hour : businessHours) {
             if (!hour.getIsClosed()) {
                 if (hour.getOpenTime() == null || hour.getOpenTime().isBlank() ||
-                    hour.getCloseTime() == null || hour.getCloseTime().isBlank()) {
+                        hour.getCloseTime() == null || hour.getCloseTime().isBlank()) {
                     throw new BusinessException(ErrorCode.INVALID_BUSINESS_HOUR);
                 }
             }
@@ -311,6 +418,49 @@ public class StoreService {
                 .build();
     }
 
+    private void updateStoreForRegistration(Store store, PostStoreRegistrationRequest request) {
+        StoreCategory category = storeCategoryRepository.findByCategoryName(request.getStoreCategory())
+                .orElseThrow(() -> new BusinessException(ErrorCode.STORE_CATEGORY_NOT_FOUND));
+
+        SubmittedDocumentInfo submittedDocumentInfo = SubmittedDocumentInfo.builder()
+                .businessOwnerName(request.getStoreOwnerName())
+                .businessNumber(request.getBusinessNumber())
+                .telecomSalesReportNumber(request.getTelecomSalesReportNumber())
+                .build();
+
+        Point location = GeometryUtil.createPoint(request.getLongitude(), request.getLatitude());
+
+        String addressLine2 = (request.getAddressLine2() != null && !request.getAddressLine2().isBlank())
+                ? request.getAddressLine2() : null;
+        String postalCode = (request.getPostalCode() != null && !request.getPostalCode().isBlank())
+                ? request.getPostalCode() : "";
+        StoreAddress address = StoreAddress.builder()
+                .postalCode(postalCode)
+                .addressLine1(request.getAddressLine())
+                .addressLine2(addressLine2)
+                .location(location)
+                .build();
+
+        SettlementAccount settlementAccount = SettlementAccount.builder()
+                .bankName(request.getSettlementBankName())
+                .bankAccount(request.getSettlementBankAccount())
+                .accountHolder(request.getSettlementAccountHolder())
+                .build();
+
+        store.replaceRegistrationInfo(
+                category,
+                request.getStoreName(),
+                request.getStorePhone(),
+                request.getStoreDescription(),
+                request.getRepresentativeName(),
+                request.getRepresentativePhone(),
+                submittedDocumentInfo,
+                address,
+                settlementAccount,
+                request.getStoreImageUrl()
+        );
+    }
+
     private void addBusinessHours(Store store, List<PostStoreBusinessHourRequest> postStoreBusinessHourRequests) {
         for (PostStoreBusinessHourRequest hourRequest : postStoreBusinessHourRequests) {
             LocalTime openTime = null;
@@ -336,7 +486,6 @@ public class StoreService {
         }
     }
 
-
     private PostStoreBusinessHourRequest toBusinessHourRequest(StoreBusinessHour businessHour) {
         PostStoreBusinessHourRequest response = new PostStoreBusinessHourRequest();
         response.setDayOfWeek(businessHour.getDayOfWeek());
@@ -354,13 +503,8 @@ public class StoreService {
     }
 
     private void addApprovalDocuments(Approval approval, PostStoreRegistrationRequest request) {
-        //사업자 등록증
         approval.addDocument(DocumentType.BUSINESS_LICENSE, request.getBusinessLicenseUrl());
-
-        //통신판매업 신고증
         approval.addDocument(DocumentType.BUSINESS_REPORT, request.getTelecomSalesReportUrl());
-
-        //통장 사본
         approval.addDocument(DocumentType.BANK_PASSBOOK, request.getBankPassbookUrl());
     }
 
@@ -369,4 +513,16 @@ public class StoreService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
     }
 
+    private void notifyAdminsForStoreSubmission(User applicant, Store store) {
+        String title = "[신청 접수] 마트 입점 신청";
+        String content = String.format("신청 상호명: %s (%s)", store.getStoreName(), applicant.getEmail());
+
+        userRepository.findAllActiveByRoleName("ADMIN")
+                .forEach(admin -> notificationService.createNotification(
+                        admin.getId(),
+                        title,
+                        content,
+                        NotificationRefType.STORE
+                ));
+    }
 }

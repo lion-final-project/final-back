@@ -126,7 +126,7 @@ public enum ErrorCode {
     // RIDER
     RIDER_STATUS_LOCKED_DELIVERING(HttpStatus.CONFLICT, "RIDER-001", "배달 중에는 상태를 변경할 수 없습니다."),
     RIDER_ALREADY_REGISTERED(HttpStatus.CONFLICT, "RIDER-002", "이미 라이더로 등록되어 있습니다."),
-    RIDER_APPROVAL_ALREADY_EXISTS(HttpStatus.CONFLICT, "RIDER-003", "이미 대기 중이거나 보류 중인 신청이 있습니다."),
+    RIDER_APPROVAL_ALREADY_EXISTS(HttpStatus.CONFLICT, "RIDER-003", "이미 대기 중인 신청이 있습니다."),
     RIDER_LOCATION_NOT_FOUND(HttpStatus.NOT_FOUND, "RIDER-004", "라이더 위치 정보를 찾을 수 없습니다."),
     RIDER_MAX_DELIVERY_EXCEEDED(HttpStatus.CONFLICT, "RIDER-005", "동시에 진행할 수 있는 최대 배달 수를 초과했습니다."),
 

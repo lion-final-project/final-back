@@ -12,12 +12,15 @@ import com.example.finalproject.delivery.service.interfaces.RiderService;
 import com.example.finalproject.global.component.UserLoader;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
+import com.example.finalproject.communication.enums.NotificationRefType;
+import com.example.finalproject.communication.service.NotificationService;
 import com.example.finalproject.moderation.domain.Approval;
 import com.example.finalproject.moderation.enums.ApplicantType;
 import com.example.finalproject.moderation.enums.ApprovalStatus;
 import com.example.finalproject.moderation.enums.DocumentType;
 import com.example.finalproject.moderation.repository.ApprovalRepository;
 import com.example.finalproject.user.domain.User;
+import com.example.finalproject.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -28,10 +31,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 /**
- * 라이더 정보·승인 관련 서비스 구현체.
+ * ??깆뵠???類ｋ궖夷?諭???온????뺥돩???닌뗭겱筌?
  * <p>
- * 라이더 정보 조회, 운행 상태 변경, 등록 신청/삭제를 처리합니다.
- * 위치(Location) 관련 로직은 {@link RiderLocationServiceImpl}로 분리되어 있습니다 (SRP).
+ * ??깆뵠???類ｋ궖 鈺곌퀬?? ??꾨뻬 ?怨밴묶 癰궰野? ?源낆쨯 ?醫롪퍕/???ｇ몴?筌ｌ꼶???몃빍??
+ * ?袁⑺뒄(Location) ?온??嚥≪뮇彛?? {@link RiderLocationServiceImpl}嚥??브쑬???뤿선 ??됰뮸??덈뼄 (SRP).
  * </p>
  */
 @Slf4j
@@ -42,8 +45,10 @@ public class RiderServiceImpl implements RiderService {
     private final RiderRepository riderRepository;
     private final UserLoader userLoader;
     private final ApprovalRepository approvalRepository;
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
-    /** 현재 로그인한 라이더의 정보를 조회합니다. */
+    /** ?袁⑹삺 嚥≪뮄??紐낅립 ??깆뵠?遺우벥 ?類ｋ궖??鈺곌퀬???몃빍?? */
     @Override
     public RiderResponse getRiderInfo(String username) {
         Rider rider = findRiderByUsername(username);
@@ -51,10 +56,10 @@ public class RiderServiceImpl implements RiderService {
     }
 
     /**
-     * 라이더 운행 상태를 변경합니다.
+     * ??깆뵠????꾨뻬 ?怨밴묶??癰궰野껋?鍮??덈뼄.
      * <p>
-     * ONLINE/OFFLINE만 직접 변경 가능하며, DELIVERING 상태는 배달 수락 시 자동 전환됩니다.
-     * 배달 중(DELIVERING)에는 수동 상태 변경이 불가합니다.
+     * ONLINE/OFFLINE筌?筌욊낯??癰궰野?揶쎛?館釉?쭖? DELIVERING ?怨밴묶??獄쏄퀡????롮뵭 ???癒?짗 ?袁れ넎??몃빍??
+     * 獄쏄퀡??餓?DELIVERING)?癒?뮉 ??롫짗 ?怨밴묶 癰궰野껋럩???븍뜃???몃빍??
      * </p>
      */
     @Override
@@ -65,7 +70,7 @@ public class RiderServiceImpl implements RiderService {
         switch (request.getOperationStatus()) {
             case ONLINE -> rider.goOnline();
             case OFFLINE -> rider.goOffline();
-            // DELIVERING은 시스템이 자동 전환. 수동 전환 시도 시 예외
+            // DELIVERING?? ??뽯뮞??뽰뵠 ?癒?짗 ?袁れ넎. ??롫짗 ?袁れ넎 ??뺣즲 ????됱뇚
             case DELIVERING -> throw new BusinessException(ErrorCode.RIDER_STATUS_LOCKED_DELIVERING);
         }
 
@@ -73,11 +78,11 @@ public class RiderServiceImpl implements RiderService {
     }
 
     /**
-     * 라이더 등록 신청을 생성합니다.
+     * ??깆뵠???源낆쨯 ?醫롪퍕????밴쉐??몃빍??
      * <p>
-     * 이미 라이더로 등록된 사용자는 기존 Rider 엔티티를 재사용하고,
-     * 신규 사용자는 Rider를 새로 생성합니다.
-     * 대기(PENDING) 또는 보류(HELD) 상태의 기존 신청이 있으면 중복 신청이 불가합니다.
+     * ??? ??깆뵠?遺얠쨮 ?源낆쨯??????癒?뮉 疫꿸퀣??Rider ?酉??怨? ??沅??븍릭??
+     * ?醫됲뇣 ????癒?뮉 Rider????덉쨮 ??밴쉐??몃빍??
+     * ??疫?PENDING) ?癒?뮉 癰귣?履?HELD) ?怨밴묶??疫꿸퀣???醫롪퍕????됱몵筌?餓λ쵎???醫롪퍕???븍뜃???몃빍??
      * </p>
      */
     @Override
@@ -86,16 +91,18 @@ public class RiderServiceImpl implements RiderService {
         User user = userLoader.loadUserByUsername(username);
         Rider rider;
 
-        // 대기/보류 중인 기존 신청 여부 검증
-        validateAlreadyPending(user);
+        // ??疫?癰귣?履?餓λ쵐??疫꿸퀣???醫롪퍕 ??? 野꺜筌?
+        validateReapplyAllowed(user);
+        Optional<Approval> latestApproval = approvalRepository.findTopByUserAndApplicantTypeOrderByIdDesc(
+                user, ApplicantType.RIDER);
 
         if (riderRepository.existsByUserId(user.getId())) {
             rider = findRiderByUsername(username);
-            // 이미 승인된 라이더는 재신청 불가
+            // ??? ?諭?????깆뵠?遺얜뮉 ???딉㎗??븍뜃?
             if (rider.getStatus() == RiderApprovalStatus.APPROVED) {
                 throw new BusinessException(ErrorCode.RIDER_ALREADY_REGISTERED);
             }
-            // 재신청 시 신청자 정보 업데이트
+            // ???딉㎗????醫롪퍕???類ｋ궖 ??낅쑓??꾨뱜
             rider.updateApplicantInfo(request.getName(), request.getPhone());
             rider.updateSettlementInfo(request.getBankName(), request.getBankAccount(), request.getAccountHolder());
         } else {
@@ -108,21 +115,31 @@ public class RiderServiceImpl implements RiderService {
                     .build();
         }
 
-        // 승인 요청 + 서류 첨부
-        Approval approval = Approval.builder().user(user)
-                .applicantType(ApplicantType.RIDER)
-                .build();
+        // HELD 건은 동일 신청 건을 PENDING으로 복구하여 재심사한다.
+        Approval approval;
+        if (latestApproval.isPresent() && latestApproval.get().getStatus() == ApprovalStatus.HELD) {
+            approval = latestApproval.get();
+            approval.resubmit();
+            approval.clearDocuments();
+            // 기존 문서 삭제 SQL을 먼저 반영해야 (approval_id, document_type) 유니크 충돌을 피할 수 있다.
+            approvalRepository.saveAndFlush(approval);
+        } else {
+            approval = Approval.builder().user(user)
+                    .applicantType(ApplicantType.RIDER)
+                    .build();
+        }
 
         approval.addDocument(DocumentType.ID_CARD, request.getIdCardImage());
         approval.addDocument(DocumentType.BANK_PASSBOOK, request.getBankbookImage());
 
         riderRepository.save(rider);
         approvalRepository.save(approval);
+        notifyAdminsForRiderSubmission(user, rider);
 
         return approval.createResponse(rider);
     }
 
-    /** 내 라이더 등록 신청 이력을 페이징 조회합니다. */
+    /** ????깆뵠???源낆쨯 ?醫롪퍕 ???????륁뵠筌?鈺곌퀬???몃빍?? */
     @Override
     public Page<RiderApprovalResponse> getApprovals(String username, Pageable pageable) {
         User user = userLoader.loadUserByUsername(username);
@@ -139,8 +156,7 @@ public class RiderServiceImpl implements RiderService {
     }
 
     /**
-     * 라이더 등록 신청 상태 조회
-     */
+     * ??깆뵠???源낆쨯 ?醫롪퍕 ?怨밴묶 鈺곌퀬??     */
     @Override
     public Optional<GetRiderRegistrationStatusResponse> getRegistrationStatus(String username) {
         User user = userLoader.loadUserByUsername(username);
@@ -152,6 +168,8 @@ public class RiderServiceImpl implements RiderService {
             return Optional.of(GetRiderRegistrationStatusResponse.builder()
                     .status(approval.getStatus().name())
                     .approvalId(approval.getId())
+                    .reason(approval.getReason())
+                    .heldUntil(approval.getHeldUntil())
                     .build());
         }
 
@@ -159,13 +177,15 @@ public class RiderServiceImpl implements RiderService {
                 .map(rider -> GetRiderRegistrationStatusResponse.builder()
                         .status(rider.getStatus().name())
                         .approvalId(null)
+                        .reason(null)
+                        .heldUntil(null)
                         .build());
     }
 
     /**
-     * 라이더 등록 신청을 삭제합니다.
+     * ??깆뵠???源낆쨯 ?醫롪퍕???????몃빍??
      * <p>
-     * 본인 소유의 PENDING 또는 HELD 상태 신청만 삭제할 수 있습니다.
+     * 癰귣챷????????PENDING ?癒?뮉 HELD ?怨밴묶 ?醫롪퍕筌??????????됰뮸??덈뼄.
      * </p>
      *
      * @throws BusinessException APPROVAL_NOT_FOUND / APPROVAL_NOT_OWNED /
@@ -179,12 +199,12 @@ public class RiderServiceImpl implements RiderService {
         Approval approval = approvalRepository.findById(approvalId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.APPROVAL_NOT_FOUND));
 
-        // 본인 소유 확인 — 다른 사용자의 신청 삭제 방지
+        // 癰귣챷?????? ?類ㅼ뵥 ????삘뀲 ????癒?벥 ?醫롪퍕 ????獄쎻뫗?
         if (!approval.getUser().getId().equals(user.getId())) {
             throw new BusinessException(ErrorCode.APPROVAL_NOT_OWNED);
         }
 
-        // PENDING 또는 HELD 상태만 삭제 가능 — 이미 처리된 신청은 삭제 불가
+        // PENDING ?癒?뮉 HELD ?怨밴묶筌?????揶쎛??????? 筌ｌ꼶????醫롪퍕?? ?????븍뜃?
         if (!(approval.getStatus() == ApprovalStatus.PENDING || approval.getStatus() == ApprovalStatus.HELD)) {
             throw new BusinessException(ErrorCode.APPROVAL_NOT_PENDING);
         }
@@ -192,17 +212,36 @@ public class RiderServiceImpl implements RiderService {
         approvalRepository.delete(approval);
     }
 
-    /** 이메일(username)로 라이더를 조회합니다. 없으면 RIDER_NOT_FOUND 예외 */
+    /** ??李??username)嚥???깆뵠?遺? 鈺곌퀬???몃빍?? ??곸몵筌?RIDER_NOT_FOUND ??됱뇚 */
     private Rider findRiderByUsername(String username) {
         return riderRepository.findByUserEmail(username)
                 .orElseThrow(() -> new BusinessException(ErrorCode.RIDER_NOT_FOUND));
     }
 
-    /** PENDING 또는 HELD 상태의 기존 신청이 있는지 확인합니다. 있으면 중복 신청 예외 */
-    private void validateAlreadyPending(User user) {
-        if (approvalRepository.existsByUserAndApplicantTypeAndStatus(user, ApplicantType.RIDER, ApprovalStatus.PENDING) ||
-                approvalRepository.existsByUserAndApplicantTypeAndStatus(user, ApplicantType.RIDER, ApprovalStatus.HELD)) {
-            throw new BusinessException(ErrorCode.RIDER_APPROVAL_ALREADY_EXISTS);
-        }
+    /** 理쒖떊 ?좎껌 ?곹깭 湲곗??쇰줈 ?ъ떊泥?媛???щ?瑜?寃利앺빀?덈떎. */
+    private void validateReapplyAllowed(User user) {
+        approvalRepository.findTopByUserAndApplicantTypeOrderByIdDesc(user, ApplicantType.RIDER)
+                .ifPresent(approval -> {
+                    if (approval.getStatus() == ApprovalStatus.PENDING) {
+                        throw new BusinessException(ErrorCode.RIDER_APPROVAL_ALREADY_EXISTS);
+                    }
+                    if (approval.getStatus() == ApprovalStatus.REJECTED) {
+                        throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "嫄곗젅???좎껌? ?ㅼ떆 ?쒖텧?????놁뒿?덈떎.");
+                    }
+                });
+    }
+
+    private void notifyAdminsForRiderSubmission(User applicant, Rider rider) {
+        String title = "[신청 접수] 라이더 등록 신청";
+        String content = String.format("신청자: %s (%s)", rider.getDisplayName(), applicant.getEmail());
+
+        userRepository.findAllActiveByRoleName("ADMIN")
+                .forEach(admin -> notificationService.createNotification(
+                        admin.getId(),
+                        title,
+                        content,
+                        NotificationRefType.RIDER
+                ));
     }
 }
+
