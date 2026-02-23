@@ -1,5 +1,5 @@
-# Java 21 기반의 가벼운 이미지 사용
-FROM openjdk:21-slim
+# Java 21 기반의 가벼운 이미지 사용 (eclipse-temurin 권장)
+FROM eclipse-temurin:21-jre-alpine
 
 # 작업 디렉토리 설정
 WORKDIR /app
