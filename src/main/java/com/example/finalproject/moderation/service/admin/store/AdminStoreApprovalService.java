@@ -158,7 +158,7 @@ public class AdminStoreApprovalService {
 
         approval.approve(admin);
         store.approve();
-        grantRole(approval.getUser(), "STORE_OWNER");
+        grantRole(approval.getUser(), "STORE");
 
         notificationRepository.save(new Notification(
                 approval.getUser(),

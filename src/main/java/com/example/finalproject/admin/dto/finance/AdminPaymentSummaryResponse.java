@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.dto.finance.payment;
+package com.example.finalproject.admin.dto.finance;
 
 import lombok.Builder;
 import lombok.Getter;

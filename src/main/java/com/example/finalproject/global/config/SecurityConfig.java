@@ -178,7 +178,7 @@ public class SecurityConfig {
                                                                 "/api/store/subscriptions/**",
                                                                 "/api/store/subscription-products",
                                                                 "/api/store/subscription-products/**")
-                                                .hasRole("STORE_OWNER")
+                                                .hasRole("STORE")
                                                 .anyRequest().authenticated())
                                 .oauth2Login(oauth2 -> oauth2
                                                 .authorizationEndpoint(auth -> auth
