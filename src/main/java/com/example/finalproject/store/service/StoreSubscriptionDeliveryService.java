@@ -1,5 +1,8 @@
 package com.example.finalproject.store.service;
 
+import com.example.finalproject.delivery.component.DeliveryMatchComponent;
+import com.example.finalproject.delivery.domain.Delivery;
+import com.example.finalproject.delivery.repository.DeliveryRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.domain.StoreOrder;
@@ -15,7 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 마트 구독 배송 접수(ACCEPTED 전환) 처리.
+ * 마트 구독 배송 접수 처리.
+ * 점주가 "배송 접수" 버튼을 누르면 PENDING → ACCEPTED → READY 전환 후 라이더 배차 알림을 전송한다.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,12 +29,15 @@ public class StoreSubscriptionDeliveryService {
             List.of("08:00~11:00", "11:00~14:00", "14:00~17:00", "17:00~20:00");
 
     private final SubscriptionHistoryRepository subscriptionHistoryRepository;
+    private final DeliveryRepository deliveryRepository;
+    private final DeliveryMatchComponent deliveryMatchComponent;
 
     /**
-     * 해당 날짜·시간대의 구독 주문(이미 생성된 store_orders)을 일괄 접수(ACCEPTED) 처리한다.
+     * 해당 날짜·시간대의 구독 주문을 일괄 접수하고 라이더 배차 알림을 전송한다.
+     * StoreOrder: PENDING → ACCEPTED → READY, Delivery 생성 후 주변 라이더에게 SSE 전송.
      *
-     * @param storeId         마트 ID
-     * @param scheduledDate   배송 예정일 (yyyy-MM-dd)
+     * @param storeId          마트 ID
+     * @param scheduledDate    배송 예정일 (yyyy-MM-dd)
      * @param deliveryTimeSlot 시간대 (예: 08:00~11:00)
      * @return 접수 처리된 store_order 건수
      */
@@ -51,6 +58,16 @@ public class StoreSubscriptionDeliveryService {
 
         for (StoreOrder so : toAccept) {
             so.accept();
+            so.markReady();
+
+            Delivery delivery = deliveryRepository.save(
+                    Delivery.builder()
+                            .storeOrder(so)
+                            .storeLocation(so.getStore().getAddress().getLocation())
+                            .customerLocation(so.getOrder().getDeliveryLocation())
+                            .deliveryFee(so.getDeliveryFee())
+                            .build());
+            deliveryMatchComponent.notifyNewDelivery(delivery);
         }
         return toAccept.size();
     }
