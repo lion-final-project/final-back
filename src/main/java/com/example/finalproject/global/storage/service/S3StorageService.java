@@ -43,7 +43,7 @@ public class S3StorageService implements StorageService {
         }
 
         // UUID 파일명 생성 (덮어쓰기 방지)
-        String uniqueFilename = UUID.randomUUID().toString() + "_" + originalFilename;
+        String uniqueFilename = UUID.randomUUID() + "_" + originalFilename;
 
         // 경로 정규화 (앞뒤 슬래시 제거 및 이중 슬래시 방지)
         String safeDirectoryPath = StringUtils.cleanPath(directoryPath);

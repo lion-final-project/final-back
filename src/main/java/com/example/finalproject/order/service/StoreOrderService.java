@@ -212,7 +212,8 @@ public class StoreOrderService {
     }
 
     /**
-     * 자동 상태 변경 스케줄러. - 5분 이상 응답 없는 PENDING 주문은 자동 거절 - 준비 완료 시간이 지난 ACCEPTED 주문은 자동 READY 처리
+     * 자동 상태 변경 스케줄러. - 5분 이상 응답 없는 PENDING 주문은 자동 거절 - 준비 완료 시간이 지난 ACCEPTED 주문은 자동
+     * READY 처리
      * <p>
      * 프론트에서의 타이머 의존도를 줄이고, 사장님이 대시보드를 보고 있지 않아도 백엔드 기준으로 상태가 일관되게 유지되도록 한다.
      */
@@ -238,9 +239,6 @@ public class StoreOrderService {
 
         for (StoreOrder storeOrder : expiredPendingOrders) {
             try {
-                storeOrder.requestReject();
-                storeOrderTtlService.removeAutoReject(storeOrder.getId());
-                paymentCancelService.cancel(storeOrder, storeOrder.getFinalPrice(), "자동 거절 (미응답)");
                 storeOrderAutoRejectService.rejectSingleOrder(storeOrder.getId());
             } catch (Exception e) {
                 log.error("자동 거절 처리 중 오류 발생 - storeOrderId={}", storeOrder.getId(), e);
@@ -334,8 +332,8 @@ public class StoreOrderService {
         // 전월 매출 → 전월 대비 증감률
         long prevMonthSales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId,
                 StoreOrderStatus.DELIVERED, prevMonthStart, prevMonthEnd);
-        double monthOverMonthRate =
-                prevMonthSales == 0 ? 0.0 : ((double) (totalSales - prevMonthSales) / prevMonthSales) * 100;
+        double monthOverMonthRate = prevMonthSales == 0 ? 0.0
+                : ((double) (totalSales - prevMonthSales) / prevMonthSales) * 100;
 
         // 환불 금액 (상점 기준: 배달비 제외, storeProductPrice만)
         long refundAmount = paymentRefundRepository.sumStoreProductPriceByStoreOrderStoreIdAndRefundedAtBetween(storeId,
@@ -365,8 +363,8 @@ public class StoreOrderService {
                     StoreOrderStatus.DELIVERED, todayStart, todayEnd);
             yesterdaySales = storeOrderRepository.sumFinalPriceByStoreIdAndStatusAndDeliveredAtBetween(storeId,
                     StoreOrderStatus.DELIVERED, yesterdayStart, yesterdayEnd);
-            dayOverDayRate =
-                    yesterdaySales == 0 ? 0.0 : ((double) (todaySales - yesterdaySales) / yesterdaySales) * 100;
+            dayOverDayRate = yesterdaySales == 0 ? 0.0
+                    : ((double) (todaySales - yesterdaySales) / yesterdaySales) * 100;
             dayOverDayRate = Math.round(dayOverDayRate * 10) / 10.0;
         }
 
@@ -392,7 +390,8 @@ public class StoreOrderService {
     }
 
     /**
-     * Redis TTL 만료 시 호출. PENDING 주문 자동 거절 후 스토어 오너에게 목록 갱신 SSE 발송. 이미 다른 경로(스케줄러 등)에서 거절된 경우에도 목록 갱신 SSE는 발송.
+     * Redis TTL 만료 시 호출. PENDING 주문 자동 거절 후 스토어 오너에게 목록 갱신 SSE 발송. 이미 다른 경로(스케줄러
+     * 등)에서 거절된 경우에도 목록 갱신 SSE는 발송.
      */
     @Transactional
     public void processAutoRejectByTtl(Long storeOrderId) {
