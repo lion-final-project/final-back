@@ -118,6 +118,10 @@ public class SubscriptionOrderCreationService {
                         .finalPrice(finalPrice)
                         .build());
 
+        // 구독 주문은 결제가 이미 완료된 상태이므로 마트 수락 없이 즉시 READY로 전환
+        storeOrder.accept();
+        storeOrder.markReady();
+
         for (SubscriptionProductItem item : items) {
             Product product = item.getProduct();
             int qty = item.getQuantity() != null ? item.getQuantity() : 1;
