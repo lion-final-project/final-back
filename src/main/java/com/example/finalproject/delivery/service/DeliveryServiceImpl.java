@@ -16,6 +16,7 @@ import com.example.finalproject.delivery.repository.RiderRepository;
 import com.example.finalproject.delivery.service.interfaces.DeliveryService;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
+import com.example.finalproject.subscription.service.SubscriptionDeliveryCompletionService;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ public class DeliveryServiceImpl implements DeliveryService {
     private final DeliveryMatchComponent deliveryMatchComponent;
     private final ApplicationEventPublisher eventPublisher;
     private final StringRedisTemplate redisTemplate;
+    private final SubscriptionDeliveryCompletionService subscriptionDeliveryCompletionService;
 
     /** 배달 수락 (REQUESTED → ACCEPTED) */
     @Override
@@ -96,6 +98,9 @@ public class DeliveryServiceImpl implements DeliveryService {
         if (remaining == null || remaining == 0) {
             rider.finishDelivering();
         }
+
+        // 구독 주문인 경우 SubscriptionHistory → COMPLETED, cycleCount 증가
+        subscriptionDeliveryCompletionService.handleDeliveryCompletion(delivery.getStoreOrder().getId());
 
         publishStatusChangedEvent(delivery, DeliveryStatus.DELIVERED);
     }
