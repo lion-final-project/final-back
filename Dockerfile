@@ -5,8 +5,7 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # 빌드 결과물 중 실행 가능한 jar 파일만 복사
-# build/libs/ 내의 plain이 붙지 않은 jar를 타겟으로 합니다.
-ARG JAR_FILE=build/libs/*[!plain].jar
+ARG JAR_FILE=build/libs/*.jar
 COPY ${JAR_FILE} app.jar
 
 # 한국 시간대 설정
