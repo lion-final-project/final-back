@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.dto.finance.settlement;
+package com.example.finalproject.admin.dto.finance;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;

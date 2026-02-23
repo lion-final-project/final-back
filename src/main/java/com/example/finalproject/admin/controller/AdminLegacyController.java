@@ -1,4 +1,4 @@
-package com.example.finalproject.admin.controller.legacy;
+package com.example.finalproject.admin.controller;
 
 import com.example.finalproject.delivery.domain.Rider;
 import com.example.finalproject.delivery.enums.RiderApprovalStatus;

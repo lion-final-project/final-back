@@ -1,9 +1,9 @@
-package com.example.finalproject.admin.controller.user;
+package com.example.finalproject.admin.controller;
 
 import com.example.finalproject.admin.dto.user.AdminUserDetailResponse;
 import com.example.finalproject.admin.dto.user.AdminUserListResponse;
 import com.example.finalproject.admin.dto.user.AdminUserStatusUpdateRequest;
-import com.example.finalproject.admin.service.user.AdminUserService;
+import com.example.finalproject.admin.service.AdminUserService;
 import com.example.finalproject.global.response.ApiResponse;
 import com.example.finalproject.user.enums.UserStatus;
 import jakarta.validation.Valid;
