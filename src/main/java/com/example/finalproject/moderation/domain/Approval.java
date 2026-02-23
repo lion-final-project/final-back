@@ -101,6 +101,18 @@ public class Approval extends BaseTimeEntity {
         this.heldUntil = heldUntil;
     }
 
+    public void resubmit() {
+        this.status = ApprovalStatus.PENDING;
+        this.approvedBy = null;
+        this.approvedAt = null;
+        this.reason = null;
+        this.heldUntil = null;
+    }
+
+    public void clearDocuments() {
+        this.documents.clear();
+    }
+
     public void addDocument(DocumentType type, String url) {
         if (type == null || !StringUtils.hasText(url)) {
             return;
@@ -129,6 +141,8 @@ public class Approval extends BaseTimeEntity {
                 .accountHolder(rider.getAccountHolder())
                 .documents(docUrls)
                 .status(this.status.name())
+                .reason(this.reason)
+                .heldUntil(this.heldUntil)
                 .build();
     }
 }

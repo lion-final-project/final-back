@@ -67,6 +67,11 @@ public class AdminStoreApprovalService {
                     store.getStoreName(),
                     approval.getUser().getId(),
                     approval.getUser().getName(),
+                    approval.getUser().getEmail(),
+                    StringUtils.hasText(approval.getUser().getPhone())
+                            ? approval.getUser().getPhone()
+                            : store.getRepresentativePhone(),
+                    store.getRepresentativePhone(),
                     approval.getStatus(),
                     approval.getCreatedAt(),
                     approval.getHeldUntil()
@@ -158,7 +163,7 @@ public class AdminStoreApprovalService {
 
         approval.approve(admin);
         store.approve();
-        grantRole(approval.getUser(), "STORE_OWNER");
+        grantRole(approval.getUser(), "STORE");
 
         notificationRepository.save(new Notification(
                 approval.getUser(),

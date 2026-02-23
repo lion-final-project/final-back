@@ -8,6 +8,10 @@ import com.example.finalproject.communication.repository.InquiryRepository;
 import com.example.finalproject.global.exception.custom.BusinessException;
 import com.example.finalproject.global.exception.custom.ErrorCode;
 import com.example.finalproject.order.repository.OrderRepository;
+import com.example.finalproject.store.domain.Store;
+import com.example.finalproject.store.repository.StoreRepository;
+import com.example.finalproject.delivery.domain.Rider;
+import com.example.finalproject.delivery.repository.RiderRepository;
 import com.example.finalproject.user.domain.Address;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.domain.UserStatusHistory;
@@ -33,12 +37,14 @@ public class AdminUserService {
     private final OrderRepository orderRepository;
     private final InquiryRepository inquiryRepository;
     private final UserStatusHistoryRepository userStatusHistoryRepository;
+    private final StoreRepository storeRepository;
+    private final RiderRepository riderRepository;
 
     @Transactional(readOnly = true)
     public AdminUserListResponse getUsers(String adminEmail, String keyword, UserStatus status, Pageable pageable) {
         validateAdmin(adminEmail);
 
-        Page<User> userPage = userRepository.searchUsersForAdmin(keyword, status, pageable);
+        Page<User> userPage = userRepository.searchCustomerUsersForAdmin(keyword, status, pageable);
 
         List<AdminUserListItemResponse> content = userPage.getContent().stream()
                 .map(user -> AdminUserListItemResponse.builder()
@@ -59,10 +65,10 @@ public class AdminUserService {
         LocalDateTime nextMonthStart = now.plusMonths(1).withDayOfMonth(1).atStartOfDay();
 
         AdminUserListResponse.Stats stats = AdminUserListResponse.Stats.builder()
-                .total(userRepository.countByDeletedAtIsNull())
-                .active(userRepository.countByDeletedAtIsNullAndStatus(UserStatus.ACTIVE))
-                .suspended(userRepository.countByDeletedAtIsNullAndStatus(UserStatus.SUSPENDED))
-                .newThisMonth(userRepository.countByDeletedAtIsNullAndCreatedAtBetween(monthStart, nextMonthStart))
+                .total(userRepository.countCustomerUsers())
+                .active(userRepository.countCustomerUsersByStatus(UserStatus.ACTIVE))
+                .suspended(userRepository.countCustomerUsersByStatus(UserStatus.SUSPENDED))
+                .newThisMonth(userRepository.countCustomerUsersByCreatedAtBetween(monthStart, nextMonthStart))
                 .build();
 
         AdminUserListResponse.PageInfo pageInfo = AdminUserListResponse.PageInfo.builder()
@@ -115,6 +121,13 @@ public class AdminUserService {
                         .build())
                 .toList();
 
+        AdminUserDetailResponse.StoreInfo ownedStore = storeRepository.findByOwnerId(userId)
+                .map(this::toStoreInfo)
+                .orElse(null);
+        AdminUserDetailResponse.RiderInfo riderProfile = riderRepository.findByUserId(userId)
+                .map(this::toRiderInfo)
+                .orElse(null);
+
         return AdminUserDetailResponse.builder()
                 .userId(user.getId())
                 .name(user.getName())
@@ -128,6 +141,8 @@ public class AdminUserService {
                 .addresses(addresses)
                 .inquiryHistory(inquiryHistory)
                 .statusHistory(statusHistory)
+                .ownedStore(ownedStore)
+                .riderProfile(riderProfile)
                 .build();
     }
 
@@ -209,5 +224,23 @@ public class AdminUserService {
             return line1;
         }
         return line1 + " " + line2;
+    }
+
+    private AdminUserDetailResponse.StoreInfo toStoreInfo(Store store) {
+        return AdminUserDetailResponse.StoreInfo.builder()
+                .storeId(store.getId())
+                .storeName(store.getStoreName())
+                .representativePhone(store.getRepresentativePhone())
+                .activeStatus(store.getIsActive())
+                .build();
+    }
+
+    private AdminUserDetailResponse.RiderInfo toRiderInfo(Rider rider) {
+        return AdminUserDetailResponse.RiderInfo.builder()
+                .riderId(rider.getId())
+                .riderName(rider.getDisplayName())
+                .riderPhone(rider.getDisplayPhone())
+                .operationStatus(rider.getOperationStatus())
+                .build();
     }
 }

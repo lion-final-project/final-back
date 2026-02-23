@@ -45,4 +45,3 @@ public class AdminBroadcastController {
         return ResponseEntity.ok(ApiResponse.success("알림 발송 이력 조회가 완료되었습니다.", response));
     }
 }
-
