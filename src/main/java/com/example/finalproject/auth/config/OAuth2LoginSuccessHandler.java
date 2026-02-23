@@ -99,12 +99,8 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     }
 
     private String appendStateQuery(String redirectUrl, String stateToken) {
-        try {
-            String encoded = URLEncoder.encode(stateToken, StandardCharsets.UTF_8.name());
-            return redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "state=" + encoded;
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException("UTF-8 encoding not supported", e);
-        }
+      String encoded = URLEncoder.encode(stateToken, StandardCharsets.UTF_8);
+      return redirectUrl + (redirectUrl.contains("?") ? "&" : "?") + "state=" + encoded;
     }
 
     private String appendStatusQuery(String redirectUrl, String registrationId, String status) {

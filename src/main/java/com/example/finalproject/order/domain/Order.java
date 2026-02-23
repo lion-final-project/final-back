@@ -73,7 +73,7 @@ public class Order extends BaseTimeEntity {
     private LocalDateTime orderedAt;
 
     @OneToMany(mappedBy = "order")
-    private List<StoreOrder> storeOrders = new ArrayList<>();
+    private final List<StoreOrder> storeOrders = new ArrayList<>();
 
 
     @Builder

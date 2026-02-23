@@ -50,7 +50,7 @@ public class Notification extends BaseTimeEntity {
     private LocalDateTime sentAt;
 
     @Column(name = "is_read", nullable = false)
-    private Boolean isRead = false;
+    private final Boolean isRead = false;
 
     @Builder
     public Notification(User user, String title, String content,

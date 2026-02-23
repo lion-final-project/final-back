@@ -70,7 +70,7 @@ public class Product extends BaseTimeEntity {
     private Boolean isActive = false;
 
     @Column(name = "order_count", nullable = false)
-    private Integer orderCount = 0;
+    private final Integer orderCount = 0;
 
     @Column(name = "product_image_url", length = 500)
     private String productImageUrl;

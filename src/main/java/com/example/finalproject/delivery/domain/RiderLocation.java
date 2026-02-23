@@ -56,7 +56,7 @@ public class RiderLocation {
     private LocalDateTime recordedAt;
 
     @Column(name = "is_current", nullable = false)
-    private Boolean isCurrent = true;
+    private final Boolean isCurrent = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -76,7 +76,7 @@ public class Store extends BaseTimeEntity {
     private String storeImage;
 
     @Column(name = "review_count", nullable = false)
-    private Integer reviewCount = 0;
+    private final Integer reviewCount = 0;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -90,12 +90,12 @@ public class Store extends BaseTimeEntity {
     private StoreActiveStatus isActive = StoreActiveStatus.ACTIVE;
 
     @Column(name = "commission_rate", nullable = false, precision = 5, scale = 2)
-    private BigDecimal commissionRate = new BigDecimal("5.00");
+    private final BigDecimal commissionRate = new BigDecimal("5.00");
 
     private LocalDateTime deletedAt;
 
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<StoreBusinessHour> businessHours = new ArrayList<>();
+    private final List<StoreBusinessHour> businessHours = new ArrayList<>();
 
     public void addBusinessHour(StoreBusinessHour businessHour) {
         businessHours.add(businessHour);

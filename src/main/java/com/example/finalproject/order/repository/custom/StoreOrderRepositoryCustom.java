@@ -6,11 +6,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface StoreOrderRepositoryCustom {
-    public Page<StoreOrder> findUserStoreOrders(
-            Long userId,
-            LocalDateTime startDate,
-            LocalDateTime endDate,
-            String searchTerm,
-            Pageable pageable
+    Page<StoreOrder> findUserStoreOrders(
+      Long userId,
+      LocalDateTime startDate,
+      LocalDateTime endDate,
+      String searchTerm,
+      Pageable pageable
     );
 }
