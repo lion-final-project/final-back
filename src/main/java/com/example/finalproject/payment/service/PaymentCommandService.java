@@ -8,6 +8,7 @@ import com.example.finalproject.order.repository.StoreOrderRepository;
 import com.example.finalproject.payment.domain.Payment;
 import com.example.finalproject.payment.domain.PaymentRefund;
 import com.example.finalproject.payment.enums.PaymentStatus;
+import com.example.finalproject.payment.enums.RefundStatus;
 import com.example.finalproject.payment.repository.PaymentRefundRepository;
 import com.example.finalproject.payment.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -127,6 +128,8 @@ public class PaymentCommandService {
                         .storeOrder(storeOrder)
                         .refundAmount(cancelAmount)
                         .refundReason(reason)
+                        .refundStatus(RefundStatus.APPROVED)
+                        .isSettled(false)
                         .build()
         );
     }

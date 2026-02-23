@@ -12,8 +12,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class StoreOrderDetailMapper {
 
-    public GetStoreOrderDetailResponse.StoreOrderInfo toStoreOrderInfo(
-            StoreOrder storeOrder) {
+    public GetStoreOrderDetailResponse.StoreOrderInfo toStoreOrderInfo(StoreOrder storeOrder) {
         return GetStoreOrderDetailResponse.StoreOrderInfo.builder()
                 .storeOrderId(storeOrder.getId())
                 .storeId(storeOrder.getStore().getId())
@@ -26,9 +25,7 @@ public class StoreOrderDetailMapper {
                 .build();
     }
 
-    public GetStoreOrderDetailResponse.OrderInfo toOrderInfo(
-            Order order,
-            User user) {
+    public GetStoreOrderDetailResponse.OrderInfo toOrderInfo(Order order, User user) {
         return GetStoreOrderDetailResponse.OrderInfo.builder()
                 .orderId(order.getId())
                 .orderNumber(order.getOrderNumber())
@@ -40,8 +37,7 @@ public class StoreOrderDetailMapper {
                 .build();
     }
 
-    public GetStoreOrderDetailResponse.PaymentInfo toPaymentInfo(
-            Payment payment) {
+    public GetStoreOrderDetailResponse.PaymentInfo toPaymentInfo(Payment payment) {
         if (payment == null) {
             return null;
         }
@@ -56,27 +52,21 @@ public class StoreOrderDetailMapper {
                 .build();
     }
 
-    public List<GetStoreOrderDetailResponse.ProductInfo> toProductInfos(
-            List<OrderProduct> orderProducts
-    ) {
+    public List<GetStoreOrderDetailResponse.ProductInfo> toProductInfos(List<OrderProduct> orderProducts) {
         return orderProducts.stream()
                 .map(this::toProductInfo)
                 .toList();
     }
 
-    public GetStoreOrderDetailResponse.ProductInfo toProductInfo(
-            OrderProduct op) {
+    public GetStoreOrderDetailResponse.ProductInfo toProductInfo(OrderProduct op) {
 
         return GetStoreOrderDetailResponse.ProductInfo.builder()
+                .productId(op.getProduct() != null ? op.getProduct().getId() : null)
                 .productNameSnapshot(op.getProductNameSnapshot())
                 .priceSnapshot(op.getPriceSnapshot())
                 .quantity(op.getQuantity())
                 .subtotal(op.getPriceSnapshot() * op.getQuantity())
-                .productImageUrl(
-                        op.getProduct() != null
-                                ? op.getProduct().getProductImageUrl()
-                                : null
-                )
+                .productImageUrl(op.getProduct() != null ? op.getProduct().getProductImageUrl() : null)
                 .build();
     }
 }

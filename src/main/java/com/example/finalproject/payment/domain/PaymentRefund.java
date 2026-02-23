@@ -68,11 +68,15 @@ public class PaymentRefund extends BaseTimeEntity {
 
     @Builder
     public PaymentRefund(Payment payment, StoreOrder storeOrder,
-                         Integer refundAmount, String refundReason) {
+                         Integer refundAmount, String refundReason,
+                         RefundStatus refundStatus, boolean isSettled) {
         this.payment = payment;
         this.storeOrder = storeOrder;
         this.refundAmount = refundAmount;
         this.refundReason = refundReason;
         this.refundedAt = LocalDateTime.now();
+        this.refundStatus = refundStatus;
+        this.isSettled = isSettled;
+
     }
 }
