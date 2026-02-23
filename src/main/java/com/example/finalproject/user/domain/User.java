@@ -68,10 +68,10 @@ public class User extends BaseTimeEntity {
 
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private final List<UserRole> userRoles = new ArrayList<>();
+    private List<UserRole> userRoles = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private final List<Address> addresses = new ArrayList<>();
+    private List<Address> addresses = new ArrayList<>();
 
 
     @Builder

@@ -43,7 +43,7 @@ public class Faq extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private final ContentStatus status = ContentStatus.ACTIVE;
+    private ContentStatus status = ContentStatus.ACTIVE;
 
     @Builder
     public Faq(String question, String answer, User author) {

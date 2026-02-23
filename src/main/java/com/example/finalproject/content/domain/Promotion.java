@@ -44,7 +44,7 @@ public class Promotion extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private final PromotionStatus status = PromotionStatus.ACTIVE;
+    private PromotionStatus status = PromotionStatus.ACTIVE;
 
     @Builder
     public Promotion(String title, LocalDate startDate, LocalDate endDate) {

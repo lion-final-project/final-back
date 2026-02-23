@@ -5,11 +5,11 @@ import lombok.Getter;
 
 @Getter
 public class GetPaymentMethodResponse {
-    private final Long id;
-    private final String methodType;
-    private final String cardCompany;
-    private final String cardNumberMasked;
-    private final Boolean isDefault;
+    private Long id;
+    private String methodType;
+    private String cardCompany;
+    private String cardNumberMasked;
+    private Boolean isDefault;
 
     public GetPaymentMethodResponse(PaymentMethod paymentMethod) {
         this.id = paymentMethod.getId();

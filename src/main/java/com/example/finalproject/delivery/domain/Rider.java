@@ -44,7 +44,7 @@ public class Rider extends BaseTimeEntity {
     private String applicantPhone;
 
     @Column(name = "id_card_verified", nullable = false)
-    private final Boolean idCardVerified = false;
+    private Boolean idCardVerified = false;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "operation_status", nullable = false)

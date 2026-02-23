@@ -43,7 +43,7 @@ public class Notice extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private final ContentStatus status = ContentStatus.ACTIVE;
+    private ContentStatus status = ContentStatus.ACTIVE;
 
     @Column(name = "is_pinned", nullable = false)
     private Boolean isPinned = false;
