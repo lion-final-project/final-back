@@ -29,9 +29,11 @@ services:
     image: nginx:alpine
     container_name: nginx-proxy
     ports:
-      - "80:80" # 실제 사용자가 접속할 포트
+      - "80:80"   # HTTP → HTTPS 리다이렉트
+      - "443:443" # HTTPS
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - backend
     restart: always

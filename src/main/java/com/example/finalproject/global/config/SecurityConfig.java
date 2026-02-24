@@ -77,15 +77,16 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOrigins(List.of( // 허용할 도메인 리스트
+                config.setAllowedOriginPatterns(List.of( // 허용할 도메인 리스트 (와일드카드 지원)
                                 "http://localhost:5173",
                                 "http://localhost:3000",
                                 "http://127.0.0.1:5173",
                                 "http://127.0.0.1:3000",
                                 "http://43.200.37.106",
-                                "http://43.200.37.106:8080"));
+                                "http://43.200.37.106:8080",
+                                "https://*.vercel.app")); // Vercel 배포용
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-                config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+                config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control"));
                 config.setAllowCredentials(true); // 쿠키 포함 여부
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
