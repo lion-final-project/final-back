@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  backend:
+    # GitHub Actions를 통해 도커 허브에 올라간 이미지 사용
+    image: ${DOCKER_USERNAME}/final-back:latest
+    container_name: final-back-prod
+    # 외부 노출 없이 Nginx와 내부 통신만 수행
+    expose:
+      - "8080"
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - TZ=Asia/Seoul
+    # t3.micro의 1GiB RAM 보호를 위한 메모리 제한
+    deploy:
+      resources:
+        limits:
+          memory: 700M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"   # HTTP → HTTPS 리다이렉트
+      - "443:443" # HTTPS
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - backend
+    restart: always
