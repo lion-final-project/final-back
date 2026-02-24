@@ -124,7 +124,8 @@ public class Payment extends BaseTimeEntity {
     }
 
     public void markRefundRequested() {
-        if (this.paymentStatus != PaymentStatus.APPROVED &&
+        if (this.paymentStatus != PaymentStatus.PENDING &&
+                this.paymentStatus != PaymentStatus.APPROVED &&
                 this.paymentStatus != PaymentStatus.PARTIAL_REFUNDED) {
             throw new BusinessException(ErrorCode.INVALID_PAYMENT_CANCEL_STATUS);
         }
