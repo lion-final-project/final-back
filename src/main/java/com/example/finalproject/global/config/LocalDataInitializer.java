@@ -1,51 +1,12 @@
 package com.example.finalproject.global.config;
 
-import com.example.finalproject.delivery.domain.Rider;
-import com.example.finalproject.delivery.repository.RiderRepository;
-import com.example.finalproject.global.util.GeometryUtil;
-import com.example.finalproject.moderation.domain.Approval;
-import com.example.finalproject.moderation.enums.ApplicantType;
-import com.example.finalproject.moderation.enums.ApprovalStatus;
-import com.example.finalproject.moderation.repository.ApprovalRepository;
-import com.example.finalproject.coupon.domain.Coupon;
-import com.example.finalproject.coupon.repository.CouponRepository;
-import com.example.finalproject.order.domain.Cart;
-import com.example.finalproject.order.domain.CartProduct;
-import com.example.finalproject.order.domain.Order;
-import com.example.finalproject.order.enums.OrderStatus;
-import com.example.finalproject.order.enums.OrderType;
-import com.example.finalproject.order.repository.CartProductRepository;
-import com.example.finalproject.order.repository.CartRepository;
-import com.example.finalproject.order.repository.OrderRepository;
-import com.example.finalproject.product.domain.Product;
 import com.example.finalproject.product.domain.ProductCategory;
 import com.example.finalproject.product.repository.ProductCategoryRepository;
-import com.example.finalproject.product.repository.ProductRepository;
-import com.example.finalproject.store.domain.Store;
 import com.example.finalproject.store.domain.StoreCategory;
-import com.example.finalproject.store.domain.embedded.SettlementAccount;
-import com.example.finalproject.store.domain.embedded.StoreAddress;
-import com.example.finalproject.store.domain.embedded.SubmittedDocumentInfo;
-import com.example.finalproject.store.enums.StoreActiveStatus;
 import com.example.finalproject.store.repository.StoreCategoryRepository;
-import com.example.finalproject.store.repository.StoreRepository;
-import com.example.finalproject.subscription.domain.Subscription;
-import com.example.finalproject.subscription.domain.SubscriptionProduct;
-import com.example.finalproject.subscription.enums.SubscriptionProductStatus;
-import com.example.finalproject.subscription.enums.SubscriptionStatus;
-import com.example.finalproject.subscription.repository.SubscriptionProductRepository;
-import com.example.finalproject.subscription.repository.SubscriptionRepository;
-import com.example.finalproject.payment.domain.Payment;
-import com.example.finalproject.payment.domain.PaymentMethod;
-import com.example.finalproject.payment.enums.PaymentMethodType;
-import com.example.finalproject.payment.enums.PaymentStatus;
-import com.example.finalproject.payment.repository.PaymentMethodRepository;
-import com.example.finalproject.payment.repository.PaymentRepository;
-import com.example.finalproject.user.domain.Address;
 import com.example.finalproject.user.domain.Role;
 import com.example.finalproject.user.domain.User;
 import com.example.finalproject.user.domain.UserRole;
-import com.example.finalproject.user.repository.AddressRepository;
 import com.example.finalproject.user.repository.RoleRepository;
 import com.example.finalproject.user.repository.UserRepository;
 import com.example.finalproject.user.repository.UserRoleRepository;
@@ -57,11 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * 기존 시드 데이터 주입용. 이제 목데이터(Mock-Data-Loader SQL)로 통일하므로 기본 비활성화.
@@ -80,19 +38,6 @@ public class LocalDataInitializer implements CommandLineRunner {
     private final ProductCategoryRepository productCategoryRepository;
     private final PasswordEncoder passwordEncoder;
     private final StoreCategoryRepository storeCategoryRepository;
-    private final StoreRepository storeRepository;
-    private final ProductRepository productRepository;
-    private final CartRepository cartRepository;
-    private final CartProductRepository cartProductRepository;
-    private final AddressRepository addressRepository;
-    private final PaymentMethodRepository paymentMethodRepository;
-    private final CouponRepository couponRepository;
-    private final ApprovalRepository approvalRepository;
-    private final RiderRepository riderRepository;
-    private final OrderRepository orderRepository;
-    private final PaymentRepository paymentRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final SubscriptionProductRepository subscriptionProductRepository;
 
     @Override
     @Transactional
