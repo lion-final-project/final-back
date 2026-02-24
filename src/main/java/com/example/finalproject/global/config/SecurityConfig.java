@@ -14,6 +14,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,6 +43,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableMethodSecurity
 @EnableConfigurationProperties({ JwtProperties.class, KakaoProperties.class, NaverProperties.class })
 public class SecurityConfig {
+        @Value("${cors.allowed-origins}")
+        private List<String> allowedOrigins;
+
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
         private final SocialLoginStrategyRegistry socialLoginStrategyRegistry;
         private final ClientRegistrationRepository clientRegistrationRepository;
@@ -77,14 +82,7 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOriginPatterns(List.of( // 허용할 도메인 리스트 (와일드카드 지원)
-                                "http://localhost:5173",
-                                "http://localhost:3000",
-                                "http://127.0.0.1:5173",
-                                "http://127.0.0.1:3000",
-                                "http://43.200.37.106",
-                                "http://43.200.37.106:8080",
-                                "https://*.vercel.app")); // Vercel 배포용
+                config.setAllowedOriginPatterns(allowedOrigins);
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control"));
                 config.setAllowCredentials(true); // 쿠키 포함 여부

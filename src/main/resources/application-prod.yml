@@ -3,6 +3,9 @@ spring:
     activate:
       on-profile: prod
 
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO}
