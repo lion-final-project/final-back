@@ -69,7 +69,8 @@ public class PaymentRefund extends BaseTimeEntity {
     @Builder
     public PaymentRefund(Payment payment, StoreOrder storeOrder,
                          Integer refundAmount, String refundReason,
-                         RefundStatus refundStatus, RefundResponsibility responsibility) {
+                         RefundStatus refundStatus, boolean isSettled,
+                         RefundResponsibility responsibility) {
         this.payment = payment;
         this.storeOrder = storeOrder;
         this.refundAmount = refundAmount;
@@ -77,12 +78,16 @@ public class PaymentRefund extends BaseTimeEntity {
         this.refundStatus = refundStatus != null ? refundStatus : RefundStatus.REQUESTED;
         this.refundedAt = LocalDateTime.now();
         this.responsibility = responsibility;
+        this.isSettled = isSettled;
     }
 
     public void adminApprove(int refundAmount) {
         this.refundAmount = refundAmount;
         this.refundStatus = RefundStatus.APPROVED;
         this.refundedAt = LocalDateTime.now();
+        this.refundStatus = refundStatus;
+        this.isSettled = isSettled;
+
     }
 
     public void confirmRefundDetails(RefundResponsibility responsibility, int refundAmount) {
