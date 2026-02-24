@@ -146,6 +146,7 @@ public class PaymentCommandService {
                             .refundReason(reason)
                             .refundStatus(RefundStatus.APPROVED)
                             .responsibility(RefundResponsibility.PLATFORM)
+                            .isSettled(false)
                             .build()
             );
         }
